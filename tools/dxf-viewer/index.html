@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free DXF Viewer — runs in your browser, nothing uploaded — Curious Technologies</title>
+<meta name="description" content="Free in-browser DXF viewer. Drop in an ASCII DXF and see lines, arcs, circles, polylines and text drawn with per-layer toggles. Nothing is uploaded — your file never leaves your computer.">
+<link rel="canonical" href="https://www.curioustech.org/tools/dxf-viewer/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/tools/dxf-viewer/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="Free DXF Viewer — runs in your browser, nothing uploaded">
+<meta property="og:description" content="Drop in an ASCII DXF and see the geometry drawn, layer by layer, with honest notes about anything it can't draw. No upload — there is no server to upload to.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Free DXF Viewer — in your browser, nothing uploaded">
+<meta name="twitter:description" content="View DXF files free: lines, arcs, circles, polylines, text. Layer toggles, zoom and pan. Files never leave your computer.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Free DXF Viewer",
+  "url": "https://www.curioustech.org/tools/dxf-viewer/",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (runs in the browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "publisher": { "@type": "Organization", "name": "Curious Technologies LLC", "url": "https://www.curioustech.org/" }
+}
+</script>
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site chrome.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  .btn{
+    display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;
+    padding:.72rem 1.35rem;border-radius:4px;cursor:pointer;
+    font-family:inherit;
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--hairline-strong)}
+  .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:5;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+
+  /* ============ PAGE HEAD ============ */
+  .pagehead{padding:3.4rem 0 2.6rem;border-bottom:1px solid var(--hairline)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .pagehead .lede{margin-top:1.2rem}
+  .pagehead p+p{margin-top:.9rem}
+
+  /* ============ VIEWER ============ */
+  .viewer-sec{padding:2.6rem 0 3.4rem}
+  .toolbar{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin:0 0 1rem}
+  .toolbar .status{
+    font-family:var(--mono);font-size:.72rem;color:var(--muted);
+    margin-left:auto;overflow-wrap:anywhere;letter-spacing:.02em;
+  }
+  @media (max-width:600px){.toolbar .status{margin-left:0;flex-basis:100%}}
+
+  .viewer-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:1.4rem;align-items:start}
+  @media (max-width:860px){.viewer-grid{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    height:clamp(320px,58vh,620px);
+  }
+  .stage.drag{outline:2px dashed var(--blue);outline-offset:-8px}
+  .stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  .stage.panning canvas{cursor:grabbing}
+
+  .empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:.4rem;text-align:center;
+    padding:1.2rem;pointer-events:none;
+  }
+  .empty .big{font-weight:700;color:var(--ink-strong);font-size:1.1rem}
+  .empty .or{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:.35rem 0}
+  .empty .btn{pointer-events:auto}
+  .empty .note{font-size:.82rem;color:var(--muted);margin-top:.8rem;max-width:34ch}
+
+  .errbox{
+    border:1px solid var(--bad);background:var(--paper-raised);
+    color:var(--ink-strong);font-size:.93rem;
+    padding:.9rem 1.1rem;margin:0 0 1rem;max-width:none;
+  }
+  .errbox strong{color:var(--bad)}
+  .errbox[hidden]{display:none}
+
+  .hint{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:.8rem;padding-top:.6rem;
+  }
+
+  .panel{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:1rem 1.1rem;margin-bottom:1.4rem;
+  }
+  .panel h2{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--navy);font-weight:400;margin-bottom:.7rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .panel h2::after{content:"";flex:1;height:1px;background:var(--hairline)}
+
+  .layer-list{list-style:none}
+  .layer-list li+li{border-top:1px solid var(--hairline)}
+  .layer-list label{
+    display:flex;align-items:center;gap:.55rem;padding:.42rem .1rem;
+    font-size:.88rem;cursor:pointer;
+  }
+  .layer-list input{accent-color:var(--navy);flex:none}
+  .layer-list .sw{width:.7rem;height:.7rem;border-radius:2px;flex:none}
+  .layer-list .lname{
+    font-family:var(--mono);font-size:.8rem;color:var(--ink-strong);
+    overflow-wrap:anywhere;min-width:0;
+  }
+  .layer-list .lcount{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--muted);flex:none}
+  .panel .none{font-size:.85rem;color:var(--muted)}
+
+  .stats{font-family:var(--mono);font-size:.78rem;line-height:1.6}
+  .stats .srow{display:flex;gap:.8rem;justify-content:space-between;padding:.22rem 0;border-bottom:1px solid var(--hairline)}
+  .stats .srow:last-child{border-bottom:0}
+  .stats .sk{color:var(--muted);flex:none}
+  .stats .sv{color:var(--ink-strong);text-align:right;overflow-wrap:anywhere;min-width:0}
+  .stats .swarn{color:var(--warn)}
+  .stats .snote{font-family:'Inter',system-ui,sans-serif;font-size:.78rem;color:var(--warn);padding-top:.5rem}
+
+  /* ============ LIMITS ============ */
+  .limits-sec{padding:0 0 3.6rem}
+  .limits{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:1.1rem 1.3rem;font-size:.9rem;color:var(--muted);max-width:none;
+  }
+  .limits b{color:var(--ink-strong)}
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site sections">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF guide</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/dxf-viewer/" class="active" aria-current="page">DXF viewer</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ PAGE HEAD + TRUST ============ -->
+  <section class="pagehead" aria-labelledby="h-title">
+    <div class="wrap">
+      <p class="eyebrow">Free tool &middot; DXF</p>
+      <h1 id="h-title">Free DXF viewer</h1>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Drop a DXF on this page and see it: lines, arcs, circles, polylines, and text, drawn with per-layer toggles — and an honest note about anything we can&rsquo;t draw.</p>
+      <p><a class="textlink" href="/learn/dxf/">New to the format? Read the plain-English DXF guide &rarr;</a></p>
+
+      <div class="trust">
+        <span class="tag">How this works</span>
+        <p>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</p>
+        <p>Parsing and drawing happen right here on this page. No accounts, no analytics, no uploads.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEWER ============ -->
+  <section class="viewer-sec" aria-label="DXF viewer">
+    <div class="wrap">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-open" type="button">Open a DXF file&hellip;</button>
+        <button class="btn btn-ghost" type="button" data-sample>Load sample</button>
+        <button class="btn btn-ghost" id="btn-fit" type="button">Fit view</button>
+        <span class="status" id="status" role="status">No file loaded — nothing leaves this page either way.</span>
+        <input type="file" id="file-input" accept=".dxf,application/dxf,image/vnd.dxf" style="display:none" aria-hidden="true" tabindex="-1">
+      </div>
+
+      <div class="errbox" id="errbox" hidden></div>
+
+      <div class="viewer-grid">
+        <div>
+          <div class="stage ticked" id="stage">
+            <canvas id="cv" aria-label="DXF drawing canvas. Drawn geometry appears here; entity and layer details are listed in the layers and file panels."></canvas>
+            <div class="empty" id="empty">
+              <p class="big">Drop a .dxf file here</p>
+              <p class="or">&mdash; or &mdash;</p>
+              <button class="btn btn-ghost" type="button" data-sample>Load the sample drawing</button>
+              <p class="note">Parsing happens right here in the page. The file is never uploaded.</p>
+            </div>
+          </div>
+          <p class="hint">SCROLL / PINCH TO ZOOM &middot; DRAG TO PAN &middot; DOUBLE-CLICK OR FIT TO RESET &middot; NOTHING YOU LOAD LEAVES THIS PAGE</p>
+        </div>
+
+        <aside aria-label="Layers and file statistics">
+          <div class="panel">
+            <h2>Layers</h2>
+            <ul class="layer-list" id="layer-list"></ul>
+            <p class="none" id="layer-none">No file loaded.</p>
+          </div>
+          <div class="panel">
+            <h2>File</h2>
+            <div class="stats" id="stats">
+              <p class="none">Load a DXF to see entity counts, declared units, and extents — including an honest list of anything we skipped.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIMITS ============ -->
+  <section class="limits-sec" aria-labelledby="limits-h">
+    <div class="wrap">
+      <p class="secmark" id="limits-h">Limits <b>&middot; stated plainly</b></p>
+      <p class="limits"><b>What this viewer reads:</b> ASCII DXF only — binary DXF and DWG files are detected and refused with an explanation, not a spinner. <b>What it draws:</b> LINE, CIRCLE, ARC, LWPOLYLINE (bulge arcs approximated with short segments), POLYLINE/VERTEX, and TEXT. Everything else — SPLINE, INSERT, DIMENSION, hatches — is counted and listed in the File panel, not drawn, so you know exactly what you&rsquo;re not seeing. Colors are per-layer for legibility, not your CAD colors. View-only: no editing, no export. Coordinates are shown as-is in the file&rsquo;s own units.
+      <a href="/learn/dxf/" class="textlink" style="border-bottom-color:var(--hairline)">Format details in the DXF guide &rarr;</a></p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL-DXF-VIEWER</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Free in-browser tools</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/learn/dxf/" style="color:#93c5fd;text-decoration:none">DXF guide</a></p>
+  </div>
+</footer>
+
+<!-- Embedded sample: a small hand-written ASCII DXF (160 x 100 mm plate,
+     rounded corner via bulge, bolt holes, centerlines, an arc, an old-style
+     POLYLINE triangle, a TEXT label, and one SPLINE the viewer will honestly
+     skip and count). -->
+<script type="text/plain" id="sample-dxf">0
+SECTION
+2
+HEADER
+9
+$ACADVER
+1
+AC1015
+9
+$INSUNITS
+70
+4
+0
+ENDSEC
+0
+SECTION
+2
+ENTITIES
+0
+LWPOLYLINE
+8
+OUTLINE
+90
+5
+70
+1
+10
+0
+20
+0
+10
+160
+20
+0
+10
+160
+20
+80
+42
+0.41421356
+10
+140
+20
+100
+10
+0
+20
+100
+0
+CIRCLE
+8
+HOLES
+10
+20
+20
+20
+40
+5
+0
+CIRCLE
+8
+HOLES
+10
+140
+20
+20
+40
+5
+0
+CIRCLE
+8
+HOLES
+10
+20
+20
+80
+40
+5
+0
+CIRCLE
+8
+HOLES
+10
+80
+20
+50
+40
+20
+0
+LINE
+8
+CENTER
+10
+52
+20
+50
+11
+108
+21
+50
+0
+LINE
+8
+CENTER
+10
+80
+20
+22
+11
+80
+21
+78
+0
+ARC
+8
+MARKS
+10
+80
+20
+50
+40
+26
+50
+210
+51
+330
+0
+POLYLINE
+8
+MARKS
+66
+1
+70
+1
+0
+VERTEX
+8
+MARKS
+10
+72
+20
+8
+0
+VERTEX
+8
+MARKS
+10
+88
+20
+8
+0
+VERTEX
+8
+MARKS
+10
+80
+20
+20
+0
+SEQEND
+0
+TEXT
+8
+NOTES
+10
+12
+20
+88
+40
+6
+1
+SAMPLE PLATE 160x100 MM
+0
+SPLINE
+8
+MARKS
+70
+8
+71
+3
+72
+8
+73
+4
+10
+110
+20
+12
+30
+0
+10
+118
+20
+20
+30
+0
+10
+126
+20
+8
+30
+0
+10
+134
+20
+16
+30
+0
+0
+ENDSEC
+0
+EOF</script>
+
+<script>
+/* ============ DxfMini — a small, honest ASCII-DXF parser ============
+   Pure functions, no DOM. Reads the ENTITIES section and returns
+   drawable primitives plus an honest count of everything skipped. */
+var DxfMini = (function () {
+  'use strict';
+
+  var DRAWN_TYPES = { LINE: 1, CIRCLE: 1, ARC: 1, LWPOLYLINE: 1, POLYLINE: 1, TEXT: 1, VERTEX: 1, SEQEND: 1 };
+
+  function tokenize(text) {
+    var lines = text.split(/\r\n|\r|\n/);
+    while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+    var start = 0;
+    while (start < lines.length && lines[start].trim() === '') start++;
+    var pairs = [];
+    for (var i = start; i + 1 < lines.length; i += 2) {
+      var code = parseInt(lines[i].trim(), 10);
+      if (isNaN(code)) throw new Error('expected a numeric group code at line ' + (i + 1));
+      if (code === 999) continue; /* comment pair */
+      pairs.push([code, lines[i + 1].trim()]);
+    }
+    return pairs;
+  }
+
+  function num(data, code, dflt) {
+    for (var k = 0; k < data.length; k++) {
+      if (data[k][0] === code) {
+        var n = parseFloat(data[k][1]);
+        return isNaN(n) ? dflt : n;
+      }
+    }
+    return dflt;
+  }
+
+  function str(data, code, dflt) {
+    for (var k = 0; k < data.length; k++) if (data[k][0] === code) return data[k][1];
+    return dflt;
+  }
+
+  /* Expand one bulge segment (p1 -> p2, bulge b) into short line segments.
+     bulge = tan(theta/4); positive = counterclockwise. */
+  function appendBulge(pts, p1, p2, bulge) {
+    var dx = p2.x - p1.x, dy = p2.y - p1.y;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 1e-12) return;
+    var theta = 4 * Math.atan(bulge);
+    var r = d / (2 * Math.sin(Math.abs(theta) / 2));
+    var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+    var rnx = dy / d, rny = -dx / d;            /* right normal of the chord */
+    var s = bulge * d / 2;                      /* signed sagitta */
+    var ax = mx + rnx * s, ay = my + rny * s;   /* midpoint of the arc itself */
+    var sgn = bulge >= 0 ? 1 : -1;
+    var cx = ax - rnx * r * sgn, cy = ay - rny * r * sgn;
+    var a0 = Math.atan2(p1.y - cy, p1.x - cx);
+    var n = Math.max(2, Math.ceil(Math.abs(theta) / (Math.PI / 24)));
+    for (var i = 1; i <= n; i++) {
+      var t = a0 + theta * (i / n);
+      pts.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]);
+    }
+  }
+
+  function polyToEntity(p, srcType) {
+    if (p.verts.length < 2) return null;
+    var pts = [[p.verts[0].x, p.verts[0].y]];
+    var nv = p.verts.length;
+    var segs = p.closed ? nv : nv - 1;
+    for (var i = 0; i < segs; i++) {
+      var a = p.verts[i], b = p.verts[(i + 1) % nv];
+      if (a.b) appendBulge(pts, a, b, a.b);
+      else pts.push([b.x, b.y]);
+    }
+    return { kind: 'path', layer: p.layer, pts: pts, closed: p.closed, src: srcType };
+  }
+
+  function parse(text) {
+    var pairs = tokenize(text);
+    if (!pairs.length) throw new Error('no group code / value pairs found');
+
+    /* declared units from HEADER, if present */
+    var units = null;
+    for (var i = 0; i < pairs.length - 1; i++) {
+      if (pairs[i][0] === 2 && pairs[i][1] === 'ENTITIES') break;
+      if (pairs[i][0] === 9 && pairs[i][1] === '$INSUNITS') {
+        for (var j = i + 1; j < Math.min(i + 4, pairs.length); j++) {
+          if (pairs[j][0] === 70) { units = parseInt(pairs[j][1], 10); break; }
+          if (pairs[j][0] === 0 || pairs[j][0] === 9) break;
+        }
+      }
+    }
+
+    /* locate the ENTITIES section */
+    var entStart = -1;
+    for (i = 0; i < pairs.length - 1; i++) {
+      if (pairs[i][0] === 0 && pairs[i][1] === 'SECTION' &&
+          pairs[i + 1][0] === 2 && pairs[i + 1][1] === 'ENTITIES') { entStart = i + 2; break; }
+    }
+    if (entStart < 0) throw new Error('no ENTITIES section found');
+
+    /* slice into records: one per 0/<TYPE> pair */
+    var records = [];
+    var cur = null;
+    for (i = entStart; i < pairs.length; i++) {
+      if (pairs[i][0] === 0) {
+        if (pairs[i][1] === 'ENDSEC') break;
+        cur = { type: pairs[i][1].toUpperCase(), data: [] };
+        records.push(cur);
+      } else if (cur) {
+        cur.data.push(pairs[i]);
+      }
+    }
+
+    /* records -> drawable entities + honest skip counts */
+    var entities = [];
+    var skipped = {};
+    var drawn = {};
+    var openPoly = null;
+
+    function commitPoly() {
+      if (!openPoly) return;
+      var e = polyToEntity(openPoly, 'POLYLINE');
+      if (e) { entities.push(e); drawn.POLYLINE = (drawn.POLYLINE || 0) + 1; }
+      openPoly = null;
+    }
+
+    records.forEach(function (rec) {
+      var d = rec.data;
+      var layer = str(d, 8, '0') || '0';
+      switch (rec.type) {
+        case 'LINE':
+          entities.push({ kind: 'path', layer: layer, closed: false, src: 'LINE',
+            pts: [[num(d, 10, 0), num(d, 20, 0)], [num(d, 11, 0), num(d, 21, 0)]] });
+          drawn.LINE = (drawn.LINE || 0) + 1;
+          break;
+        case 'CIRCLE':
+          entities.push({ kind: 'circle', layer: layer, src: 'CIRCLE',
+            cx: num(d, 10, 0), cy: num(d, 20, 0), r: num(d, 40, 0) });
+          drawn.CIRCLE = (drawn.CIRCLE || 0) + 1;
+          break;
+        case 'ARC':
+          entities.push({ kind: 'arc', layer: layer, src: 'ARC',
+            cx: num(d, 10, 0), cy: num(d, 20, 0), r: num(d, 40, 0),
+            a0: num(d, 50, 0), a1: num(d, 51, 360) });
+          drawn.ARC = (drawn.ARC || 0) + 1;
+          break;
+        case 'LWPOLYLINE': {
+          var p = { layer: layer, closed: (num(d, 70, 0) & 1) === 1, verts: [] };
+          var vcur = null;
+          for (var k = 0; k < d.length; k++) {
+            var cc = d[k][0], vv = parseFloat(d[k][1]);
+            if (cc === 10) { vcur = { x: vv, y: 0, b: 0 }; p.verts.push(vcur); }
+            else if (cc === 20 && vcur) vcur.y = vv;
+            else if (cc === 42 && vcur) vcur.b = vv;
+          }
+          var e = polyToEntity(p, 'LWPOLYLINE');
+          if (e) { entities.push(e); drawn.LWPOLYLINE = (drawn.LWPOLYLINE || 0) + 1; }
+          break;
+        }
+        case 'POLYLINE':
+          commitPoly();
+          openPoly = { layer: layer, closed: (num(d, 70, 0) & 1) === 1, verts: [] };
+          break;
+        case 'VERTEX':
+          if (openPoly) {
+            var flags = num(d, 70, 0);
+            if (!(flags & 16)) { /* skip spline-frame control points */
+              openPoly.verts.push({ x: num(d, 10, 0), y: num(d, 20, 0), b: num(d, 42, 0) });
+            }
+          }
+          break;
+        case 'SEQEND':
+          commitPoly();
+          break;
+        case 'TEXT':
+          entities.push({ kind: 'text', layer: layer, src: 'TEXT',
+            x: num(d, 10, 0), y: num(d, 20, 0), h: num(d, 40, 1),
+            rot: num(d, 50, 0), s: str(d, 1, '') });
+          drawn.TEXT = (drawn.TEXT || 0) + 1;
+          break;
+        default:
+          skipped[rec.type] = (skipped[rec.type] || 0) + 1;
+      }
+    });
+    commitPoly(); /* unterminated POLYLINE at ENDSEC */
+
+    /* layers in order of first appearance, with drawn-entity counts */
+    var layers = {}, layerOrder = [];
+    entities.forEach(function (e) {
+      if (!layers[e.layer]) { layers[e.layer] = { count: 0, visible: true }; layerOrder.push(e.layer); }
+      layers[e.layer].count++;
+    });
+
+    /* bounds over drawable geometry */
+    var b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    function ext(x, y) {
+      if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x;
+      if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+    }
+    entities.forEach(function (e) {
+      if (e.kind === 'path') e.pts.forEach(function (pt) { ext(pt[0], pt[1]); });
+      else if (e.kind === 'circle' || e.kind === 'arc') { ext(e.cx - e.r, e.cy - e.r); ext(e.cx + e.r, e.cy + e.r); }
+      else if (e.kind === 'text') { ext(e.x, e.y); ext(e.x + e.s.length * e.h * 0.62, e.y + e.h); }
+    });
+
+    return {
+      entities: entities,
+      layers: layers,
+      layerOrder: layerOrder,
+      drawn: drawn,
+      skipped: skipped,
+      units: units,
+      bounds: b,
+      hasBounds: isFinite(b.x0)
+    };
+  }
+
+  return { parse: parse, DRAWN_TYPES: DRAWN_TYPES };
+})();
+</script>
+
+<script>
+/* ============ Viewer app: canvas, panels, input ============ */
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('cv');
+  var ctx = canvas.getContext('2d');
+  var stage = document.getElementById('stage');
+  var emptyState = document.getElementById('empty');
+  var layerList = document.getElementById('layer-list');
+  var layerNone = document.getElementById('layer-none');
+  var statsBox = document.getElementById('stats');
+  var statusLine = document.getElementById('status');
+  var fileInput = document.getElementById('file-input');
+  var errBox = document.getElementById('errbox');
+
+  var doc = null;
+  var view = { scale: 1, ox: 0, oy: 0 };
+  var dpr = window.devicePixelRatio || 1;
+
+  var PALETTE = ['#1e3a8a', '#b45309', '#15803d', '#b91c1c', '#6d28d9', '#0e7490', '#be185d', '#374151'];
+  var UNIT_NAMES = { 0: 'unspecified', 1: 'inches', 2: 'feet', 3: 'miles', 4: 'millimeters', 5: 'centimeters', 6: 'meters' };
+
+  /* ---------- rendering ---------- */
+
+  function niceStep(raw) {
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var norm = raw / pow;
+    return (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * pow;
+  }
+
+  function drawGrid() {
+    var w = canvas.width / dpr, h = canvas.height / dpr;
+    if (!(view.scale > 0) || !isFinite(view.scale)) return;
+    var step = niceStep(56 / view.scale);
+    var sPx = step * view.scale;
+    if (!(sPx > 4)) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 1;
+    var x0w = (0 - view.ox) / view.scale, x1w = (w - view.ox) / view.scale;
+    var y0w = (view.oy - h) / view.scale, y1w = (view.oy - 0) / view.scale;
+    var gx, gy, sx, sy, major;
+    for (gx = Math.ceil(x0w / step) * step; gx <= x1w; gx += step) {
+      sx = gx * view.scale + view.ox;
+      major = Math.round(gx / step) % 5 === 0;
+      ctx.strokeStyle = major ? 'rgba(30,58,138,.10)' : 'rgba(30,58,138,.05)';
+      ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+    }
+    for (gy = Math.ceil(y0w / step) * step; gy <= y1w; gy += step) {
+      sy = -gy * view.scale + view.oy;
+      major = Math.round(gy / step) % 5 === 0;
+      ctx.strokeStyle = major ? 'rgba(30,58,138,.10)' : 'rgba(30,58,138,.05)';
+      ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
+    }
+  }
+
+  function drawText(e, color) {
+    var sx = e.x * view.scale + view.ox;
+    var sy = -e.y * view.scale + view.oy;
+    var px = e.h * view.scale;
+    if (px < 3) return;
+    px = Math.min(px, 800);
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(sx, sy);
+    if (e.rot) ctx.rotate(-e.rot * Math.PI / 180);
+    ctx.fillStyle = color;
+    ctx.font = px + 'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(e.s, 0, 0);
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+    if (!doc) return;
+    var s = view.scale * dpr, ox = view.ox * dpr, oy = view.oy * dpr;
+    doc.entities.forEach(function (e) {
+      var L = doc.layers[e.layer];
+      if (!L || !L.visible) return;
+      if (e.kind === 'text') { drawText(e, L.color); return; }
+      ctx.save();
+      ctx.setTransform(s, 0, 0, -s, ox, oy);
+      ctx.beginPath();
+      if (e.kind === 'path') {
+        ctx.moveTo(e.pts[0][0], e.pts[0][1]);
+        for (var i = 1; i < e.pts.length; i++) ctx.lineTo(e.pts[i][0], e.pts[i][1]);
+        if (e.closed) ctx.closePath();
+      } else if (e.kind === 'circle') {
+        ctx.arc(e.cx, e.cy, e.r, 0, Math.PI * 2);
+      } else if (e.kind === 'arc') {
+        ctx.arc(e.cx, e.cy, e.r, e.a0 * Math.PI / 180, e.a1 * Math.PI / 180, false);
+      }
+      ctx.restore(); /* back to identity so stroke width is in pixels */
+      ctx.strokeStyle = L.color;
+      ctx.lineWidth = Math.max(1, 1.35 * dpr);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    });
+  }
+
+  function fit() {
+    if (!doc || !doc.hasBounds) return;
+    var w = canvas.width / dpr, h = canvas.height / dpr;
+    var bw = Math.max(doc.bounds.x1 - doc.bounds.x0, 1e-9);
+    var bh = Math.max(doc.bounds.y1 - doc.bounds.y0, 1e-9);
+    var sc = Math.min(Math.min(w / bw, h / bh) * 0.85, 1e6);
+    view.scale = sc;
+    view.ox = w / 2 - (doc.bounds.x0 + doc.bounds.x1) / 2 * sc;
+    view.oy = h / 2 + (doc.bounds.y0 + doc.bounds.y1) / 2 * sc;
+    render();
+  }
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    var r = stage.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    render();
+  }
+
+  /* ---------- panels ---------- */
+
+  function buildLayerPanel() {
+    layerList.innerHTML = '';
+    layerNone.hidden = doc.layerOrder.length > 0;
+    doc.layerOrder.forEach(function (name) {
+      var L = doc.layers[name];
+      var li = document.createElement('li');
+      var label = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = L.visible;
+      cb.addEventListener('change', function () { L.visible = cb.checked; render(); });
+      var sw = document.createElement('span');
+      sw.className = 'sw';
+      sw.style.background = L.color;
+      var nm = document.createElement('span');
+      nm.className = 'lname';
+      nm.textContent = name;
+      var ct = document.createElement('span');
+      ct.className = 'lcount';
+      ct.textContent = String(L.count);
+      label.appendChild(cb); label.appendChild(sw); label.appendChild(nm); label.appendChild(ct);
+      li.appendChild(label);
+      layerList.appendChild(li);
+    });
+  }
+
+  function fmt(n) {
+    if (!isFinite(n)) return '—';
+    return String(parseFloat(n.toPrecision(6)));
+  }
+
+  function statRow(parent, key, val, warn) {
+    var row = document.createElement('div');
+    row.className = 'srow';
+    var k = document.createElement('span');
+    k.className = 'sk';
+    k.textContent = key;
+    var v = document.createElement('span');
+    v.className = 'sv' + (warn ? ' swarn' : '');
+    v.textContent = val;
+    row.appendChild(k); row.appendChild(v);
+    parent.appendChild(row);
+  }
+
+  function countList(obj) {
+    return Object.keys(obj).map(function (t) { return t + ' ×' + obj[t]; }).join(' · ');
+  }
+
+  function buildStats() {
+    statsBox.innerHTML = '';
+    statRow(statsBox, 'file', doc.name);
+    statRow(statsBox, 'size', (doc.size / 1024).toFixed(1) + ' KB');
+    var u = doc.units;
+    statRow(statsBox, 'declared units',
+      u === null ? 'not declared' : (UNIT_NAMES[u] || 'code ' + u) + ' ($INSUNITS=' + u + ')');
+    if (doc.hasBounds) {
+      statRow(statsBox, 'extents',
+        fmt(doc.bounds.x1 - doc.bounds.x0) + ' × ' + fmt(doc.bounds.y1 - doc.bounds.y0));
+    }
+    statRow(statsBox, 'layers', String(doc.layerOrder.length));
+    var drawnKeys = Object.keys(doc.drawn);
+    statRow(statsBox, 'drawn', drawnKeys.length ? countList(doc.drawn) : 'nothing');
+    var skippedKeys = Object.keys(doc.skipped);
+    if (skippedKeys.length) {
+      statRow(statsBox, 'skipped', countList(doc.skipped), true);
+      var note = document.createElement('p');
+      note.className = 'snote';
+      note.textContent = 'Skipped entities are real geometry this viewer doesn’t draw yet — the drawing may look incomplete.';
+      statsBox.appendChild(note);
+    } else {
+      statRow(statsBox, 'skipped', 'nothing — every entity was drawn');
+    }
+  }
+
+  /* ---------- errors / status ---------- */
+
+  function showError(msg) {
+    errBox.textContent = msg;
+    errBox.hidden = false;
+  }
+
+  function clearError() {
+    errBox.hidden = true;
+    errBox.textContent = '';
+  }
+
+  /* ---------- loading ---------- */
+
+  function loadText(text, name, size) {
+    clearError();
+    if (text.slice(0, 32).indexOf('AutoCAD Binary DXF') === 0) {
+      showError('This is a binary DXF. This viewer reads ASCII DXF only — re-export the file as ASCII DXF (every CAD package offers the option) and try again.');
+      return;
+    }
+    if (/^AC1\d{3}/.test(text.slice(0, 6))) {
+      showError('This looks like a DWG, not a DXF. Same drawing inside, different container — renaming the extension doesn’t convert it. Export a DXF from your CAD program and try again.');
+      return;
+    }
+    var parsed;
+    try {
+      parsed = DxfMini.parse(text);
+    } catch (err) {
+      showError('Couldn’t parse this file — this viewer covers the common cases, and the file may use features we don’t read yet. (' + err.message + ')');
+      return;
+    }
+    parsed.name = name;
+    parsed.size = size;
+    parsed.layerOrder.forEach(function (lname, i) {
+      parsed.layers[lname].color = PALETTE[i % PALETTE.length];
+    });
+    doc = parsed;
+    emptyState.style.display = 'none';
+    buildLayerPanel();
+    buildStats();
+    var nDrawn = doc.entities.length;
+    var nSkipped = Object.keys(doc.skipped).reduce(function (a, t) { return a + doc.skipped[t]; }, 0);
+    statusLine.textContent = name + ' — ' + nDrawn + ' drawn on ' +
+      doc.layerOrder.length + ' layer' + (doc.layerOrder.length === 1 ? '' : 's') +
+      (nSkipped ? ' · ' + nSkipped + ' skipped' : '');
+    if (nDrawn === 0) {
+      showError('Parsed the file, but every entity in it is a type this viewer doesn’t draw yet — see the skipped list in the File panel.');
+    }
+    resize();
+    fit();
+  }
+
+  function handleFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () { loadText(String(reader.result), file.name, file.size); };
+    reader.onerror = function () { showError('Could not read the file from disk.'); };
+    reader.readAsText(file);
+  }
+
+  function loadSample() {
+    var text = document.getElementById('sample-dxf').textContent.trim();
+    loadText(text, 'sample-plate.dxf', text.length);
+  }
+
+  /* ---------- input wiring ---------- */
+
+  document.getElementById('btn-open').addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  document.getElementById('btn-fit').addEventListener('click', fit);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sample]'), function (btn) {
+    btn.addEventListener('click', loadSample);
+  });
+
+  /* drag & drop — prevent the browser from navigating away, highlight the stage */
+  ['dragover', 'drop'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+  var dragDepth = 0;
+  stage.addEventListener('dragenter', function (e) {
+    e.preventDefault();
+    dragDepth++;
+    stage.classList.add('drag');
+  });
+  stage.addEventListener('dragleave', function () {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) stage.classList.remove('drag');
+  });
+  stage.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    stage.classList.remove('drag');
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  /* wheel zoom about the cursor */
+  function zoomAt(mx, my, f) {
+    var ns = Math.min(Math.max(view.scale * f, 1e-6), 1e7);
+    f = ns / view.scale;
+    view.ox = mx - (mx - view.ox) * f;
+    view.oy = my - (my - view.oy) * f;
+    view.scale = ns;
+    render();
+  }
+  stage.addEventListener('wheel', function (e) {
+    if (!doc) return;
+    e.preventDefault();
+    var rect = canvas.getBoundingClientRect();
+    zoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * 0.0016));
+  }, { passive: false });
+
+  /* pointer pan + two-finger pinch */
+  var pointers = {};
+  var lastMid = null, lastDist = 0;
+
+  function resetGesture() { lastMid = null; lastDist = 0; }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (!doc) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    resetGesture();
+    stage.classList.add('panning');
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in pointers)) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(pointers);
+    var rect = canvas.getBoundingClientRect();
+    if (ids.length === 1) {
+      var p = pointers[ids[0]];
+      var mx = p.x - rect.left, my = p.y - rect.top;
+      if (lastMid) {
+        view.ox += mx - lastMid.x;
+        view.oy += my - lastMid.y;
+        render();
+      }
+      lastMid = { x: mx, y: my };
+    } else if (ids.length >= 2) {
+      var p1 = pointers[ids[0]], p2 = pointers[ids[1]];
+      var mid = { x: (p1.x + p2.x) / 2 - rect.left, y: (p1.y + p2.y) / 2 - rect.top };
+      var dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+      if (lastMid && lastDist > 0) {
+        view.ox += mid.x - lastMid.x;
+        view.oy += mid.y - lastMid.y;
+        zoomAt(mid.x, mid.y, dist / lastDist);
+      }
+      lastMid = mid;
+      lastDist = dist;
+    }
+  });
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    resetGesture();
+    if (!Object.keys(pointers).length) stage.classList.remove('panning');
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('dblclick', fit);
+
+  /* ---------- init ---------- */
+  window.addEventListener('resize', resize);
+  resize();
+  if (location.hash === '#sample') loadSample();
+})();
+</script>
+
+<script>
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  // Reveal-on-scroll — enabled ONLY when motion is allowed AND IntersectionObserver
+  // exists. Otherwise the .js class is never added and the page is simply static.
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+        'IntersectionObserver' in window) {
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free NC1 Viewer — open DSTV steel files in your browser — Curious Technologies</title>
+<meta name="description" content="Free NC1 / DSTV file viewer. Drag in a .nc1 file and see the part — outline, holes, cutouts, scribed marks, and the decoded header. Runs entirely in your browser; your file is never uploaded.">
+<link rel="canonical" href="https://www.curioustech.org/tools/nc1-viewer/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/tools/nc1-viewer/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="Free NC1 Viewer — open DSTV steel files in your browser">
+<meta property="og:description" content="Drag in a .nc1 file and see the part — outline, holes, cutouts, marks, decoded header. 100% client-side: nothing is uploaded.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Free NC1 Viewer (DSTV)">
+<meta name="twitter:description" content="See NC1 steel parts in your browser. Nothing is uploaded — there is no server to upload to.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ BLUEPRINT PRECISION ============ */
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;
+    --ink-strong:#0b1324;
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+  .skip-link{position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none}
+  .skip-link:focus{left:0;color:#fff}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{display:flex;align-items:center;gap:1rem;min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem}
+  .brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--ink-strong);font-weight:700;letter-spacing:-.01em;font-size:1.02rem;margin-right:auto;white-space:nowrap}
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{text-decoration:none;color:var(--muted);font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.25rem 0;border-bottom:2px solid transparent}
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;margin-bottom:1.1rem}
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+  .dim{position:relative;height:1px;background:var(--hairline-strong);margin:1.2rem 0 1.4rem;max-width:220px}
+  .dim::before,.dim::after{content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong)}
+  .dim::before{left:0}
+  .dim::after{right:0}
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,2.7rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--navy);margin-bottom:1rem;display:flex;align-items:center;gap:.7rem}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .btn{display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;padding:.72rem 1.35rem;border-radius:4px;transition:background-color .15s ease,color .15s ease,border-color .15s ease;font-family:inherit;cursor:pointer}
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--hairline-strong)}
+  .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+  .textlink{font-weight:600;color:var(--navy);text-decoration:none;border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem}
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+  .ticked{position:relative}
+  .ticked::before,.ticked::after{content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:2}
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+
+  .trust{background:var(--paper-raised);border:1px solid var(--navy);padding:1.25rem 1.4rem;margin:1.9rem 0;position:relative;max-width:640px}
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--navy);text-transform:uppercase}
+
+  /* ============ VIEWER LAYOUT ============ */
+  .tool-head{padding:3.2rem 0 0}
+  .drop{
+    margin-top:1.9rem;border:2px dashed var(--hairline-strong);background:var(--paper-raised);
+    padding:1.6rem 1.4rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;
+  }
+  .drop.dragover{border-color:var(--blue);background:#eef4fd}
+  .drop p{font-size:.95rem;color:var(--muted);max-width:none;margin:0}
+  .drop .drop-actions{display:flex;gap:.7rem;flex-wrap:wrap}
+  .vgrid{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:1.4rem;margin:1.6rem 0 0;align-items:start}
+  @media (max-width:860px){
+    .vgrid{grid-template-columns:1fr}
+    .stage{order:-1}
+  }
+  .panel{background:var(--paper-raised);border:1px solid var(--hairline-strong)}
+  .panel+.panel{margin-top:1.2rem}
+  .panel-tag{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;
+    display:block;padding:.55rem .9rem;border-bottom:1px solid var(--hairline);
+  }
+  .filelist{list-style:none;max-height:260px;overflow:auto}
+  .filelist:empty::after{content:"No files yet.";display:block;padding:.7rem .9rem;font-size:.85rem;color:var(--muted)}
+  .filelist li{border-bottom:1px solid var(--hairline)}
+  .filelist li:last-child{border-bottom:0}
+  .filelist button{
+    display:flex;align-items:center;gap:.55rem;width:100%;text-align:left;background:none;border:0;
+    font-family:var(--mono);font-size:.8rem;color:var(--ink);padding:.55rem .9rem;cursor:pointer;
+  }
+  .filelist button:hover{background:#f2f6fc}
+  .filelist li.sel button{background:#e8f0fc;color:var(--ink-strong);font-weight:600}
+  .filelist .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--ok)}
+  .filelist li.err .dot{background:var(--bad)}
+  .filelist .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .kv{width:100%;border-collapse:collapse;font-size:.84rem}
+  .kv th,.kv td{padding:.42rem .9rem;border-bottom:1px solid var(--hairline);text-align:left;vertical-align:top}
+  .kv tr:last-child th,.kv tr:last-child td{border-bottom:0}
+  .kv th{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap;width:1%}
+  .kv td{font-family:var(--mono);color:var(--ink-strong);overflow-wrap:anywhere}
+  .statlist{list-style:none;font-size:.84rem;padding:.4rem 0}
+  .statlist li{display:flex;justify-content:space-between;gap:1rem;padding:.22rem .9rem}
+  .statlist .k{color:var(--muted)}
+  .statlist .v{font-family:var(--mono);color:var(--ink-strong);text-align:right;overflow-wrap:anywhere}
+  .stage{min-width:0}
+  .toolbar{display:flex;gap:.5rem;align-items:center;padding:.5rem .6rem;border-bottom:1px solid var(--hairline)}
+  .toolbar .tbtn{
+    font-family:var(--mono);font-size:.78rem;font-weight:600;color:var(--navy);
+    background:var(--paper);border:1px solid var(--hairline-strong);border-radius:3px;
+    padding:.32rem .7rem;cursor:pointer;
+  }
+  .toolbar .tbtn:hover{border-color:var(--navy)}
+  .toolbar .hint{margin-left:auto;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--muted)}
+  @media (max-width:560px){.toolbar .hint{display:none}}
+  .canvas-box{position:relative;background:var(--paper-raised)}
+  #cv{display:block;width:100%;height:62vh;min-height:280px;max-height:640px;touch-action:none;cursor:grab}
+  #cv.panning{cursor:grabbing}
+  .overlay{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:1.5rem;pointer-events:none;
+  }
+  .overlay[hidden]{display:none}
+  .overlay .msg{background:rgba(247,249,252,.95);border:1px solid var(--hairline-strong);padding:1rem 1.3rem;max-width:34rem;font-size:.95rem;color:var(--ink)}
+  .overlay .msg.bad{border-color:var(--bad);color:var(--bad)}
+  .stage-caption{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);padding:.6rem .9rem;overflow-wrap:anywhere;
+  }
+  .limits{margin:2.6rem 0 0;padding-left:1.1rem;border-left:3px solid var(--blue-bright);font-size:.92rem;color:var(--muted);max-width:70ch}
+  .limits b{color:var(--ink-strong)}
+  .after-cta{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap;margin:2.2rem 0 0}
+  .services-line{margin-top:1.2rem;font-size:.9rem;color:var(--muted)}
+  section.tool{padding-bottom:4.2rem}
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{background:#0b1324;color:#8fa3c4;border-top:1px solid rgba(147,197,253,.25);padding:2rem 0 2.6rem;font-size:.8rem}
+  .titleblock{display:grid;grid-template-columns:2fr 1fr 1fr;border:1px solid rgba(147,197,253,.3);font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;margin-bottom:1.3rem}
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere}
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site sections">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/nc1-viewer/" class="active" aria-current="page">Viewer</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="tool" aria-labelledby="tool-h">
+    <div class="wrap">
+      <div class="tool-head">
+        <p class="eyebrow">Free tool &middot; NC1 / DSTV viewer</p>
+        <h1 id="tool-h">See the part inside an NC1 file</h1>
+        <div class="dim" aria-hidden="true"></div>
+        <p class="lede">Drop in a <span style="font-family:var(--mono)">.nc1</span> file and see it drawn — outline, cutouts, holes, scribed marks — with the header decoded into a plain table. New to the format? <a class="textlink" href="/learn/nc1/">Read the guide &rarr;</a></p>
+      </div>
+
+      <div class="trust">
+        <span class="tag">Read this first</span>
+        <p>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</p>
+        <p>This page is plain client-side code: no analytics, no requests carrying your data. The only external request it makes is loading its font.</p>
+      </div>
+
+      <div class="drop ticked" id="drop">
+        <p><b style="color:var(--ink-strong)">Drop NC1 files anywhere in this box</b> — or pick them, or try the built-in sample. Multiple files are fine; they queue up in a list.</p>
+        <div class="drop-actions">
+          <input type="file" id="fileinput" accept=".nc1,.nc,.txt" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden">
+          <button class="btn btn-primary" type="button" id="pickbtn">Choose files</button>
+          <button class="btn btn-ghost" type="button" id="samplebtn">Load sample</button>
+        </div>
+      </div>
+
+      <div class="vgrid">
+        <aside aria-label="File list and part data">
+          <div class="panel">
+            <span class="panel-tag">Files</span>
+            <ul class="filelist" id="filelist"></ul>
+          </div>
+          <div class="panel">
+            <span class="panel-tag">ST header</span>
+            <table class="kv" id="headertable">
+              <tbody>
+                <tr><th scope="row">Order</th><td id="h-order">&mdash;</td></tr>
+                <tr><th scope="row">Drawing</th><td id="h-drawing">&mdash;</td></tr>
+                <tr><th scope="row">Phase</th><td id="h-phase">&mdash;</td></tr>
+                <tr><th scope="row">Piece</th><td id="h-piece">&mdash;</td></tr>
+                <tr><th scope="row">Grade</th><td id="h-grade">&mdash;</td></tr>
+                <tr><th scope="row">Qty</th><td id="h-quantity">&mdash;</td></tr>
+                <tr><th scope="row">Profile</th><td id="h-profile">&mdash;</td></tr>
+                <tr><th scope="row">Dims</th><td id="h-dims">&mdash;</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <span class="panel-tag">Stats</span>
+            <ul class="statlist" id="stats"><li><span class="k">No file loaded</span><span class="v">&mdash;</span></li></ul>
+          </div>
+        </aside>
+
+        <div class="stage panel ticked">
+          <div class="toolbar">
+            <button class="tbtn" type="button" id="fitbtn" title="Fit part to view">FIT</button>
+            <button class="tbtn" type="button" id="zinbtn" aria-label="Zoom in">+</button>
+            <button class="tbtn" type="button" id="zoutbtn" aria-label="Zoom out">&minus;</button>
+            <span class="hint">SCROLL/PINCH ZOOM &middot; DRAG PAN &middot; MM AS-IS</span>
+          </div>
+          <div class="canvas-box">
+            <canvas id="cv" aria-label="Drawing of the loaded NC1 part"></canvas>
+            <div class="overlay" id="overlay"><div class="msg" id="overlaymsg">Drop an <b>.nc1</b> file above — or press <b>Load sample</b> to see the viewer working.</div></div>
+          </div>
+          <div class="stage-caption" id="caption">NO FILE LOADED &middot; VALUES SHOWN AS-IS IN MM</div>
+        </div>
+      </div>
+
+      <p class="limits"><b>Limits, stated plainly:</b> this viewer draws plate-style parts — ST header, AK outlines and IK cutouts (corner-radius values are read but corners are drawn as straight segments), BO holes and slots, SI marks as crosses with text. PU/KO marking geometry and unknown blocks are counted, not drawn. Parts with multiple faces (beams: o/u/h) draw overlaid flat, not folded. Header decoding follows the standard field order; detailer dialects may shift fields. View-only — no editing, no export.</p>
+
+      <div class="after-cta">
+        <a class="btn btn-ghost" href="/learn/nc1/">What is an NC1 file? Read the guide &rarr;</a>
+      </div>
+      <p class="services-line">We build tools that batch-process files like this — <a href="mailto:john@curioustech.org">john@curioustech.org</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Tools &middot; NC1 viewer</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+  </div>
+</footer>
+
+<script id="sample-nc1" type="text/plain">ST
+** Sample plate for the Curious Technologies free viewer
+** 400 x 250 mm plate: 4 bolt holes, 1 slot, 1 cutout, scribed mark
+  DEMO-JOB-001
+  104-B
+  1
+  P104
+  S355JR
+  4
+  PL10
+  400.00
+  250.00
+  10.00
+AK
+  v       0.00      0.00      0.00
+  v     400.00      0.00      0.00
+  v     400.00    250.00      0.00
+  v       0.00    250.00      0.00
+  v       0.00      0.00      0.00
+IK
+  v     160.00    100.00      0.00
+  v     240.00    100.00      0.00
+  v     240.00    150.00      0.00
+  v     160.00    150.00      0.00
+  v     160.00    100.00      0.00
+BO
+  v      40.00     40.00     18.00
+  v     360.00     40.00     18.00
+  v      40.00    210.00     18.00
+  v     360.00    210.00     18.00
+  v     200.00     40.00     14.00     40.00
+SI
+  v      40.00    125.00     10.00  P104
+EN
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  /* ============================================================
+     NC1 / DSTV parser — written from scratch for this viewer.
+     Line-oriented: two-letter block codes (ST header, AK outer
+     contour, IK inner contour, BO holes, SI scribed text, PU/KO
+     marking geometry, EN end). '**' lines are comments.
+     Coordinates are mm; face codes v/o/u/h.
+     ============================================================ */
+
+  var HFIELDS = ['order', 'drawing', 'phase', 'piece', 'grade', 'quantity', 'profile'];
+
+  function parseGeomLine(t, part) {
+    var s = t, face = null;
+    var fm = s.match(/^([vouh])(\s|$)/i);
+    if (fm) {
+      face = fm[1].toLowerCase();
+      part.faces[face] = (part.faces[face] || 0) + 1;
+      s = s.slice(1);
+    }
+    var toks = s.trim().split(/\s+/), nums = [], rest = [], i, tk;
+    for (i = 0; i < toks.length; i++) {
+      tk = toks[i];
+      if (tk === '') continue;
+      // numbers may carry trailing letters in some dialects (e.g. "0.00u")
+      if (/^[-+]?(\d+\.?\d*|\.\d+)/.test(tk)) nums.push(parseFloat(tk));
+      else rest.push(tk);
+    }
+    return { face: face, nums: nums, rest: rest };
+  }
+
+  function parseNC1(text) {
+    var part = {
+      header: null, dims: [],
+      outer: [], inner: [],      // arrays of contours; contour = [{x,y,r}]
+      holes: [], marks: [],
+      faces: {}, comments: 0,
+      skipped: {},               // blockCode -> data-line count (not drawn)
+      lineCount: 0
+    };
+    var lines = text.split(/\r\n|\r|\n/);
+    part.lineCount = lines.length;
+    var mode = null, stLines = [], cur = null, i, raw, t, g;
+
+    function closeContour() {
+      if (cur && cur.pts.length >= 2) {
+        (cur.kind === 'AK' ? part.outer : part.inner).push(cur.pts);
+      }
+      cur = null;
+    }
+
+    for (i = 0; i < lines.length; i++) {
+      raw = lines[i];
+      t = raw.trim();
+      if (t === '') continue;
+      if (t.slice(0, 2) === '**') { part.comments++; continue; }
+
+      if (/^[A-Z]{2}$/.test(t)) {           // block code on its own line
+        closeContour();
+        mode = t;
+        if (t === 'AK' || t === 'IK') cur = { kind: t, pts: [] };
+        if (t === 'EN') break;
+        continue;
+      }
+
+      if (mode === 'ST') { stLines.push(t); continue; }
+
+      if (mode === 'AK' || mode === 'IK') {
+        g = parseGeomLine(t, part);
+        if (g.nums.length >= 2) cur.pts.push({ x: g.nums[0], y: g.nums[1], r: g.nums[2] || 0 });
+        continue;
+      }
+
+      if (mode === 'BO') {
+        g = parseGeomLine(t, part);
+        if (g.nums.length >= 3) {
+          part.holes.push({
+            x: g.nums[0], y: g.nums[1], dia: g.nums[2],
+            slotX: g.nums.length > 3 ? g.nums[3] : 0,
+            slotY: g.nums.length > 4 ? g.nums[4] : 0
+          });
+        }
+        continue;
+      }
+
+      if (mode === 'SI') {
+        g = parseGeomLine(t, part);
+        if (g.nums.length >= 2) {
+          part.marks.push({ x: g.nums[0], y: g.nums[1], text: g.rest.join(' ') });
+        }
+        continue;
+      }
+
+      if (mode) {                            // PU, KO, unknown blocks: count only
+        part.skipped[mode] = (part.skipped[mode] || 0) + 1;
+      }
+    }
+    closeContour();
+
+    if (stLines.length) {
+      part.header = {};
+      for (i = 0; i < stLines.length; i++) {
+        if (i < HFIELDS.length) part.header[HFIELDS[i]] = stLines[i];
+        else part.dims.push(stLines[i]);
+      }
+    }
+
+    var hasGeom = part.outer.length || part.inner.length || part.holes.length || part.marks.length;
+    if (!part.header && !hasGeom) {
+      throw new Error('no recognizable NC1 blocks');
+    }
+    part.hasGeom = !!hasGeom;
+    return part;
+  }
+
+  function boundsOf(part) {
+    var b = null;
+    function grow(x, y) {
+      if (!b) b = { minx: x, miny: y, maxx: x, maxy: y };
+      else {
+        if (x < b.minx) b.minx = x; if (x > b.maxx) b.maxx = x;
+        if (y < b.miny) b.miny = y; if (y > b.maxy) b.maxy = y;
+      }
+    }
+    var i, j, c;
+    for (i = 0; i < part.outer.length; i++) { c = part.outer[i]; for (j = 0; j < c.length; j++) grow(c[j].x, c[j].y); }
+    for (i = 0; i < part.inner.length; i++) { c = part.inner[i]; for (j = 0; j < c.length; j++) grow(c[j].x, c[j].y); }
+    for (i = 0; i < part.holes.length; i++) {
+      var h = part.holes[i], r = h.dia / 2;
+      grow(h.x - r - Math.abs(h.slotX) / 2, h.y - r - Math.abs(h.slotY) / 2);
+      grow(h.x + r + Math.abs(h.slotX) / 2, h.y + r + Math.abs(h.slotY) / 2);
+    }
+    for (i = 0; i < part.marks.length; i++) grow(part.marks[i].x, part.marks[i].y);
+    return b;
+  }
+
+  /* ============ state ============ */
+  var files = [];        // {name, size, part, error}
+  var selIdx = -1;
+  var view = { s: 1, ox: 0, oy: 0, touched: false };
+
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var overlaymsg = document.getElementById('overlaymsg');
+  var caption = document.getElementById('caption');
+  var listEl = document.getElementById('filelist');
+
+  /* ============ rendering ============ */
+  function cssSize() {
+    var r = cv.getBoundingClientRect();
+    return { w: Math.max(1, r.width), h: Math.max(1, r.height) };
+  }
+  function resizeCanvas() {
+    var s = cssSize(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(s.w * dpr);
+    cv.height = Math.round(s.h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function wx(x) { return view.ox + x * view.s; }
+  function wy(yv) { return view.oy - yv * view.s; }
+
+  function fit() {
+    var part = current() && current().part;
+    var s = cssSize();
+    if (!part || !part.hasGeom) return;
+    var b = boundsOf(part);
+    if (!b) return;
+    var dx = Math.max(b.maxx - b.minx, 1e-6), dy = Math.max(b.maxy - b.miny, 1e-6);
+    var m = 34;
+    view.s = Math.min((s.w - 2 * m) / dx, (s.h - 2 * m) / dy);
+    if (!isFinite(view.s) || view.s <= 0) view.s = 1;
+    view.ox = (s.w - dx * view.s) / 2 - b.minx * view.s;
+    view.oy = (s.h - dy * view.s) / 2 + b.maxy * view.s;
+    view.touched = false;
+    draw();
+  }
+
+  function capsulePath(x0, y0, x1, y1, rs) {
+    var a = Math.atan2(y1 - y0, x1 - x0);
+    ctx.beginPath();
+    ctx.arc(x1, y1, rs, a - Math.PI / 2, a + Math.PI / 2);
+    ctx.arc(x0, y0, rs, a + Math.PI / 2, a + 3 * Math.PI / 2);
+    ctx.closePath();
+  }
+
+  function draw() {
+    var s = cssSize();
+    ctx.clearRect(0, 0, s.w, s.h);
+    // drafting grid, screen-space
+    var g = 24, x, yv;
+    ctx.strokeStyle = 'rgba(30,58,138,.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (x = 0.5; x < s.w; x += g) { ctx.moveTo(x, 0); ctx.lineTo(x, s.h); }
+    for (yv = 0.5; yv < s.h; yv += g) { ctx.moveTo(0, yv); ctx.lineTo(s.w, yv); }
+    ctx.stroke();
+
+    var f = current();
+    if (!f || f.error || !f.part.hasGeom) return;
+    var part = f.part, i, j, c, p;
+
+    // outer + inner as one even-odd path: cutouts render as true through-holes
+    ctx.beginPath();
+    function trace(contour) {
+      for (j = 0; j < contour.length; j++) {
+        p = contour[j];
+        if (j === 0) ctx.moveTo(wx(p.x), wy(p.y)); else ctx.lineTo(wx(p.x), wy(p.y));
+      }
+      ctx.closePath();
+    }
+    for (i = 0; i < part.outer.length; i++) trace(part.outer[i]);
+    for (i = 0; i < part.inner.length; i++) trace(part.inner[i]);
+    ctx.fillStyle = '#eef4fb';
+    ctx.fill('evenodd');
+
+    ctx.strokeStyle = '#1e3a8a';
+    for (i = 0; i < part.outer.length; i++) {
+      ctx.beginPath(); trace(part.outer[i]); ctx.lineWidth = 2; ctx.stroke();
+    }
+    for (i = 0; i < part.inner.length; i++) {
+      ctx.beginPath(); trace(part.inner[i]); ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // holes & slots
+    ctx.lineWidth = 1.5;
+    for (i = 0; i < part.holes.length; i++) {
+      var h = part.holes[i], rs = (h.dia / 2) * view.s;
+      if (h.slotX || h.slotY) {
+        capsulePath(wx(h.x - h.slotX / 2), wy(h.y - h.slotY / 2),
+                    wx(h.x + h.slotX / 2), wy(h.y + h.slotY / 2), rs);
+      } else {
+        ctx.beginPath();
+        ctx.arc(wx(h.x), wy(h.y), rs, 0, 2 * Math.PI);
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.stroke();
+    }
+
+    // SI marks: cross + text
+    ctx.strokeStyle = '#2563eb';
+    ctx.fillStyle = '#2563eb';
+    ctx.lineWidth = 1.5;
+    ctx.font = '11px ui-monospace,Menlo,Consolas,monospace';
+    for (i = 0; i < part.marks.length; i++) {
+      var mk = part.marks[i], mx = wx(mk.x), my = wy(mk.y);
+      ctx.beginPath();
+      ctx.moveTo(mx - 5, my - 5); ctx.lineTo(mx + 5, my + 5);
+      ctx.moveTo(mx + 5, my - 5); ctx.lineTo(mx - 5, my + 5);
+      ctx.stroke();
+      if (mk.text) ctx.fillText(mk.text, mx + 8, my - 8);
+    }
+  }
+
+  /* ============ panels ============ */
+  function esc(t) { return t == null ? '' : String(t); }
+  function setText(id, v) { document.getElementById(id).textContent = (v && String(v).trim()) ? String(v).trim() : '—'; }
+
+  function fmtMM(v) { return (Math.round(v * 10) / 10).toString(); }
+
+  function updatePanels() {
+    var f = current();
+    var h = f && !f.error && f.part.header ? f.part.header : {};
+    setText('h-order', h.order); setText('h-drawing', h.drawing);
+    setText('h-phase', h.phase); setText('h-piece', h.piece);
+    setText('h-grade', h.grade); setText('h-quantity', h.quantity);
+    setText('h-profile', h.profile);
+    setText('h-dims', f && !f.error && f.part.dims.length ? f.part.dims.join(' · ') : '');
+
+    var st = document.getElementById('stats');
+    st.innerHTML = '';
+    function row(k, v) {
+      var li = document.createElement('li');
+      var ks = document.createElement('span'); ks.className = 'k'; ks.textContent = k;
+      var vs = document.createElement('span'); vs.className = 'v'; vs.textContent = v;
+      li.appendChild(ks); li.appendChild(vs); st.appendChild(li);
+    }
+    if (!f) { row('No file loaded', '—'); }
+    else if (f.error) { row('Status', 'could not parse'); row('File size', f.size + ' B'); }
+    else {
+      var part = f.part, b = boundsOf(part);
+      var slots = 0, i;
+      for (i = 0; i < part.holes.length; i++) if (part.holes[i].slotX || part.holes[i].slotY) slots++;
+      row('Outer contours', String(part.outer.length));
+      row('Inner contours', String(part.inner.length));
+      row('Holes', String(part.holes.length - slots));
+      row('Slots', String(slots));
+      row('Scribed marks', String(part.marks.length));
+      if (b) row('Extents (mm)', fmtMM(b.maxx - b.minx) + ' × ' + fmtMM(b.maxy - b.miny));
+      var faceKeys = Object.keys(part.faces);
+      if (faceKeys.length) row('Faces seen', faceKeys.sort().join(', '));
+      if (part.comments) row('Comment lines', String(part.comments));
+      var sk = Object.keys(part.skipped);
+      for (i = 0; i < sk.length; i++) {
+        row('Not drawn: ' + sk[i], part.skipped[sk[i]] + ' line' + (part.skipped[sk[i]] === 1 ? '' : 's'));
+      }
+      row('File size', f.size + ' B');
+    }
+
+    if (!f) {
+      overlay.hidden = false;
+      overlaymsg.className = 'msg';
+      overlaymsg.innerHTML = 'Drop an <b>.nc1</b> file above — or press <b>Load sample</b> to see the viewer working.';
+      caption.textContent = 'NO FILE LOADED · VALUES SHOWN AS-IS IN MM';
+    } else if (f.error || !f.part.hasGeom) {
+      overlay.hidden = false;
+      overlaymsg.className = 'msg bad';
+      overlaymsg.textContent = 'Couldn’t parse ' + f.name + ' — this viewer covers the common cases; the file may use features we don’t draw yet.';
+      caption.textContent = esc(f.name).toUpperCase() + ' · NOT DRAWN';
+    } else {
+      overlay.hidden = true;
+      var pc = f.part.header && f.part.header.piece ? ' · PIECE ' + f.part.header.piece.toUpperCase() : '';
+      caption.textContent = esc(f.name).toUpperCase() + pc + ' · VALUES AS-IS IN MM · VIEW-ONLY';
+    }
+  }
+
+  function renderList() {
+    listEl.innerHTML = '';
+    files.forEach(function (f, i) {
+      var li = document.createElement('li');
+      if (i === selIdx) li.className = 'sel';
+      if (f.error || !f.part || !f.part.hasGeom) li.className += (li.className ? ' ' : '') + 'err';
+      var b = document.createElement('button');
+      b.type = 'button';
+      var dot = document.createElement('span'); dot.className = 'dot';
+      var nm = document.createElement('span'); nm.className = 'fname'; nm.textContent = f.name;
+      b.appendChild(dot); b.appendChild(nm);
+      b.addEventListener('click', function () { select(i); });
+      li.appendChild(b);
+      listEl.appendChild(li);
+    });
+  }
+
+  function current() { return selIdx >= 0 ? files[selIdx] : null; }
+
+  function select(i) {
+    selIdx = i;
+    renderList();
+    updatePanels();
+    resizeCanvas();
+    fit();
+    draw();
+  }
+
+  /* ============ loading ============ */
+  function addFile(name, size, text) {
+    var entry = { name: name, size: size, part: null, error: null };
+    try { entry.part = parseNC1(text); }
+    catch (e) { entry.error = String(e && e.message || e); }
+    files.push(entry);
+    select(files.length - 1);
+  }
+
+  function readFiles(fileList) {
+    Array.prototype.forEach.call(fileList, function (file) {
+      var r = new FileReader();
+      r.onload = function () { addFile(file.name, file.size, String(r.result)); };
+      r.onerror = function () { addFile(file.name, file.size, ''); };
+      r.readAsText(file);
+    });
+  }
+
+  var drop = document.getElementById('drop');
+  var input = document.getElementById('fileinput');
+  document.getElementById('pickbtn').addEventListener('click', function () { input.click(); });
+  input.addEventListener('change', function () { if (input.files.length) { readFiles(input.files); input.value = ''; } });
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('dragover'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragover'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) readFiles(e.dataTransfer.files);
+  });
+  // stray drops on the page shouldn't navigate away from the tool
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  document.getElementById('samplebtn').addEventListener('click', function () {
+    var text = document.getElementById('sample-nc1').textContent;
+    addFile('sample-plate.nc1', text.length, text);
+  });
+
+  /* ============ zoom / pan ============ */
+  function zoomAt(px, py, factor) {
+    var ns = view.s * factor;
+    if (ns < 1e-4 || ns > 1e6) return;
+    view.ox = px - (px - view.ox) * factor;
+    view.oy = py - (py - view.oy) * factor;
+    view.s = ns;
+    view.touched = true;
+    draw();
+  }
+
+  cv.addEventListener('wheel', function (e) {
+    if (!current()) return;
+    e.preventDefault();
+    var r = cv.getBoundingClientRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, Math.pow(1.0015, -e.deltaY));
+  }, { passive: false });
+
+  var pointers = {};
+  var pinchD = 0;
+
+  function pcount() { return Object.keys(pointers).length; }
+  function pmid() {
+    var ks = Object.keys(pointers), a = pointers[ks[0]], b = pointers[ks[1]];
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) };
+  }
+
+  cv.addEventListener('pointerdown', function (e) {
+    if (!current()) return;
+    cv.setPointerCapture(e.pointerId);
+    var r = cv.getBoundingClientRect();
+    pointers[e.pointerId] = { x: e.clientX - r.left, y: e.clientY - r.top };
+    if (pcount() === 2) pinchD = pmid().d;
+    cv.classList.add('panning');
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in pointers)) return;
+    var r = cv.getBoundingClientRect();
+    var nx = e.clientX - r.left, ny = e.clientY - r.top;
+    if (pcount() === 1) {
+      var p = pointers[e.pointerId];
+      view.ox += nx - p.x; view.oy += ny - p.y;
+      view.touched = true;
+      p.x = nx; p.y = ny;
+      draw();
+    } else if (pcount() === 2) {
+      pointers[e.pointerId].x = nx; pointers[e.pointerId].y = ny;
+      var m = pmid();
+      if (pinchD > 0 && m.d > 0) zoomAt(m.x, m.y, m.d / pinchD);
+      pinchD = m.d;
+    }
+  });
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (pcount() < 2) pinchD = 0;
+    if (pcount() === 0) cv.classList.remove('panning');
+  }
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+
+  document.getElementById('fitbtn').addEventListener('click', function () { fit(); });
+  document.getElementById('zinbtn').addEventListener('click', function () {
+    var s = cssSize(); zoomAt(s.w / 2, s.h / 2, 1.3);
+  });
+  document.getElementById('zoutbtn').addEventListener('click', function () {
+    var s = cssSize(); zoomAt(s.w / 2, s.h / 2, 1 / 1.3);
+  });
+
+  window.addEventListener('resize', function () {
+    resizeCanvas();
+    if (!view.touched) fit(); else draw();
+  });
+
+  resizeCanvas();
+  updatePanels();
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free SVG Viewer — runs in your browser, nothing uploaded | Curious Technologies</title>
+<meta name="description" content="Free online SVG viewer that runs entirely in your browser: rendered preview with zoom and pan, pretty-printed source, and a stats readout. Your file is never uploaded — there is no server to upload to.">
+<link rel="canonical" href="https://www.curioustech.org/tools/svg-viewer/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/tools/svg-viewer/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="Free SVG Viewer — runs in your browser, nothing uploaded">
+<meta property="og:description" content="Rendered preview with zoom and pan, pretty-printed source, and a stats readout. Client-side only: your file never leaves your machine.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Free SVG Viewer">
+<meta name="twitter:description" content="View any SVG in your browser: render, source, stats. Nothing uploaded, ever.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site system.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+
+  .btn{
+    display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;
+    padding:.72rem 1.35rem;border-radius:4px;
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  /* ============ TRUST BOX ============ */
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  /* ============ VIEWER LAYOUT ============ */
+  .tool-hero{padding:3.4rem 0 2.2rem}
+  .viewer-grid{
+    display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
+    gap:1.4rem;align-items:start;margin:1.8rem 0 3.4rem;
+  }
+  @media (max-width:920px){.viewer-grid{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    position:relative;
+  }
+  .card-h{
+    display:flex;align-items:center;gap:.8rem;
+    padding:.55rem .9rem;border-bottom:1px solid var(--hairline);
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--navy);
+  }
+  .card-h::after{content:"";flex:1;height:1px;background:var(--hairline)}
+
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:2;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+
+  /* toolbar */
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;
+    padding:.55rem .7rem;border-bottom:1px solid var(--hairline);
+  }
+  .tbtn{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--paper);border:1px solid var(--hairline-strong);color:var(--ink);
+    padding:.42rem .68rem;border-radius:3px;cursor:pointer;line-height:1.2;
+  }
+  .tbtn:hover{border-color:var(--navy);color:var(--navy)}
+  .tbtn[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tsep{width:1px;align-self:stretch;background:var(--hairline);margin:0 .3rem}
+  .zoom-pct{
+    font-family:var(--mono);font-size:.72rem;color:var(--muted);
+    min-width:3.4em;text-align:center;
+  }
+  .bar-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+
+  /* stage */
+  .stage{
+    position:relative;height:min(60vh,540px);min-height:280px;
+    overflow:hidden;touch-action:none;cursor:grab;
+  }
+  .stage.grabbing{cursor:grabbing}
+  .stage.paper{background:var(--paper-raised)}
+  .stage.checker{
+    background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#dde5f0 25%,transparent 25%,transparent 75%,#dde5f0 75%),
+      linear-gradient(45deg,#dde5f0 25%,transparent 25%,transparent 75%,#dde5f0 75%);
+    background-size:22px 22px;
+    background-position:0 0,11px 11px;
+  }
+  .stage img{
+    position:absolute;left:0;top:0;transform-origin:0 0;
+    max-width:none;pointer-events:none;user-select:none;-webkit-user-drag:none;
+  }
+  .stage .drop-hint{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:.6rem;
+    text-align:center;color:var(--muted);padding:1.2rem;pointer-events:none;
+  }
+  .drop-hint .big{font-weight:600;color:var(--ink);font-size:1.02rem}
+  .drop-hint .small{font-size:.85rem}
+  .drop-hint svg{opacity:.75}
+  .stage.dragover{outline:2px dashed var(--blue);outline-offset:-8px}
+  .stage-cap{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);padding:.55rem .9rem;
+    overflow-wrap:anywhere;
+  }
+
+  /* stats */
+  .stats{padding:.9rem 1rem 1.1rem;font-size:.9rem}
+  .stats .placeholder{color:var(--muted);font-size:.9rem;max-width:none}
+  .stats dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.32rem .9rem}
+  .stats dt{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);padding-top:.2rem;white-space:nowrap;
+  }
+  .stats dd{color:var(--ink-strong);overflow-wrap:anywhere;font-size:.9rem}
+  .tagcounts{
+    margin-top:.9rem;max-height:190px;overflow:auto;
+    border:1px solid var(--hairline);
+  }
+  .tagcounts table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.74rem}
+  .tagcounts td{padding:.26rem .6rem;border-bottom:1px solid var(--hairline);color:var(--ink)}
+  .tagcounts tr:last-child td{border-bottom:0}
+  .tagcounts td:last-child{text-align:right;color:var(--muted)}
+  .scriptnote{
+    margin-top:.9rem;padding:.6rem .8rem;border:1px solid var(--warn);
+    color:var(--warn);font-size:.82rem;font-weight:600;max-width:none;
+  }
+
+  /* source */
+  .src{max-height:430px;overflow:auto}
+  .src pre{
+    margin:0;padding:.9rem 1rem;
+    font-family:var(--mono);font-size:.74rem;line-height:1.55;
+    color:var(--ink-strong);white-space:pre;
+  }
+  .src .placeholder{
+    font-family:'Inter',system-ui,sans-serif;color:var(--muted);
+    font-size:.9rem;white-space:normal;
+  }
+
+  /* error */
+  .errbox{
+    margin:0 0 1.2rem;padding:.9rem 1.1rem;border:1px solid var(--bad);
+    background:var(--paper-raised);color:var(--bad);font-weight:600;max-width:none;
+  }
+  .errbox[hidden]{display:none}
+
+  .aside-note{font-size:.85rem;color:var(--muted);margin-top:1rem;max-width:none}
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .limits{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;
+    color:#8fa3c4;border:1px dashed rgba(147,197,253,.3);
+    padding:.75rem 1rem;margin-bottom:1.3rem;max-width:none;
+  }
+  .limits b{color:#c3d2ea;font-weight:600;letter-spacing:.1em}
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/svg-viewer/" class="active" aria-current="page">Free viewer</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ INTRO ============ -->
+  <section class="tool-hero" aria-labelledby="hero-h">
+    <div class="wrap">
+      <p class="eyebrow">Free tool &middot; View-only &middot; Client-side</p>
+      <h1 id="hero-h">Free SVG viewer</h1>
+      <p class="sub" style="margin-top:1.1rem;font-size:1.08rem">Drop an SVG below to see it rendered, read its source pretty-printed, and get a quick count of what&rsquo;s inside. Zoom with the wheel or pinch, drag to pan. New to the format? <a class="textlink" href="/learn/svg/">Read the plain-English guide &rarr;</a></p>
+
+      <div class="trust">
+        <span class="tag">Your file stays here</span>
+        <p>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</p>
+        <p>The image is rendered through an <span style="font-family:var(--mono)">&lt;img&gt;</span> element with a local blob URL, so any scripts inside an SVG cannot run on this page — disabled by construction, not by policy. No analytics either; the only outside request this page makes is for its font.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEWER ============ -->
+  <section aria-label="SVG viewer" style="padding:0">
+    <div class="wrap">
+
+      <div class="errbox" id="errBox" role="alert" hidden></div>
+
+      <div class="viewer-grid">
+
+        <!-- left: render stage -->
+        <div class="card ticked">
+          <div class="toolbar">
+            <button class="tbtn" id="openBtn" type="button">Open file</button>
+            <input type="file" id="fileInput" accept=".svg,image/svg+xml" hidden>
+            <button class="tbtn" id="sampleBtn" type="button">Load sample</button>
+            <span class="tsep" aria-hidden="true"></span>
+            <button class="tbtn" id="fitBtn" type="button" title="Fit to window">Fit</button>
+            <button class="tbtn" id="zoutBtn" type="button" aria-label="Zoom out">&minus;</button>
+            <span class="zoom-pct" id="zoomPct" aria-live="polite">&mdash;</span>
+            <button class="tbtn" id="zinBtn" type="button" aria-label="Zoom in">+</button>
+            <span class="tsep" aria-hidden="true"></span>
+            <span class="bar-label" id="bgLabel">BG</span>
+            <div role="group" aria-labelledby="bgLabel" style="display:flex;gap:.3rem">
+              <button class="tbtn" id="bgChecker" type="button" aria-pressed="true">Checker</button>
+              <button class="tbtn" id="bgPaper" type="button" aria-pressed="false">Paper</button>
+            </div>
+          </div>
+
+          <div class="stage checker" id="stage" tabindex="0" role="region"
+               aria-label="Rendered SVG. Zoom with plus and minus keys, pan with arrow keys, press 0 to fit.">
+            <img id="render" alt="" hidden decoding="async">
+            <div class="drop-hint" id="dropHint">
+              <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+                <rect x="3" y="3" width="38" height="38" rx="4" fill="none" stroke="#9db1d1" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <path d="M22 13v12M16.5 19.5 22 25l5.5-5.5" fill="none" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 30h16" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="big">Drop an SVG file here</span>
+              <span class="small">or use <strong>Open file</strong> / <strong>Load sample</strong> above &middot; nothing is uploaded</span>
+            </div>
+          </div>
+
+          <div class="stage-cap" id="stageCap">NO FILE LOADED</div>
+        </div>
+
+        <!-- right: stats + source -->
+        <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:1.4rem;min-width:0">
+          <div class="card">
+            <div class="card-h">Stats</div>
+            <div class="stats" id="statsBody">
+              <p class="placeholder">No file loaded yet. Dimensions, viewBox, file size, and a per-tag element count will appear here.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h">Source &middot; pretty-printed</div>
+            <div class="src">
+              <pre><code id="srcCode"><span class="placeholder">The file&rsquo;s XML, re-indented for reading, will appear here.</span></code></pre>
+            </div>
+          </div>
+
+          <p class="aside-note">View-only: no editing, no export, and the file never leaves this page. Wondering what any of the tags mean? <a href="/learn/svg/">The guide walks through them line by line.</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <p class="limits"><b>LIMITS, STATED PLAINLY:</b> renders exactly what your browser&rsquo;s image renderer draws. Scripts inside files never run; animations show their static state; external references (linked images, remote fonts) are not loaded. XML text SVG only. View-only — no editing, no export.</p>
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL &middot; SVG VIEWER</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- footer year ----------
+  var yr = String(new Date().getFullYear());
+  document.getElementById('y').textContent = yr;
+  document.getElementById('y2').textContent = yr;
+
+  // ---------- reveal (motion-safe only; same pattern as site) ----------
+  if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+      'IntersectionObserver' in window) {
+    document.documentElement.classList.add('js');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  }
+
+  // ---------- elements ----------
+  var stage     = document.getElementById('stage');
+  var img       = document.getElementById('render');
+  var dropHint  = document.getElementById('dropHint');
+  var fileInput = document.getElementById('fileInput');
+  var openBtn   = document.getElementById('openBtn');
+  var sampleBtn = document.getElementById('sampleBtn');
+  var fitBtn    = document.getElementById('fitBtn');
+  var zinBtn    = document.getElementById('zinBtn');
+  var zoutBtn   = document.getElementById('zoutBtn');
+  var zoomPct   = document.getElementById('zoomPct');
+  var bgChecker = document.getElementById('bgChecker');
+  var bgPaper   = document.getElementById('bgPaper');
+  var errBox    = document.getElementById('errBox');
+  var statsBody = document.getElementById('statsBody');
+  var srcCode   = document.getElementById('srcCode');
+  var stageCap  = document.getElementById('stageCap');
+
+  // ---------- built-in sample (written in-house, blueprint style) ----------
+  var SAMPLE_NAME = 'sample-plate.svg';
+  var SAMPLE =
+'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 340" width="480" height="340">\n' +
+'  <rect width="480" height="340" fill="#f7f9fc"/>\n' +
+'  <path d="M10 26 V10 H26 M454 10 H470 V26 M470 314 V330 H454 M26 330 H10 V314" fill="none" stroke="#9db1d1" stroke-width="1"/>\n' +
+'  <text x="24" y="36" font-family="Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">SAMPLE PLATE - DRAWN AS TEXT</text>\n' +
+'  <rect x="70" y="60" width="280" height="200" rx="10" fill="none" stroke="#1e3a8a" stroke-width="2"/>\n' +
+'  <g fill="none" stroke="#1e3a8a" stroke-width="1.5">\n' +
+'    <circle cx="110" cy="100" r="10"/>\n' +
+'    <circle cx="310" cy="100" r="10"/>\n' +
+'    <circle cx="110" cy="220" r="10"/>\n' +
+'    <circle cx="310" cy="220" r="10"/>\n' +
+'  </g>\n' +
+'  <g stroke="#9db1d1" stroke-width="1" stroke-dasharray="6 3 1.5 3">\n' +
+'    <line x1="94" y1="100" x2="126" y2="100"/>\n' +
+'    <line x1="110" y1="84" x2="110" y2="116"/>\n' +
+'    <line x1="294" y1="100" x2="326" y2="100"/>\n' +
+'    <line x1="310" y1="84" x2="310" y2="116"/>\n' +
+'    <line x1="94" y1="220" x2="126" y2="220"/>\n' +
+'    <line x1="110" y1="204" x2="110" y2="236"/>\n' +
+'    <line x1="294" y1="220" x2="326" y2="220"/>\n' +
+'    <line x1="310" y1="204" x2="310" y2="236"/>\n' +
+'  </g>\n' +
+'  <g stroke="#2563eb" stroke-width="2">\n' +
+'    <path d="M203 153 L217 167 M217 153 L203 167"/>\n' +
+'  </g>\n' +
+'  <g stroke="#1e3a8a" stroke-width="1">\n' +
+'    <path d="M70 272 V300 M350 272 V300"/>\n' +
+'    <path d="M78 294 H342"/>\n' +
+'  </g>\n' +
+'  <polygon points="70,294 80,290 80,298" fill="#1e3a8a"/>\n' +
+'  <polygon points="350,294 340,290 340,298" fill="#1e3a8a"/>\n' +
+'  <rect x="168" y="283" width="84" height="21" fill="#f7f9fc"/>\n' +
+'  <text x="210" y="298" font-family="Menlo,Consolas,monospace" font-size="12" fill="#16264a" text-anchor="middle">280 units</text>\n' +
+'  <text x="228" y="164" font-family="Menlo,Consolas,monospace" font-size="10" fill="#4d5d80">SCRIBE X</text>\n' +
+'  <text x="70" y="326" font-family="Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">FIG. S1 - SAMPLE MOUNTING PLATE</text>\n' +
+'<' + '/svg>\n';
+
+  // ---------- view state ----------
+  var baseW = 300, baseH = 150;   // intrinsic drawing size in px
+  var scale = 1, tx = 0, ty = 0;  // current zoom + pan
+  var loaded = false;
+  var currentUrl = null;
+
+  var MIN_SCALE = 0.02, MAX_SCALE = 40;
+
+  function setTransform() {
+    img.style.width  = (baseW * scale) + 'px';
+    img.style.height = (baseH * scale) + 'px';
+    img.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
+    zoomPct.textContent = Math.round(scale * 100) + '%';
+  }
+
+  function zoomAt(f, cx, cy) {
+    var ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * f));
+    f = ns / scale;
+    if (f === 1) return;
+    tx = cx - (cx - tx) * f;
+    ty = cy - (cy - ty) * f;
+    scale = ns;
+    setTransform();
+  }
+
+  function stageCenter() {
+    var r = stage.getBoundingClientRect();
+    return { x: r.width / 2, y: r.height / 2 };
+  }
+
+  function fit() {
+    var r = stage.getBoundingClientRect();
+    var pad = 28;
+    var s = Math.min((r.width - pad) / baseW, (r.height - pad) / baseH);
+    if (!isFinite(s) || s <= 0) s = 1;
+    scale = Math.min(Math.max(s, MIN_SCALE), MAX_SCALE);
+    tx = (r.width  - baseW * scale) / 2;
+    ty = (r.height - baseH * scale) / 2;
+    setTransform();
+  }
+
+  // ---------- background toggle ----------
+  function setBg(mode) {
+    stage.classList.toggle('checker', mode === 'checker');
+    stage.classList.toggle('paper',   mode === 'paper');
+    bgChecker.setAttribute('aria-pressed', String(mode === 'checker'));
+    bgPaper.setAttribute('aria-pressed',   String(mode === 'paper'));
+  }
+  bgChecker.addEventListener('click', function () { setBg('checker'); });
+  bgPaper.addEventListener('click',   function () { setBg('paper'); });
+
+  // ---------- errors ----------
+  function showError(msg) { errBox.textContent = msg; errBox.hidden = false; }
+  function clearError()   { errBox.hidden = true; errBox.textContent = ''; }
+
+  var PARSE_MSG = 'Couldn’t parse this file — this viewer covers the common cases; the file may use features we don’t draw yet, or it may not be an SVG.';
+
+  // ---------- parsing ----------
+  function parseSvg(text) {
+    var doc;
+    try {
+      doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+    } catch (e) {
+      return { error: PARSE_MSG };
+    }
+    if (doc.getElementsByTagName('parsererror').length) {
+      return { error: PARSE_MSG };
+    }
+    var root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== 'svg') {
+      return { error: 'This doesn’t look like an SVG file — the root element is <' +
+                      (root ? root.nodeName : '?') + '>, not <svg>.' };
+    }
+    return { doc: doc, root: root };
+  }
+
+  // ---------- stats ----------
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function addStat(dl, label, value) {
+    var dt = document.createElement('dt');
+    dt.textContent = label;
+    var dd = document.createElement('dd');
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }
+
+  function renderStats(parsed, name, bytes) {
+    var root = parsed.root;
+    statsBody.textContent = '';
+
+    var dl = document.createElement('dl');
+    addStat(dl, 'File', name);
+    addStat(dl, 'Size', fmtBytes(bytes));
+
+    var wA = root.getAttribute('width'), hA = root.getAttribute('height');
+    addStat(dl, 'Dimensions', (wA && hA) ? (wA + ' × ' + hA)
+                                         : 'not set — px assumed at render');
+    addStat(dl, 'viewBox', root.getAttribute('viewBox') || 'not set');
+
+    var all = parsed.doc.getElementsByTagName('*');
+    addStat(dl, 'Elements', String(all.length));
+    statsBody.appendChild(dl);
+
+    // per-tag counts
+    var counts = {}, i, t;
+    for (i = 0; i < all.length; i++) {
+      t = all[i].tagName;
+      counts[t] = (counts[t] || 0) + 1;
+    }
+    var keys = Object.keys(counts).sort(function (a, b) {
+      return counts[b] - counts[a] || a.localeCompare(b);
+    });
+
+    var box = document.createElement('div');
+    box.className = 'tagcounts';
+    var table = document.createElement('table');
+    keys.forEach(function (k) {
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td');
+      td1.textContent = '<' + k + '>';
+      var td2 = document.createElement('td');
+      td2.textContent = String(counts[k]);
+      tr.appendChild(td1); tr.appendChild(td2);
+      table.appendChild(tr);
+    });
+    box.appendChild(table);
+    statsBody.appendChild(box);
+
+    var hasScript = keys.some(function (k) { return k.toLowerCase() === 'script'; });
+    if (hasScript) {
+      var warn = document.createElement('p');
+      warn.className = 'scriptnote';
+      warn.textContent = 'This file contains <script> — counted above, but it cannot run here: the image is rendered through an <img> element, where scripts are disabled.';
+      statsBody.appendChild(warn);
+    }
+  }
+
+  // ---------- pretty printer (escaped via textContent) ----------
+  function xesc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function aesc(s) {
+    return xesc(s).replace(/"/g, '&quot;');
+  }
+  function pad(d) {
+    var s = '';
+    while (d-- > 0) s += '  ';
+    return s;
+  }
+  function walk(n, d, out) {
+    var p = pad(d), i, a;
+    var open = '<' + n.tagName;
+    for (i = 0; i < n.attributes.length; i++) {
+      a = n.attributes[i];
+      open += ' ' + a.name + '="' + aesc(a.value) + '"';
+    }
+    var kids = [], c;
+    for (c = n.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType === 3 && !c.nodeValue.replace(/\s+/g, '')) continue;
+      kids.push(c);
+    }
+    if (!kids.length) { out.push(p + open + '/>'); return; }
+    if (kids.length === 1 && kids[0].nodeType === 3 &&
+        kids[0].nodeValue.trim().length <= 70) {
+      out.push(p + open + '>' + xesc(kids[0].nodeValue.trim()) + '</' + n.tagName + '>');
+      return;
+    }
+    out.push(p + open + '>');
+    kids.forEach(function (k) {
+      if (k.nodeType === 1) walk(k, d + 1, out);
+      else if (k.nodeType === 3) out.push(pad(d + 1) + xesc(k.nodeValue.trim()));
+      else if (k.nodeType === 8) out.push(pad(d + 1) + '<!--' + k.nodeValue + '-->');
+      else if (k.nodeType === 4) out.push(pad(d + 1) + '<![CDATA[' + k.nodeValue + ']]>');
+      else if (k.nodeType === 7) out.push(pad(d + 1) + '<?' + k.target + ' ' + k.data + '?>');
+    });
+    out.push(p + '</' + n.tagName + '>');
+  }
+  function renderSource(root) {
+    var out = [];
+    walk(root, 0, out);
+    var s = out.join('\n');
+    if (s.length > 200000) {
+      s = s.slice(0, 200000) + '\n… (display truncated — large file)';
+    }
+    srcCode.textContent = s; // textContent = browser escapes for display
+  }
+
+  // ---------- load pipeline ----------
+  function computeBase(parsed) {
+    var w = img.naturalWidth, h = img.naturalHeight;
+    if (!(w > 0 && h > 0)) {
+      var vb = parsed.root.getAttribute('viewBox');
+      if (vb) {
+        var parts = vb.trim().split(/[\s,]+/).map(Number);
+        if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+          w = parts[2]; h = parts[3];
+        }
+      }
+    }
+    if (!(w > 0 && h > 0)) { w = 300; h = 150; }
+    baseW = w; baseH = h;
+  }
+
+  function loadText(text, name, bytes) {
+    var parsed = parseSvg(text);
+    if (parsed.error) { showError(parsed.error); return; }
+    clearError();
+
+    renderStats(parsed, name, bytes);
+    renderSource(parsed.root);
+
+    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+    currentUrl = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+
+    img.onload = function () {
+      computeBase(parsed);
+      loaded = true;
+      dropHint.hidden = true;
+      img.hidden = false;
+      img.alt = 'Rendered SVG: ' + name;
+      var wA = parsed.root.getAttribute('width'), hA = parsed.root.getAttribute('height');
+      stageCap.textContent = name + ' · ' +
+        ((wA && hA) ? wA + ' × ' + hA : baseW + ' × ' + baseH + ' px (from viewBox)');
+      fit();
+    };
+    img.onerror = function () {
+      showError('The file parsed as XML, but the browser couldn’t render it as an image — it may use features we don’t draw yet.');
+    };
+    img.src = currentUrl;
+  }
+
+  function handleFile(file) {
+    var reader = new FileReader();
+    reader.onload  = function () { loadText(String(reader.result), file.name, file.size); };
+    reader.onerror = function () { showError('Couldn’t read that file.'); };
+    reader.readAsText(file);
+  }
+
+  // ---------- inputs: picker, sample, drop ----------
+  openBtn.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  sampleBtn.addEventListener('click', function () {
+    loadText(SAMPLE, SAMPLE_NAME, new Blob([SAMPLE]).size);
+  });
+
+  // stop the browser from navigating away on a stray drop anywhere on the page
+  ['dragover', 'drop'].forEach(function (t) {
+    window.addEventListener(t, function (e) { e.preventDefault(); });
+  });
+  stage.addEventListener('dragover', function () { stage.classList.add('dragover'); });
+  stage.addEventListener('dragleave', function () { stage.classList.remove('dragover'); });
+  stage.addEventListener('drop', function (e) {
+    stage.classList.remove('dragover');
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  // empty stage click opens the picker
+  stage.addEventListener('click', function () { if (!loaded) fileInput.click(); });
+
+  // ---------- zoom: wheel ----------
+  stage.addEventListener('wheel', function (e) {
+    if (!loaded) return;
+    e.preventDefault();
+    var dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
+    var r = stage.getBoundingClientRect();
+    zoomAt(Math.pow(1.0015, -dy), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+
+  // ---------- pan (drag) + pinch ----------
+  var pointers = new Map();
+  var dragStart = null, pinchPrev = null;
+
+  function pinchInfo() {
+    var pts = [];
+    pointers.forEach(function (v) { pts.push(v); });
+    var dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
+    return {
+      d: Math.hypot(dx, dy) || 1,
+      mx: (pts[0].x + pts[1].x) / 2,
+      my: (pts[0].y + pts[1].y) / 2
+    };
+  }
+
+  stage.addEventListener('pointerdown', function (e) {
+    if (!loaded) return;
+    stage.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      dragStart = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+      stage.classList.add('grabbing');
+    } else if (pointers.size === 2) {
+      dragStart = null;
+      pinchPrev = pinchInfo();
+    }
+  });
+
+  stage.addEventListener('pointermove', function (e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2 && pinchPrev) {
+      var p = pinchInfo();
+      var r = stage.getBoundingClientRect();
+      zoomAt(p.d / pinchPrev.d, p.mx - r.left, p.my - r.top);
+      tx += p.mx - pinchPrev.mx;
+      ty += p.my - pinchPrev.my;
+      setTransform();
+      pinchPrev = p;
+    } else if (pointers.size === 1 && dragStart) {
+      tx = dragStart.tx + (e.clientX - dragStart.x);
+      ty = dragStart.ty + (e.clientY - dragStart.y);
+      setTransform();
+    }
+  });
+
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 1) {
+      var rest = null;
+      pointers.forEach(function (v) { rest = v; });
+      dragStart = { x: rest.x, y: rest.y, tx: tx, ty: ty };
+      pinchPrev = null;
+    } else if (pointers.size === 0) {
+      dragStart = null; pinchPrev = null;
+      stage.classList.remove('grabbing');
+    }
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+
+  // ---------- zoom buttons + keyboard ----------
+  zinBtn.addEventListener('click', function () {
+    var c = stageCenter(); zoomAt(1.25, c.x, c.y);
+  });
+  zoutBtn.addEventListener('click', function () {
+    var c = stageCenter(); zoomAt(0.8, c.x, c.y);
+  });
+  fitBtn.addEventListener('click', fit);
+
+  stage.addEventListener('keydown', function (e) {
+    if (!loaded) return;
+    var c = stageCenter(), step = 40, used = true;
+    switch (e.key) {
+      case '+': case '=': zoomAt(1.25, c.x, c.y); break;
+      case '-': case '_': zoomAt(0.8,  c.x, c.y); break;
+      case '0': case 'f': case 'F': fit(); break;
+      case 'ArrowLeft':  tx += step; setTransform(); break;
+      case 'ArrowRight': tx -= step; setTransform(); break;
+      case 'ArrowUp':    ty += step; setTransform(); break;
+      case 'ArrowDown':  ty -= step; setTransform(); break;
+      default: used = false;
+    }
+    if (used) e.preventDefault();
+  });
+
+  // ---------- init ----------
+  setBg('checker');
+})();
+</script>
+</body>
+</html>

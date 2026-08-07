@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is an SVG file? Plain answer, anatomy &amp; common problems — Curious Technologies</title>
+<meta name="description" content="SVG explained plainly: a picture stored as readable XML text, sharp at any size, accepted by laser cutters, vinyl cutters, and CNC engraving toolchains. What's inside one, what goes wrong at cut time, plus a free in-browser viewer.">
+<link rel="canonical" href="https://www.curioustech.org/learn/svg/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://www.curioustech.org/learn/svg/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="What is an SVG file? Plain answer, anatomy &amp; common problems">
+<meta property="og:description" content="A picture stored as readable text — sharp at any size, and accepted by laser cutters, vinyl cutters, and CNC engraving toolchains. What's inside one and what goes wrong at cut time.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="What is an SVG file?">
+<meta name="twitter:description" content="SVG explained in plain English: anatomy of the XML inside, the problems that bite at cut time, and a free in-browser viewer.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site system.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  section{padding:4.2rem 0;border-bottom:1px solid var(--hairline)}
+  @media (max-width:600px){section{padding:3rem 0}}
+
+  /* ============ HERO ============ */
+  .hero{padding:4.6rem 0 4.2rem;border-bottom:1px solid var(--hairline)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .hero p.sub{margin-top:1.2rem;font-size:1.08rem}
+  .cta-row{display:flex;gap:.85rem;margin-top:1.8rem;flex-wrap:wrap}
+  .btn{
+    display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;
+    padding:.72rem 1.35rem;border-radius:4px;
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--hairline-strong)}
+  .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  /* ============ TRUST / CALLOUT BOX ============ */
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  /* ============ FIGURE ============ */
+  .hero-fig{
+    background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    padding:.9rem;position:relative;
+  }
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+  .fig-caption{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:.8rem;padding-top:.6rem;
+  }
+
+  /* ============ ANATOMY ROWS ============ */
+  .anat{border:1px solid var(--hairline);margin-top:.2rem}
+  .anat-row{
+    display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);
+  }
+  .anat-row+.anat-row{border-top:1px dashed var(--hairline)}
+  .anat-row code{
+    font-family:var(--mono);font-size:.78rem;line-height:1.6;
+    padding:.5rem .9rem;white-space:pre;overflow-x:auto;
+    color:var(--ink-strong);background:var(--paper);
+    display:block;min-width:0;
+  }
+  .anat-row .note{
+    padding:.5rem .9rem;font-size:.82rem;color:var(--muted);
+    border-left:1px solid var(--hairline);min-width:0;
+  }
+  .anat-row .note code{
+    display:inline;padding:0;background:none;font-size:.78rem;color:var(--navy);
+    white-space:normal;overflow:visible;
+  }
+  @media (max-width:700px){
+    .anat-row{grid-template-columns:1fr}
+    .anat-row .note{border-left:0;padding-top:.1rem;padding-bottom:.7rem}
+  }
+
+  /* ============ PROBLEM CARDS ============ */
+  .features{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:1px;background:var(--hairline);border:1px solid var(--hairline);
+    margin-top:2.2rem;list-style:none;
+  }
+  @media (max-width:860px){.features{grid-template-columns:1fr}}
+  .features li{
+    background:var(--paper-raised);padding:1.3rem 1.4rem;
+  }
+  .features .idx{
+    font-family:var(--mono);font-size:.7rem;color:var(--blue);
+    letter-spacing:.12em;display:block;margin-bottom:.45rem;
+  }
+  .features h3{margin-bottom:.35rem}
+  .features p{font-size:.93rem;color:var(--muted);max-width:none}
+
+  /* ============ FAQ ============ */
+  .faq{
+    display:grid;gap:1px;background:var(--hairline);
+    border:1px solid var(--hairline);margin-top:2.2rem;
+  }
+  .faq .qa{background:var(--paper-raised);padding:1.25rem 1.4rem}
+  .faq h3{margin-bottom:.4rem}
+  .faq p{font-size:.95rem;color:var(--muted);max-width:none}
+  .faq p+p{margin-top:.5rem}
+
+  .services-line{
+    margin-top:2rem;padding-left:1.1rem;border-left:3px solid var(--blue-bright);
+    font-size:.95rem;color:var(--muted);max-width:56ch;
+  }
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/svg/" class="active" aria-current="page">SVG</a></li>
+        <li><a href="/tools/svg-viewer/">Free viewer</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ SEC 01 · PLAIN ANSWER ============ -->
+  <section class="hero" id="top" aria-labelledby="hero-h">
+    <div class="wrap">
+      <p class="eyebrow">Learn &middot; File formats &middot; SVG</p>
+      <h1 id="hero-h">What is an SVG file?</h1>
+
+      <div class="trust">
+        <span class="tag">The plain answer</span>
+        <p>An SVG file is a picture stored as text. Instead of a grid of pixels, it describes shapes — lines, curves, circles, text — and any web browser can draw it. Because the shapes are geometry rather than pixels, the image stays perfectly sharp at any size. That&rsquo;s the name: Scalable Vector Graphics.</p>
+        <p>SVG is an open standard from the W3C, the body that maintains the web&rsquo;s core formats. No license, no proprietary owner, readable in a plain text editor.</p>
+      </div>
+
+      <p class="sub">It&rsquo;s the picture format the web runs on — and, increasingly, the one your laser cutter, vinyl cutter, or CNC engraving software accepts too. This page covers what&rsquo;s inside one, where it fits in a cutting workflow, and the three problems that catch people at cut time.</p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/tools/svg-viewer/">Open one in the free viewer &rarr;</a>
+        <a class="textlink" href="#anatomy">Jump to the anatomy</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEC 02 · WHO USES IT ============ -->
+  <section id="uses" aria-labelledby="uses-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 01 <b>&middot; Where it&rsquo;s used</b></p>
+      <h2 id="uses-h">Who uses SVG, and for what</h2>
+      <div class="dim" aria-hidden="true"></div>
+
+      <p class="lede">SVG started as a screen format and grew into a shop format. The same file can do both jobs.</p>
+
+      <p style="margin-top:1.1rem"><strong>On screen</strong>, SVG is the standard way to ship logos, icons, and diagrams on the web. Every modern browser renders it natively. Because it&rsquo;s XML, it plugs into the rest of the web stack: shapes can be styled with CSS and animated, and a logo that&rsquo;s 4&nbsp;KB of text looks equally crisp on a phone and a trade-show banner.</p>
+
+      <p style="margin-top:1.1rem"><strong>In the shop</strong>, SVG has become a common interchange format for machines that follow a drawn outline: laser cutters, vinyl cutters, and CNC engraving toolchains all accept it. The typical path: artwork is drawn or traced in a vector editor, saved as SVG, imported into the machine&rsquo;s cutting or engraving software, and turned into toolpaths there. The shapes you see in the browser are the shapes the blade or beam follows.</p>
+
+      <p style="margin-top:1.1rem"><strong>And because it&rsquo;s plain text</strong>, SVG is automatable. A script can generate a hundred name tags, renumber a set of labels, or swap a color across a whole folder of files — no drawing program in the loop. That&rsquo;s a property the binary image formats can&rsquo;t offer.</p>
+    </div>
+  </section>
+
+  <!-- ============ SEC 03 · ANATOMY ============ -->
+  <section id="anatomy" aria-labelledby="anatomy-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 02 <b>&middot; Anatomy</b></p>
+      <h2 id="anatomy-h">What&rsquo;s inside an SVG file</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Here is a complete, valid SVG file — small, but real. Eleven lines of text you can read without any special software.</p>
+
+      <figure class="hero-fig ticked reveal" style="margin-top:2rem">
+        <div class="anat">
+          <div class="anat-row">
+            <code>&lt;svg xmlns="http://www.w3.org/2000/svg"</code>
+            <span class="note">SVG is XML — structured text. This first line says &ldquo;this file is an SVG image.&rdquo;</span>
+          </div>
+          <div class="anat-row">
+            <code>     viewBox="0 0 400 300"</code>
+            <span class="note">The drawing&rsquo;s own coordinate system: origin at 0,0, 400 units wide, 300 tall. Every shape below lives in these units.</span>
+          </div>
+          <div class="anat-row">
+            <code>     width="4in" height="3in"&gt;</code>
+            <span class="note">Physical size. Optional — and often missing, which is where wrong-size cuts come from (Sec.&nbsp;03).</span>
+          </div>
+          <div class="anat-row">
+            <code>  &lt;g stroke="#1e3a8a" fill="none"&gt;</code>
+            <span class="note"><code>&lt;g&gt;</code> groups shapes. Style set here — navy stroke, no fill — applies to everything inside the group.</span>
+          </div>
+          <div class="anat-row">
+            <code>    &lt;rect x="20" y="20" width="360" height="260"/&gt;</code>
+            <span class="note">Basic shapes are one line each. A rectangle&hellip;</span>
+          </div>
+          <div class="anat-row">
+            <code>    &lt;circle cx="60" cy="60" r="12"/&gt;</code>
+            <span class="note">&hellip;a circle (a bolt hole, say)&hellip;</span>
+          </div>
+          <div class="anat-row">
+            <code>    &lt;line x1="40" y1="60" x2="80" y2="60"/&gt;</code>
+            <span class="note">&hellip;a straight line. Also in the toolbox: <code>&lt;ellipse&gt;</code>, <code>&lt;polyline&gt;</code>, <code>&lt;polygon&gt;</code>.</span>
+          </div>
+          <div class="anat-row">
+            <code>    &lt;path d="M120 240 L200 120 C230 80 300 80 330 120 Z"/&gt;</code>
+            <span class="note">The workhorse. <code>d</code> is a list of pen commands — <code>M</code> move to, <code>L</code> line to, <code>C</code> curve to, <code>A</code> arc, <code>Z</code> close the shape. Traced logos and artwork are mostly paths.</span>
+          </div>
+          <div class="anat-row">
+            <code>  &lt;/g&gt;</code>
+            <span class="note"></span>
+          </div>
+          <div class="anat-row">
+            <code>  &lt;text x="200" y="290" text-anchor="middle"&gt;PART A-104&lt;/text&gt;</code>
+            <span class="note">Live, editable text. It stays text until you convert it to paths — which you must do before cutting (Sec.&nbsp;03).</span>
+          </div>
+          <div class="anat-row">
+            <code>&lt;/svg&gt;</code>
+            <span class="note">That&rsquo;s the whole file.</span>
+          </div>
+        </div>
+        <figcaption class="fig-caption">FIG. 1 &mdash; A COMPLETE SVG FILE, ANNOTATED LINE BY LINE</figcaption>
+      </figure>
+
+      <p style="margin-top:1.6rem">Paste those eleven lines into a text file, name it <code style="font-family:var(--mono);font-size:.85em">part.svg</code>, and every browser on earth will draw it: a bordered plate with a hole, a centerline, a curved profile, and a part label. Want to look inside a real one the same way? The <a class="textlink" href="/tools/svg-viewer/">free viewer</a> shows any SVG you drop on it — rendered image, pretty-printed source, and a count of what&rsquo;s inside.</p>
+    </div>
+  </section>
+
+  <!-- ============ SEC 04 · COMMON PROBLEMS ============ -->
+  <section id="problems" aria-labelledby="problems-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 03 <b>&middot; In the wild</b></p>
+      <h2 id="problems-h">The three problems that bite at cut time</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">SVG behaves impeccably on screen. The trouble starts when the file leaves the browser and heads for a machine.</p>
+
+      <ul class="features">
+        <li class="reveal">
+          <span class="idx">01 &middot; SIZE</span>
+          <h3>It cuts at the wrong size</h3>
+          <p>SVG&rsquo;s default unit is the pixel — and a pixel has no fixed physical size. A shape that&rsquo;s &ldquo;100 wide&rdquo; is 100 <em>somethings</em>, and different programs have historically assumed different pixels-per-inch when converting (96 is the web convention; 72 turns up in older tools). The result is a part that arrives 25% off.</p>
+          <p style="margin-top:.5rem"><strong>The fix:</strong> give the file real units — <span style="font-family:var(--mono);font-size:.85em">width="4in"</span> or <span style="font-family:var(--mono);font-size:.85em">width="101.6mm"</span> to match the viewBox — and measure the first cut before running the batch.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">02 &middot; TEXT</span>
+          <h3>The text isn&rsquo;t your font</h3>
+          <p>A <span style="font-family:var(--mono);font-size:.85em">&lt;text&gt;</span> element stores the words plus the <em>name</em> of a font — not the letter shapes. Open the file on a computer that doesn&rsquo;t have that font and something else gets substituted. On a cutter, that means the engraved label comes out in the wrong letterforms, or not at all.</p>
+          <p style="margin-top:.5rem"><strong>The fix:</strong> convert text to paths (outlines) before sending a file to cut, and keep an editable original for the next revision.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">03 &middot; SCRIPTS</span>
+          <h3>SVGs can carry scripts</h3>
+          <p>Because SVG is a full web format, a file can embed scripts. That&rsquo;s useful for interactive graphics — and a real consideration when you open an SVG from someone you don&rsquo;t know, since loading one directly as a page can run whatever it carries.</p>
+          <p style="margin-top:.5rem"><strong>The fix:</strong> view unknown SVGs through a renderer that treats them as a plain image, where scripts are disabled. Our <a href="/tools/svg-viewer/">free viewer</a> works exactly that way, by construction.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ SEC 05 · FAQ ============ -->
+  <section id="faq" aria-labelledby="faq-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 04 <b>&middot; FAQ</b></p>
+      <h2 id="faq-h">Common questions</h2>
+      <div class="dim" aria-hidden="true"></div>
+
+      <div class="faq">
+        <div class="qa reveal">
+          <h3>How do I open an SVG file?</h3>
+          <p>Drag it into any web browser — every modern browser renders SVG natively. To see the text inside, open it in a plain text editor. To get both at once, plus a summary of what the file contains, drop it on our <a href="/tools/svg-viewer/">free SVG viewer</a> — it runs in your browser and the file never leaves your machine.</p>
+        </div>
+        <div class="qa reveal">
+          <h3>Why does my SVG cut or print at the wrong size?</h3>
+          <p>Almost always units. SVG defaults to pixels, which have no fixed physical size, and the program on the receiving end has to guess a conversion — different tools have guessed differently. Set an explicit physical width and height on the file (inches or millimeters), confirm the import scale in your cutting software, and measure the first part.</p>
+        </div>
+        <div class="qa reveal">
+          <h3>SVG vs DXF for laser cutting — which should I use?</h3>
+          <p>Both are widely accepted, and the honest answer is: whichever your cutting software handles best. As a rule of thumb, work that comes from CAD travels naturally as DXF, while artwork and traced graphics travel naturally as SVG. Both formats share the same failure mode — ambiguous units — so verify scale on import either way. We&rsquo;ve written the same plain-English treatment of the other side: <a href="/learn/dxf/">What is a DXF file?</a></p>
+        </div>
+        <div class="qa reveal">
+          <h3>Is SVG the same as PNG or JPG?</h3>
+          <p>No. PNG and JPG are raster formats — grids of pixels — so they blur when scaled up. SVG is vector: it stores the shapes themselves, so it stays sharp at any size and is usually far smaller for line art, logos, and diagrams. For photographs, raster is the right tool; a photo has no shapes to store.</p>
+        </div>
+        <div class="qa reveal">
+          <h3>Can I edit an SVG file in a text editor?</h3>
+          <p>Yes — that&rsquo;s one of the format&rsquo;s quiet strengths. Nudge a coordinate, change a color, fix a typo in a label: all doable by hand in any editor, no drawing program needed. Fair warning: heavily traced artwork is mostly long <span style="font-family:var(--mono);font-size:.85em">path</span> data, which is not pleasant to edit manually. But simple files read like the example above.</p>
+        </div>
+        <div class="qa reveal">
+          <h3>Can an SVG file contain a virus?</h3>
+          <p>An SVG can embed scripts, so a malicious file opened directly as a web page can run code in that page. Rendered as an image — which is how image tags, and our <a href="/tools/svg-viewer/">free viewer</a>, treat SVG — scripts are disabled and don&rsquo;t run. Treat SVGs from unknown sources with the same caution as any downloaded file.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEC 06 · NEXT STEP ============ -->
+  <section id="next" aria-labelledby="next-h" style="border-bottom:0">
+    <div class="wrap">
+      <p class="secmark">Sec. 05 <b>&middot; Next step</b></p>
+      <h2 id="next-h">See inside your own file</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Drop any SVG on the free viewer: it renders the image, pretty-prints the source, and counts every element inside — entirely in your browser. Nothing is uploaded, because there&rsquo;s no server to upload to.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/tools/svg-viewer/">Open the free SVG viewer &rarr;</a>
+        <a class="textlink" href="/learn/dxf/">What is a DXF file? &rarr;</a>
+      </div>
+      <p class="services-line">We build small tools that batch-process files like this — <a href="mailto:john@curioustech.org">john@curioustech.org</a>.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">LEARN &middot; SVG</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+  </div>
+</footer>
+
+<script>
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  // Reveal-on-scroll — enabled ONLY when motion is allowed AND IntersectionObserver
+  // exists. In every other case the .js class is never added, the CSS never hides
+  // anything, and the page is simply static.
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+        'IntersectionObserver' in window) {
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  })();
+</script>
+</body>
+</html>

@@ -256,6 +256,17 @@
   .steps h3{margin-bottom:.5rem}
   .steps p{font-size:.95rem;color:var(--muted);max-width:none}
 
+  /* ============ RESOURCES ============ */
+  #resources{border-bottom:1px solid var(--hairline)}
+  .linklist{list-style:none;margin-top:.7rem}
+  .linklist li{border-bottom:1px dashed var(--hairline)}
+  .linklist a{
+    display:block;padding:.55rem .1rem;text-decoration:none;
+    color:var(--navy);font-weight:600;font-size:.95rem;
+  }
+  .linklist a:hover{color:var(--blue)}
+  .linklist .note{font-weight:400;color:var(--muted);font-size:.85rem}
+
   /* ============ ABOUT ============ */
   #about{border-bottom:1px solid var(--hairline)}
   #about p{margin-top:.9rem}
@@ -341,6 +352,7 @@
       <ul class="nav-links">
         <li><a href="#work">What we do</a></li>
         <li><a href="#process">How we work</a></li>
+        <li><a href="#resources">Resources</a></li>
         <li><a href="#about">About</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
@@ -501,10 +513,40 @@
     </div>
   </section>
 
+  <!-- ============ RESOURCES ============ -->
+  <section id="resources" aria-labelledby="resources-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 03 <b>&middot; Resources</b></p>
+      <h2 id="resources-h">Field notes &amp; free tools</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">We wrote down what we know, and put some of our tooling where anyone can use it. The viewers run entirely in your browser — nothing is uploaded, because there&rsquo;s nothing to upload to.</p>
+      <ul class="features">
+        <li class="reveal">
+          <span class="idx">Guides</span>
+          <h3>Plain-English file-format guides</h3>
+          <ul class="linklist">
+            <li><a href="/learn/nc1/">What is an NC1 file? <span class="note">&mdash; the DSTV format behind steel CNC</span></a></li>
+            <li><a href="/learn/dxf/">What is a DXF file? <span class="note">&mdash; the CAD interchange workhorse</span></a></li>
+            <li><a href="/learn/svg/">What is an SVG file? <span class="note">&mdash; vectors for web and cutting tables</span></a></li>
+          </ul>
+        </li>
+        <li class="reveal">
+          <span class="idx">Free tools</span>
+          <h3>Viewers that run in your browser</h3>
+          <ul class="linklist">
+            <li><a href="/tools/nc1-viewer/">NC1 viewer <span class="note">&mdash; open a plate file, see the part</span></a></li>
+            <li><a href="/tools/dxf-viewer/">DXF viewer <span class="note">&mdash; drawings with layer toggles</span></a></li>
+            <li><a href="/tools/svg-viewer/">SVG viewer <span class="note">&mdash; render + inspect the source</span></a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ============ ABOUT ============ -->
   <section id="about" aria-labelledby="about-h">
     <div class="wrap">
-      <p class="secmark">Sec. 03 <b>&middot; About</b></p>
+      <p class="secmark">Sec. 04 <b>&middot; About</b></p>
       <h2 id="about-h">About</h2>
       <div class="dim" aria-hidden="true"></div>
       <p class="lede">Curious Technologies is run by John Sauvign&eacute;, a working engineer in Asheville, North Carolina, with a background in precision manufacturing and RF systems.</p>
@@ -515,7 +557,7 @@
   <!-- ============ CONTACT ============ -->
   <section id="contact" aria-labelledby="contact-h">
     <div class="wrap">
-      <p class="secmark">Sec. 04 <b>&middot; Contact</b></p>
+      <p class="secmark">Sec. 05 <b>&middot; Contact</b></p>
       <h2 id="contact-h">Have a workflow that eats hours?</h2>
       <div class="dim" aria-hidden="true"></div>
       <p class="lede">The best first email is a plain description of a job you still prep by hand. If a tool can fix it, we&rsquo;ll say so — and show you a pilot on your own files before you commit to anything. No pitch deck, no follow-up sequence.</p>
