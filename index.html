@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curious Technologies LLC — Software for Manufacturing &amp; Operations</title>
+<meta name="description" content="Curious Technologies LLC builds focused, reliable software for manufacturing and operations — tools that remove hours of manual work. Asheville, North Carolina.">
+<link rel="canonical" href="https://www.curioustech.org/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="Curious Technologies LLC — Software for Manufacturing &amp; Operations">
+<meta property="og:description" content="Focused software tools for real-world operations, manufacturing first. Built close to the customer, licensed simply, supported after they ship.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Curious Technologies LLC">
+<meta name="twitter:description" content="Focused software for manufacturing and operations. Tools that remove hours of manual work.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Curious Technologies LLC",
+  "url": "https://www.curioustech.org/",
+  "email": "john@curioustech.org",
+  "founder": { "@type": "Person", "name": "John Sauvigné" }
+}
+</script>
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    /* fine drafting grid + major grid every 5 cells */
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  /* dimension-line rule under headlines: hairline with end ticks */
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  section{padding:4.2rem 0}
+  @media (max-width:600px){section{padding:3rem 0}}
+
+  /* ============ HERO ============ */
+  .hero{padding:4.6rem 0 4.2rem;border-bottom:1px solid var(--hairline)}
+  .hero-grid{
+    display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+    gap:3rem;align-items:center;
+  }
+  @media (max-width:860px){.hero-grid{grid-template-columns:1fr;gap:2.2rem}}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .hero p.sub{margin-top:1.2rem;font-size:1.08rem}
+  .cta-row{display:flex;gap:.85rem;margin-top:1.8rem;flex-wrap:wrap}
+  .btn{
+    display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;
+    padding:.72rem 1.35rem;border-radius:4px;
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--hairline-strong)}
+  .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  .hero-fig{
+    background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    padding:.9rem;position:relative;
+  }
+  .hero-fig svg{display:block;width:100%;height:auto}
+  /* crop ticks on figure corners */
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+  .fig-caption{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:.8rem;padding-top:.6rem;
+  }
+
+  /* ============ WHAT WE DO ============ */
+  #work{border-bottom:1px solid var(--hairline)}
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  .features{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1px;background:var(--hairline);border:1px solid var(--hairline);
+    margin-top:2.2rem;list-style:none;
+  }
+  @media (max-width:760px){.features{grid-template-columns:1fr}}
+  .features li{
+    background:var(--paper-raised);padding:1.3rem 1.4rem;
+  }
+  .features .idx{
+    font-family:var(--mono);font-size:.7rem;color:var(--blue);
+    letter-spacing:.12em;display:block;margin-bottom:.45rem;
+  }
+  .features h3{margin-bottom:.35rem}
+  .features p{font-size:.93rem;color:var(--muted);max-width:none}
+  .posline{
+    margin-top:1.9rem;padding-left:1.1rem;border-left:3px solid var(--blue-bright);
+    font-size:1.04rem;color:var(--ink-strong);font-weight:500;max-width:56ch;
+  }
+  .nc1-cta{margin-top:2rem;display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}
+
+  /* ============ HOW WE WORK ============ */
+  #process{border-bottom:1px solid var(--hairline)}
+  .steps{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.6rem;
+    margin-top:2rem;counter-reset:step;list-style:none;
+  }
+  @media (max-width:760px){.steps{grid-template-columns:1fr}}
+  .steps li{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:1.5rem 1.4rem 1.4rem;position:relative;
+  }
+  .step-no{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--navy);
+    display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem;
+  }
+  .step-no::after{content:"";flex:1;height:1px;background:var(--hairline)}
+  .steps h3{margin-bottom:.5rem}
+  .steps p{font-size:.95rem;color:var(--muted);max-width:none}
+
+  /* ============ ABOUT ============ */
+  #about{border-bottom:1px solid var(--hairline)}
+  #about p{margin-top:.9rem}
+
+  /* ============ CONTACT ============ */
+  #contact{
+    background:#0b1324;
+    background-image:
+      linear-gradient(rgba(96,165,250,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(96,165,250,.07) 1px, transparent 1px);
+    background-size:24px 24px;
+    color:#dbe6f7;padding:4.6rem 0;
+  }
+  #contact .secmark{color:var(--sky)}
+  #contact .secmark::after{background:rgba(147,197,253,.35)}
+  #contact .secmark b{color:rgba(219,230,247,.6)}
+  #contact h2{color:#fff}
+  #contact p{color:#c3d2ea}
+  #contact .dim{background:rgba(147,197,253,.4)}
+  #contact .dim::before,#contact .dim::after{background:rgba(147,197,253,.4)}
+  .mailto{
+    display:inline-block;margin-top:1.6rem;
+    font-family:var(--mono);font-size:clamp(1rem,3.4vw,1.35rem);
+    color:#fff;text-decoration:none;font-weight:600;letter-spacing:.01em;
+    border:1px solid var(--sky);padding:.85rem 1.4rem;border-radius:4px;
+    transition:background-color .15s ease;
+    overflow-wrap:anywhere;
+  }
+  .mailto:hover{background:rgba(96,165,250,.14);color:#fff}
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only; .js is set only when the
+     observer exists AND motion is allowed, so content is never stranded) */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#top" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site sections">
+      <ul class="nav-links">
+        <li><a href="#work">What we do</a></li>
+        <li><a href="#process">How we work</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="top" aria-labelledby="hero-h">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Curious Technologies LLC &middot; Asheville, North Carolina</p>
+        <h1 id="hero-h">Tools that remove hours of manual work.</h1>
+        <p class="sub">Manufacturing first. We talk to the people doing the work, find the workflow that eats hours, and ship a reliable tool that fixes exactly that. Built close to the customer. Licensed simply. Supported after it ships.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#work">See what we build</a>
+          <a class="btn btn-ghost" href="mailto:john@curioustech.org">john@curioustech.org</a>
+        </div>
+      </div>
+
+      <figure class="hero-fig ticked reveal">
+        <svg viewBox="0 0 560 380" role="img" aria-label="Engineering drawing of a steel plate with bolt holes, scribed drill marks, and dimension lines showing a millimeter-to-inch conversion">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,1.5 L9,5 L0,8.5 Z" fill="#1e3a8a"/>
+            </marker>
+          </defs>
+          <!-- sheet border ticks -->
+          <path d="M8 24 V8 H24 M536 8 H552 V24 M552 356 V372 H536 M24 372 H8 V356" fill="none" stroke="#9db1d1" stroke-width="1"/>
+          <!-- header annotation -->
+          <text x="26" y="30" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">DWG 104-B &middot; REV A &middot; QTY 4</text>
+
+          <!-- plate -->
+          <rect x="70" y="60" width="420" height="220" fill="#f2f6fc" stroke="#1e3a8a" stroke-width="2"/>
+
+          <!-- corner bolt holes -->
+          <g stroke="#1e3a8a" stroke-width="1.5" fill="none">
+            <circle cx="110" cy="100" r="11"/>
+            <circle cx="450" cy="100" r="11"/>
+            <circle cx="110" cy="240" r="11"/>
+            <circle cx="450" cy="240" r="11"/>
+          </g>
+          <!-- centerlines through corner holes -->
+          <g stroke="#9db1d1" stroke-width="1" stroke-dasharray="7 3 1.5 3">
+            <path d="M92 100 H128 M110 82 V118"/>
+            <path d="M432 100 H468 M450 82 V118"/>
+            <path d="M92 240 H128 M110 222 V258"/>
+            <path d="M432 240 H468 M450 222 V258"/>
+          </g>
+
+          <!-- small holes converted to scribe marks (crosses) -->
+          <g stroke="#2563eb" stroke-width="2">
+            <path d="M243 163 L257 177 M257 163 L243 177"/>
+            <path d="M303 163 L317 177 M317 163 L303 177"/>
+          </g>
+          <!-- one small hole still a hole -->
+          <circle cx="370" cy="170" r="5" fill="none" stroke="#1e3a8a" stroke-width="1.5"/>
+
+          <!-- callout to scribe marks -->
+          <path d="M312 160 L352 122 H452" fill="none" stroke="#4d5d80" stroke-width="1"/>
+          <text x="352" y="116" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#1e3a8a" letter-spacing=".5">&#216;6 &#8594; SCRIBE MARK</text>
+
+          <!-- horizontal dimension -->
+          <g stroke="#1e3a8a" stroke-width="1">
+            <path d="M70 288 V318 M490 288 V318"/>
+            <line x1="74" y1="310" x2="486" y2="310" marker-start="url(#arr)" marker-end="url(#arr)"/>
+          </g>
+          <rect x="205" y="298" width="150" height="22" fill="#f7f9fc"/>
+          <text x="280" y="314" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#16264a" text-anchor="middle">610 mm &#8594; 24.016 in</text>
+
+          <!-- vertical dimension -->
+          <g stroke="#1e3a8a" stroke-width="1">
+            <path d="M498 60 H528 M498 280 H528"/>
+            <line x1="520" y1="64" x2="520" y2="276" marker-start="url(#arr)" marker-end="url(#arr)"/>
+          </g>
+          <rect x="506" y="120" width="28" height="100" fill="#f7f9fc"/>
+          <text x="520" y="170" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#16264a" text-anchor="middle" transform="rotate(-90 520 170)">420 mm &#8594; 16.535 in</text>
+
+          <!-- figure title -->
+          <text x="70" y="352" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">FIG. 1 &mdash; TYPICAL PLATE, BATCH-EDITED &middot; AUDIT LOGGED</text>
+        </svg>
+        <figcaption class="fig-caption">EVERY CONVERTED VALUE CARRIES ITS SOURCE. EVERY CHANGE LANDS IN THE AUDIT LOG.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ WHAT WE DO ============ -->
+  <section id="work" aria-labelledby="work-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 01 <b>&middot; What we do</b></p>
+      <h2 id="work-h">Software for manufacturing</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">We build working tools, not platforms — the kind that take a job your team does by hand today and get it done in minutes, correctly, with a paper trail.</p>
+
+      <div class="trust reveal">
+        <span class="tag">Read this first</span>
+        <p>Our tools run where your work lives. Most ship as a single file that runs in your browser — zero install, works offline, your data never leaves your shop.</p>
+        <p>Nothing to deploy, nothing uploaded, nothing phoning home — open it and work.</p>
+      </div>
+
+      <ul class="features">
+        <li class="reveal">
+          <span class="idx">01</span>
+          <h3>Excel &amp; spreadsheet automation</h3>
+          <p>The workbooks your team lives in — trackers, reports, change files — filled, checked, and reconciled automatically instead of by hand.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">02</span>
+          <h3>BOMs from drawings</h3>
+          <p>Bills of materials extracted from drawings and documents, cleaned up, and delivered in the format your other systems expect.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">03</span>
+          <h3>Less manual entry</h3>
+          <p>Where the same data gets typed twice, a tool should carry it instead — batch processing with an audit trail on every change.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">04</span>
+          <h3>Built to order</h3>
+          <p>When off-the-shelf doesn&rsquo;t fit the way your team actually works, we design and build the tool that does — supported by the person who wrote it.</p>
+        </li>
+      </ul>
+
+      <div class="nc1-cta reveal">
+        <a class="btn btn-primary" href="mailto:john@curioustech.org?subject=Workflow%20question">Tell us about a workflow</a>
+        <a class="textlink" href="#process">How we work &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW WE WORK ============ -->
+  <section id="process" aria-labelledby="process-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 02 <b>&middot; Process</b></p>
+      <h2 id="process-h">How we work</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Software has overpromised to shops for thirty years. So we don&rsquo;t ask you to take anything on faith — every engagement starts with a pilot on your own files.</p>
+
+      <ol class="steps">
+        <li class="reveal">
+          <p class="step-no">Step 01</p>
+          <h3>We start with the work</h3>
+          <p>We sit down with the people doing the job and watch where the hours actually go. Nothing gets built until the problem is specific.</p>
+        </li>
+        <li class="reveal">
+          <p class="step-no">Step 02</p>
+          <h3>You pilot it on your files</h3>
+          <p>Before you commit, the tool runs on your own job files. You see it working in your shop — not a sales deck.</p>
+        </li>
+        <li class="reveal">
+          <p class="step-no">Step 03</p>
+          <h3>License it, keep the support</h3>
+          <p>Simple licensing. Support comes from the engineer who built the tool, and it keeps getting fixed after it ships.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section id="about" aria-labelledby="about-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 03 <b>&middot; About</b></p>
+      <h2 id="about-h">About</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Curious Technologies is run by John Sauvign&eacute;, a working engineer in Asheville, North Carolina, with a background in precision manufacturing and RF systems.</p>
+      <p>He builds tools close to the customer: on real files, against real deadlines, with the person who actually does the job. You talk straight to the engineer who writes the code, and the tools stay focused and reliable.</p>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact" aria-labelledby="contact-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 04 <b>&middot; Contact</b></p>
+      <h2 id="contact-h">Have a workflow that eats hours?</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">The best first email is a plain description of a job you still prep by hand. If a tool can fix it, we&rsquo;ll say so — and show you a pilot on your own files before you commit to anything. No pitch deck, no follow-up sequence.</p>
+      <a class="mailto" href="mailto:john@curioustech.org">john@curioustech.org</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">1 of 1</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+  </div>
+</footer>
+
+<script>
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  // Nav scroll-spy
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nav-links a[href^="#"]'));
+    var map = {};
+    links.forEach(function (a) {
+      var sec = document.querySelector(a.getAttribute('href'));
+      if (sec) map[sec.id] = a;
+    });
+    if ('IntersectionObserver' in window) {
+      var spy = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting && map[e.target.id]) {
+            links.forEach(function (a) { a.classList.remove('active'); });
+            map[e.target.id].classList.add('active');
+          }
+        });
+      }, { rootMargin: '-40% 0px -55% 0px' });
+      Object.keys(map).forEach(function (id) {
+        spy.observe(document.getElementById(id));
+      });
+    }
+  })();
+
+  // Reveal-on-scroll — enabled ONLY when motion is allowed AND IntersectionObserver
+  // exists. In every other case the .js class is never added, the CSS never hides
+  // anything, and the page is simply static. No safety-net timers needed.
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+        'IntersectionObserver' in window) {
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  })();
+</script>
+</body>
+</html>
