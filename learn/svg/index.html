@@ -4,14 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>What is an SVG file? Plain answer, anatomy &amp; common problems — Curious Technologies</title>
-<meta name="description" content="SVG explained plainly: a picture stored as readable XML text, sharp at any size, accepted by laser cutters, vinyl cutters, and CNC engraving toolchains. What's inside one, what goes wrong at cut time, plus a free in-browser viewer.">
+<meta name="description" content="SVG explained plainly: a picture stored as readable text, sharp at any size, ready for laser and vinyl cutters. What goes wrong at cut time, and a free viewer.">
 <link rel="canonical" href="https://www.curioustech.org/learn/svg/">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://www.curioustech.org/learn/svg/">
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="What is an SVG file? Plain answer, anatomy &amp; common problems">
 <meta property="og:description" content="A picture stored as readable text — sharp at any size, and accepted by laser cutters, vinyl cutters, and CNC engraving toolchains. What's inside one and what goes wrong at cut time.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="What is an SVG file?">
 <meta name="twitter:description" content="SVG explained in plain English: anatomy of the XML inside, the problems that bite at cut time, and a free in-browser viewer.">
 <meta name="theme-color" content="#f7f9fc">
@@ -19,6 +22,44 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I open an SVG file?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Drag it into any web browser — every modern browser renders SVG natively. To see the text inside, open it in a plain text editor. To get both at once, plus a summary of what the file contains, drop it on our free SVG viewer — it runs in your browser and the file never leaves your machine." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does my SVG cut or print at the wrong size?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Almost always units. SVG defaults to pixels, which have no fixed physical size, and the program on the receiving end has to guess a conversion — different tools have guessed differently. Set an explicit physical width and height on the file (inches or millimeters), confirm the import scale in your cutting software, and measure the first part." }
+    },
+    {
+      "@type": "Question",
+      "name": "SVG vs DXF for laser cutting — which should I use?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Both are widely accepted, and the honest answer is: whichever your cutting software handles best. As a rule of thumb, work that comes from CAD travels naturally as DXF, while artwork and traced graphics travel naturally as SVG. Both formats share the same failure mode — ambiguous units — so verify scale on import either way. We've written the same plain-English treatment of the other side: What is a DXF file?" }
+    },
+    {
+      "@type": "Question",
+      "name": "Is SVG the same as PNG or JPG?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. PNG and JPG are raster formats — grids of pixels — so they blur when scaled up. SVG is vector: it stores the shapes themselves, so it stays sharp at any size and is usually far smaller for line art, logos, and diagrams. For photographs, raster is the right tool; a photo has no shapes to store." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I edit an SVG file in a text editor?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes — that's one of the format's quiet strengths. Nudge a coordinate, change a color, fix a typo in a label: all doable by hand in any editor, no drawing program needed. Fair warning: heavily traced artwork is mostly long path data, which is not pleasant to edit manually. But simple files read like the example above." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can an SVG file contain a virus?",
+      "acceptedAnswer": { "@type": "Answer", "text": "An SVG can embed scripts, so a malicious file opened directly as a web page can run code in that page. Rendered as an image — which is how image tags, and our free viewer, treat SVG — scripts are disabled and don't run. Treat SVGs from unknown sources with the same caution as any downloaded file." }
+    }
+  ]
+}
+</script>
 <style>
   /* ============ BLUEPRINT PRECISION ============
      Paper, ink, hairlines. A shop drawing that
@@ -309,8 +350,10 @@
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/">NC1</a></li>
         <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/" class="active" aria-current="page">SVG</a></li>
-        <li><a href="/tools/svg-viewer/">Free viewer</a></li>
+        <li><a href="/tools/svg-viewer/">SVG viewer</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -431,7 +474,7 @@
         <li class="reveal">
           <span class="idx">01 &middot; SIZE</span>
           <h3>It cuts at the wrong size</h3>
-          <p>SVG&rsquo;s default unit is the pixel — and a pixel has no fixed physical size. A shape that&rsquo;s &ldquo;100 wide&rdquo; is 100 <em>somethings</em>, and different programs have historically assumed different pixels-per-inch when converting (96 is the web convention; 72 turns up in older tools). The result is a part that arrives 25% off.</p>
+          <p>SVG&rsquo;s default unit is the pixel — and a pixel has no fixed physical size. A shape that&rsquo;s &ldquo;100 wide&rdquo; is 100 <em>somethings</em>, and different programs have historically assumed different pixels-per-inch when converting (96 is the web convention; 72 turns up in older tools). The result is a part that arrives 25% small — or a third too big, depending on which direction the mismatch runs.</p>
           <p style="margin-top:.5rem"><strong>The fix:</strong> give the file real units — <span style="font-family:var(--mono);font-size:.85em">width="4in"</span> or <span style="font-family:var(--mono);font-size:.85em">width="101.6mm"</span> to match the viewBox — and measure the first cut before running the batch.</p>
         </li>
         <li class="reveal">
@@ -509,12 +552,12 @@
     <div class="titleblock" role="presentation">
       <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
       <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
-      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">LEARN &middot; SVG</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Learn &middot; SVG</span></div>
       <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
       <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
-    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/svg-viewer/" style="color:#93c5fd;text-decoration:none">Free SVG viewer</a></p>
   </div>
 </footer>
 

@@ -11,7 +11,10 @@
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="Free NC1 Viewer — open DSTV steel files in your browser">
 <meta property="og:description" content="Drag in a .nc1 file and see the part — outline, holes, cutouts, marks, decoded header. 100% client-side: nothing is uploaded.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Free NC1 Viewer (DSTV)">
 <meta name="twitter:description" content="See NC1 steel parts in your browser. Nothing is uploaded — there is no server to upload to.">
 <meta name="theme-color" content="#f7f9fc">
@@ -19,6 +22,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Free NC1 Viewer",
+  "url": "https://www.curioustech.org/tools/nc1-viewer/",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (runs in the browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "publisher": { "@type": "Organization", "name": "Curious Technologies LLC", "url": "https://www.curioustech.org/" }
+}
+</script>
 <style>
   /* ============ BLUEPRINT PRECISION ============ */
   :root{
@@ -114,14 +129,24 @@
   .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
   .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
   .trust .tag{position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--navy);text-transform:uppercase}
+  details.trust summary{font-size:1.02rem;font-weight:600;color:var(--ink-strong);cursor:pointer;list-style:none}
+  details.trust summary::-webkit-details-marker{display:none}
+  details.trust:not([open]) summary::after{content:"— details";margin-left:.35rem;color:var(--navy);font-size:.9rem}
+  details.trust > p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
 
   /* ============ VIEWER LAYOUT ============ */
   .tool-head{padding:3.2rem 0 0}
+  @media (max-width:600px){
+    .tool-head{padding:1.6rem 0 0}
+    .trust{margin:1.2rem 0}
+    .drop{margin-top:1.2rem}
+  }
   .drop{
     margin-top:1.9rem;border:2px dashed var(--hairline-strong);background:var(--paper-raised);
     padding:1.6rem 1.4rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;
   }
   .drop.dragover{border-color:var(--blue);background:#eef4fd}
+  .stage.dragover{outline:2px dashed var(--blue);outline-offset:-6px}
   .drop p{font-size:.95rem;color:var(--muted);max-width:none;margin:0}
   .drop .drop-actions{display:flex;gap:.7rem;flex-wrap:wrap}
   .vgrid{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:1.4rem;margin:1.6rem 0 0;align-items:start}
@@ -147,6 +172,7 @@
   .filelist li.sel button{background:#e8f0fc;color:var(--ink-strong);font-weight:600}
   .filelist .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--ok)}
   .filelist li.err .dot{background:var(--bad)}
+  .filelist li.warn .dot{background:var(--warn)}
   .filelist .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .kv{width:100%;border-collapse:collapse;font-size:.84rem}
   .kv th,.kv td{padding:.42rem .9rem;border-bottom:1px solid var(--hairline);text-align:left;vertical-align:top}
@@ -168,6 +194,7 @@
   .toolbar .hint{margin-left:auto;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--muted)}
   @media (max-width:560px){.toolbar .hint{display:none}}
   .canvas-box{position:relative;background:var(--paper-raised)}
+  .canvas-box:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
   #cv{display:block;width:100%;height:62vh;min-height:280px;max-height:640px;touch-action:none;cursor:grab}
   #cv.panning{cursor:grabbing}
   .overlay{
@@ -224,8 +251,10 @@
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/">NC1</a></li>
         <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/">SVG</a></li>
-        <li><a href="/tools/nc1-viewer/" class="active" aria-current="page">Viewer</a></li>
+        <li><a href="/tools/nc1-viewer/" class="active" aria-current="page">NC1 viewer</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -242,11 +271,10 @@
         <p class="lede">Drop in a <span style="font-family:var(--mono)">.nc1</span> file and see it drawn — outline, cutouts, holes, scribed marks — with the header decoded into a plain table. New to the format? <a class="textlink" href="/learn/nc1/">Read the guide &rarr;</a></p>
       </div>
 
-      <div class="trust">
-        <span class="tag">Read this first</span>
-        <p>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</p>
+      <details class="trust" id="trust" open>
+        <summary><span class="tag">Read this first</span>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</summary>
         <p>This page is plain client-side code: no analytics, no requests carrying your data. The only external request it makes is loading its font.</p>
-      </div>
+      </details>
 
       <div class="drop ticked" id="drop">
         <p><b style="color:var(--ink-strong)">Drop NC1 files anywhere in this box</b> — or pick them, or try the built-in sample. Multiple files are fine; they queue up in a list.</p>
@@ -291,7 +319,7 @@
             <button class="tbtn" type="button" id="zoutbtn" aria-label="Zoom out">&minus;</button>
             <span class="hint">SCROLL/PINCH ZOOM &middot; DRAG PAN &middot; MM AS-IS</span>
           </div>
-          <div class="canvas-box">
+          <div class="canvas-box" tabindex="0" role="region" aria-label="Drawing of the loaded NC1 part. Zoom with plus and minus keys, pan with arrow keys, press 0 to fit.">
             <canvas id="cv" aria-label="Drawing of the loaded NC1 part"></canvas>
             <div class="overlay" id="overlay"><div class="msg" id="overlaymsg">Drop an <b>.nc1</b> file above — or press <b>Load sample</b> to see the viewer working.</div></div>
           </div>
@@ -314,12 +342,12 @@
     <div class="titleblock" role="presentation">
       <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
       <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
-      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Tools &middot; NC1 viewer</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Tool &middot; NC1 viewer</span></div>
       <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
       <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
-    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/learn/nc1/" style="color:#93c5fd;text-decoration:none">NC1 guide</a></p>
   </div>
 </footer>
 
@@ -509,6 +537,8 @@ EN
 
   var cv = document.getElementById('cv');
   var ctx = cv.getContext('2d');
+  var stageEl = document.querySelector('.stage');
+  var canvasBox = document.querySelector('.canvas-box');
   var overlay = document.getElementById('overlay');
   var overlaymsg = document.getElementById('overlaymsg');
   var caption = document.getElementById('caption');
@@ -628,6 +658,12 @@ EN
 
   function fmtMM(v) { return (Math.round(v * 10) / 10).toString(); }
 
+  function fmtBytes(n) {
+    return n < 1024 ? n + ' B'
+      : n < 1048576 ? (n / 1024).toFixed(1) + ' KB'
+      : (n / 1048576).toFixed(2) + ' MB';
+  }
+
   function updatePanels() {
     var f = current();
     var h = f && !f.error && f.part.header ? f.part.header : {};
@@ -646,7 +682,7 @@ EN
       li.appendChild(ks); li.appendChild(vs); st.appendChild(li);
     }
     if (!f) { row('No file loaded', '—'); }
-    else if (f.error) { row('Status', 'could not parse'); row('File size', f.size + ' B'); }
+    else if (f.error) { row('Status', 'could not parse'); row('File size', fmtBytes(f.size)); }
     else {
       var part = f.part, b = boundsOf(part);
       var slots = 0, i;
@@ -664,7 +700,7 @@ EN
       for (i = 0; i < sk.length; i++) {
         row('Not drawn: ' + sk[i], part.skipped[sk[i]] + ' line' + (part.skipped[sk[i]] === 1 ? '' : 's'));
       }
-      row('File size', f.size + ' B');
+      row('File size', fmtBytes(f.size));
     }
 
     if (!f) {
@@ -672,11 +708,16 @@ EN
       overlaymsg.className = 'msg';
       overlaymsg.innerHTML = 'Drop an <b>.nc1</b> file above — or press <b>Load sample</b> to see the viewer working.';
       caption.textContent = 'NO FILE LOADED · VALUES SHOWN AS-IS IN MM';
-    } else if (f.error || !f.part.hasGeom) {
+    } else if (f.error) {
       overlay.hidden = false;
       overlaymsg.className = 'msg bad';
       overlaymsg.textContent = 'Couldn’t parse ' + f.name + ' — this viewer covers the common cases; the file may use features we don’t draw yet.';
       caption.textContent = esc(f.name).toUpperCase() + ' · NOT DRAWN';
+    } else if (!f.part.hasGeom) {
+      overlay.hidden = false;
+      overlaymsg.className = 'msg';
+      overlaymsg.textContent = 'Read the ST header, but found no drawable geometry (AK/IK/BO/SI blocks) — nothing to draw.';
+      caption.textContent = esc(f.name).toUpperCase() + ' · NOTHING TO DRAW';
     } else {
       overlay.hidden = true;
       var pc = f.part.header && f.part.header.piece ? ' · PIECE ' + f.part.header.piece.toUpperCase() : '';
@@ -689,7 +730,8 @@ EN
     files.forEach(function (f, i) {
       var li = document.createElement('li');
       if (i === selIdx) li.className = 'sel';
-      if (f.error || !f.part || !f.part.hasGeom) li.className += (li.className ? ' ' : '') + 'err';
+      if (f.error || !f.part) li.className += (li.className ? ' ' : '') + 'err';
+      else if (!f.part.hasGeom) li.className += (li.className ? ' ' : '') + 'warn';
       var b = document.createElement('button');
       b.type = 'button';
       var dot = document.createElement('span'); dot.className = 'dot';
@@ -719,6 +761,11 @@ EN
     catch (e) { entry.error = String(e && e.message || e); }
     files.push(entry);
     select(files.length - 1);
+    /* on small screens the canvas starts below the fold — bring the result into view */
+    if (window.innerWidth < 700 && stageEl && stageEl.scrollIntoView) {
+      var smooth = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+      stageEl.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    }
   }
 
   function readFiles(fileList) {
@@ -735,18 +782,35 @@ EN
   document.getElementById('pickbtn').addEventListener('click', function () { input.click(); });
   input.addEventListener('change', function () { if (input.files.length) { readFiles(input.files); input.value = ''; } });
 
-  ['dragenter', 'dragover'].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('dragover'); });
+  /* drag & drop — the whole page accepts files (the canvas is where people drag them),
+     with the drop box and stage highlighted while a file is over the window.
+     Single document-level drop handler so nothing is silently swallowed. */
+  var dragDepth = 0;
+  function hasFiles(e) {
+    return !!(e.dataTransfer && e.dataTransfer.types &&
+      Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1);
+  }
+  function setDragHint(on) {
+    drop.classList.toggle('dragover', on);
+    if (stageEl) stageEl.classList.toggle('dragover', on);
+  }
+  document.addEventListener('dragenter', function (e) {
+    e.preventDefault();
+    if (!hasFiles(e)) return;
+    dragDepth++;
+    setDragHint(true);
   });
-  ['dragleave', 'drop'].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('dragover'); });
+  document.addEventListener('dragover', function (e) { e.preventDefault(); });
+  document.addEventListener('dragleave', function () {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) setDragHint(false);
   });
-  drop.addEventListener('drop', function (e) {
+  document.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    setDragHint(false);
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) readFiles(e.dataTransfer.files);
   });
-  // stray drops on the page shouldn't navigate away from the tool
-  window.addEventListener('dragover', function (e) { e.preventDefault(); });
-  window.addEventListener('drop', function (e) { e.preventDefault(); });
 
   document.getElementById('samplebtn').addEventListener('click', function () {
     var text = document.getElementById('sample-nc1').textContent;
@@ -821,10 +885,31 @@ EN
     var s = cssSize(); zoomAt(s.w / 2, s.h / 2, 1 / 1.3);
   });
 
+  /* keyboard zoom/pan (mirrors the SVG viewer) */
+  canvasBox.addEventListener('keydown', function (e) {
+    if (!current()) return;
+    var s = cssSize(), step = 40, used = true;
+    switch (e.key) {
+      case '+': case '=': zoomAt(s.w / 2, s.h / 2, 1.3); break;
+      case '-': case '_': zoomAt(s.w / 2, s.h / 2, 1 / 1.3); break;
+      case '0': case 'f': case 'F': fit(); break;
+      case 'ArrowLeft':  view.ox += step; view.touched = true; draw(); break;
+      case 'ArrowRight': view.ox -= step; view.touched = true; draw(); break;
+      case 'ArrowUp':    view.oy += step; view.touched = true; draw(); break;
+      case 'ArrowDown':  view.oy -= step; view.touched = true; draw(); break;
+      default: used = false;
+    }
+    if (used) e.preventDefault();
+  });
+
   window.addEventListener('resize', function () {
     resizeCanvas();
     if (!view.touched) fit(); else draw();
   });
+
+  /* collapse the read-this-first box on small screens so the buttons land in the first viewport */
+  var trustBox = document.getElementById('trust');
+  if (trustBox && window.matchMedia('(max-width:600px)').matches) trustBox.open = false;
 
   resizeCanvas();
   updatePanels();

@@ -11,7 +11,10 @@
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="What is a DXF file? A plain-English guide">
 <meta property="og:description" content="What a DXF actually is, what's inside it, the six problems that cause most DXF grief on a shop floor, and how to open one free in your browser.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="What is a DXF file? A plain-English guide">
 <meta name="twitter:description" content="Drawing Exchange Format explained by people who work with it — group codes, sections, units traps, DXF vs DWG.">
 <meta name="theme-color" content="#f7f9fc">
@@ -32,7 +35,7 @@
     {
       "@type": "Question",
       "name": "Is DXF the same as DWG?",
-      "acceptedAnswer": { "@type": "Answer", "text": "No, but they describe the same drawing. DWG is the closed binary native format; DXF is the open, text-based interchange version. Renaming the file extension converts nothing — re-export from CAD." }
+      "acceptedAnswer": { "@type": "Answer", "text": "No, but they describe the same drawing. DWG is the closed binary native format; DXF is the open, text-based interchange version. Renaming the file extension converts nothing — re-export from CAD. Full story — and free conversion paths — in our DWG guide." }
     },
     {
       "@type": "Question",
@@ -369,8 +372,10 @@
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/">NC1</a></li>
         <li><a href="/learn/dxf/" class="active" aria-current="page">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/">SVG</a></li>
-        <li><a href="/tools/dxf-viewer/">Free DXF viewer</a></li>
+        <li><a href="/tools/dxf-viewer/">DXF viewer</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -512,7 +517,7 @@
         <li class="reveal">
           <span class="idx">02</span>
           <h3>It&rsquo;s actually a DWG</h3>
-          <p>Same drawing model, different container: DWG is the closed binary native format, DXF the open interchange. Renaming <code>.dwg</code> to <code>.dxf</code> converts nothing — the file is still binary inside. Go back to the CAD program and export a real DXF.</p>
+          <p>Same drawing model, different container: DWG is the closed binary native format, DXF the open interchange. Renaming <code>.dwg</code> to <code>.dxf</code> converts nothing — the file is still binary inside. Go back to the CAD program and export a real DXF. Full story — and free conversion paths — in <a href="/learn/dwg/">our DWG guide</a>.</p>
         </li>
         <li class="reveal">
           <span class="idx">03</span>
@@ -532,7 +537,7 @@
         <li class="reveal">
           <span class="idx">06</span>
           <h3>ASCII vs. binary DXF</h3>
-          <p>Most DXFs are plain text, but a binary variant exists — and plenty of tools only read the text kind. If a reader rejects a file outright, re-export it as ASCII DXF; every CAD package offers the option.</p>
+          <p>Most DXFs are plain text, but a binary variant exists — and plenty of tools only read the text kind. If a reader rejects a file outright, re-export it as ASCII DXF; practically every CAD package offers the option.</p>
         </li>
       </ul>
     </div>
@@ -555,7 +560,7 @@
         <details>
           <summary>Is DXF the same as DWG?</summary>
           <div class="a">
-            <p>No — but they describe the same drawing. DWG is the closed, binary format native to Autodesk software; DXF is the open, text-based interchange version. Converting between them is an export/import job inside a CAD program. Renaming the file extension does nothing.</p>
+            <p>No — but they describe the same drawing. DWG is the closed, binary format native to Autodesk software; DXF is the open, text-based interchange version. Converting between them is an export/import job inside a CAD program. Renaming the file extension does nothing. Full story — and free conversion paths — in <a href="/learn/dwg/">our DWG guide</a>.</p>
           </div>
         </details>
         <details>
@@ -617,9 +622,9 @@
     <div class="titleblock" role="presentation">
       <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
       <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
-      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">LEARN-DXF</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Learn &middot; DXF</span></div>
       <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
-      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Format education</span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
     <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/dxf-viewer/" style="color:#93c5fd;text-decoration:none">Free DXF viewer</a></p>

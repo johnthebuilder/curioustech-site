@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>mm to Inch Fraction Converter — free, runs in your browser | Curious Technologies</title>
-<meta name="description" content="Free mm to inch fraction converter: decimal inches plus the nearest 1/16, 1/32, or 1/64 with the rounding error stated and signed. Inches to mm accepts fractions like 13/16 and 1 3/8. Runs entirely in your browser.">
+<title>mm to Inch Fraction Converter — free, runs in your browser — Curious Technologies</title>
+<meta name="description" content="Free mm to inch fraction converter: decimal inches plus the nearest 1/16, 1/32, or 1/64, rounding error shown. Takes fractions like 13/16. Runs in your browser.">
 <link rel="canonical" href="https://www.curioustech.org/tools/mm-inch/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.curioustech.org/tools/mm-inch/">
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="mm &#8596; inch fraction converter — free, runs in your browser">
 <meta property="og:description" content="Millimeters to decimal inches and the nearest fraction — 1/16, 1/32, or 1/64 — with the rounding error stated. Inches to mm takes 13/16 or 1 3/8 straight off the tape. Client-side only.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="mm &#8596; inch fraction converter">
 <meta name="twitter:description" content="Decimal inches, nearest fraction, signed rounding error. Fractions in, millimeters out. Nothing leaves your browser.">
 <meta name="theme-color" content="#f7f9fc">
@@ -19,6 +22,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "mm ↔ inch Fraction Converter",
+  "url": "https://www.curioustech.org/tools/mm-inch/",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (runs in the browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "publisher": { "@type": "Organization", "name": "Curious Technologies LLC", "url": "https://www.curioustech.org/" }
+}
+</script>
 <style>
   /* ============ BLUEPRINT PRECISION ============
      Paper, ink, hairlines. A shop drawing that
@@ -339,8 +354,10 @@
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/">NC1</a></li>
         <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/">SVG</a></li>
         <li><a href="/tools/mm-inch/" class="active" aria-current="page">Converter</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -419,7 +436,7 @@
         </div>
       </div>
 
-      <p class="aside-note">Numbers are half the job &mdash; if you&rsquo;re also staring at the files, the free <a href="/tools/nc1-viewer/">NC1 viewer</a> and <a href="/tools/dxf-viewer/">DXF viewer</a> run in your browser the same way: nothing uploaded.</p>
+      <p class="aside-note">Numbers are half the job &mdash; if you&rsquo;re also staring at the files, the free <a href="/tools/nc1-viewer/">NC1 viewer</a> and <a href="/tools/dxf-viewer/">DXF viewer</a> run in your browser the same way: nothing uploaded. And the <a href="/tools/plate-weight/">plate weight calculator</a> takes the same fractions.</p>
     </div>
   </section>
 
@@ -465,12 +482,12 @@
     <div class="titleblock" role="presentation">
       <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
       <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
-      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL &middot; MM &#8596; INCH</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Tool &middot; mm &#8596; inch</span></div>
       <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
       <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
-    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/plate-weight/" style="color:#93c5fd;text-decoration:none">Plate weight calculator</a></p>
   </div>
 </footer>
 

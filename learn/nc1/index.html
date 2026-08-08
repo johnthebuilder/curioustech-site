@@ -11,7 +11,10 @@
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="What is an NC1 file? The DSTV format, explained">
 <meta property="og:description" content="Plain-text CNC files for structural steel: what's inside an NC1/DSTV file, who writes and reads them, the problems they cause in the wild, and a free browser viewer.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="What is an NC1 file? The DSTV format, explained">
 <meta name="twitter:description" content="What's inside an NC1/DSTV file, who uses them, common problems, and a free in-browser viewer.">
 <meta name="theme-color" content="#f7f9fc">
@@ -19,6 +22,44 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I open an NC1 file?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Two ways. Because it's plain text, any text editor opens it — Notepad works — and you'll see the blocks described above. To see the part rather than the numbers, use a viewer: our free NC1 viewer runs in your browser, draws the outline, holes, and marks, and never uploads your file anywhere." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is NC1 the same as DSTV?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Effectively, yes. DSTV is the standard — from the German Steel Construction Association — and NC1 is the everyday name, taken from the .nc1 file extension. People say \"DSTV file\" and \"NC1 file\" interchangeably." }
+    },
+    {
+      "@type": "Question",
+      "name": "What's the difference between NC1 and DXF?",
+      "acceptedAnswer": { "@type": "Answer", "text": "An NC1 file describes one steel part with its fabrication data attached — grade, quantity, piece mark, holes, markings — in a form CNC steel machinery reads directly. A DXF is a general CAD drawing exchange format: geometry, but no notion of a steel part. If the machine is a beam line or plate processor, it wants NC1; general drawing work travels as DXF." }
+    },
+    {
+      "@type": "Question",
+      "name": "What software creates NC1 files?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Steel detailing software — Tekla Structures, SDS2, and Advance Steel are the common ones. They export one NC1 file per part from the 3D model. On the consuming side: CNC plate and beam machines, and nesting software." }
+    },
+    {
+      "@type": "Question",
+      "name": "Are NC1 files metric or imperial?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The standard is metric — coordinates and dimensions in millimeters. Inch-valued files do circulate in imperial shops, and they're a classic source of scale errors, because nothing in the file loudly declares which one you're holding. If a 10 ft part parses as 120 mm, you've found one." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I edit an NC1 file by hand?",
+      "acceptedAnswer": { "@type": "Answer", "text": "You can — it's text. For one field in one file, a careful text-editor edit is fine. The trouble is scale and stakes: the header is positional, so a line accidentally deleted or shifted changes the meaning of everything after it, and the mistake surfaces as a cut part. Hand-editing a 300-file job is where it really breaks down." }
+    }
+  ]
+}
+</script>
 <style>
   /* ============ BLUEPRINT PRECISION ============
      Paper, ink, hairlines. A shop drawing that
@@ -351,8 +392,10 @@
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/" class="active" aria-current="page">NC1</a></li>
         <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/">SVG</a></li>
-        <li><a href="/tools/nc1-viewer/">Viewer</a></li>
+        <li><a href="/tools/nc1-viewer/">NC1 viewer</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -486,7 +529,7 @@
         <li class="reveal">
           <span class="idx">03</span>
           <h3>Millimeters vs. inches</h3>
-          <p>The standard is metric: values are millimeters. But imperial shops and mixed toolchains produce inch-valued files, and a units mix-up doesn&rsquo;t announce itself — the file looks fine right up until the part comes off the machine 25&times; the wrong size.</p>
+          <p>The standard is metric: values are millimeters. But imperial shops and mixed toolchains produce inch-valued files, and a units mix-up doesn&rsquo;t announce itself — the file looks fine right up until the part comes off the machine 25.4&times; the wrong size.</p>
         </li>
         <li class="reveal">
           <span class="idx">04</span>
@@ -572,7 +615,7 @@
       <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
-    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/nc1-viewer/" style="color:#93c5fd;text-decoration:none">Free NC1 viewer</a></p>
   </div>
 </footer>
 

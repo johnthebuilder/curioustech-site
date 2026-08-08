@@ -11,7 +11,10 @@
 <meta property="og:site_name" content="Curious Technologies">
 <meta property="og:title" content="Free DXF Viewer — runs in your browser, nothing uploaded">
 <meta property="og:description" content="Drop in an ASCII DXF and see the geometry drawn, layer by layer, with honest notes about anything it can't draw. No upload — there is no server to upload to.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://www.curioustech.org/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Free DXF Viewer — in your browser, nothing uploaded">
 <meta name="twitter:description" content="View DXF files free: lines, arcs, circles, polylines, text. Layer toggles, zoom and pan. Files never leave your computer.">
 <meta name="theme-color" content="#f7f9fc">
@@ -179,6 +182,13 @@
     padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
     color:var(--navy);text-transform:uppercase;
   }
+  details.trust summary{
+    font-size:1.02rem;font-weight:600;color:var(--ink-strong);
+    cursor:pointer;list-style:none;
+  }
+  details.trust summary::-webkit-details-marker{display:none}
+  details.trust:not([open]) summary::after{content:"— details";margin-left:.35rem;color:var(--navy);font-size:.9rem}
+  details.trust > p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
 
   .ticked::before,.ticked::after{
     content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:5;
@@ -196,6 +206,11 @@
   .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
   .pagehead .lede{margin-top:1.2rem}
   .pagehead p+p{margin-top:.9rem}
+  @media (max-width:600px){
+    .pagehead{padding:1.6rem 0 1.3rem}
+    .pagehead .lede{margin-top:.8rem}
+    .trust{margin-top:1.2rem}
+  }
 
   /* ============ VIEWER ============ */
   .viewer-sec{padding:2.6rem 0 3.4rem}
@@ -215,6 +230,7 @@
     height:clamp(320px,58vh,620px);
   }
   .stage.drag{outline:2px dashed var(--blue);outline-offset:-8px}
+  .stage:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
   .stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
   .stage.panning canvas{cursor:grabbing}
 
@@ -234,6 +250,7 @@
     padding:.9rem 1.1rem;margin:0 0 1rem;max-width:none;
   }
   .errbox strong{color:var(--bad)}
+  .errbox a{color:var(--navy);font-weight:600;text-decoration:underline}
   .errbox[hidden]{display:none}
 
   .hint{
@@ -337,9 +354,11 @@
       <ul class="nav-links">
         <li><a href="/">Home</a></li>
         <li><a href="/learn/nc1/">NC1</a></li>
-        <li><a href="/learn/dxf/">DXF guide</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/">DWG</a></li>
         <li><a href="/learn/svg/">SVG</a></li>
         <li><a href="/tools/dxf-viewer/" class="active" aria-current="page">DXF viewer</a></li>
+        <li><a href="/#resources">Free tools</a></li>
         <li><a href="mailto:john@curioustech.org">Contact</a></li>
       </ul>
     </nav>
@@ -357,11 +376,10 @@
       <p class="lede">Drop a DXF on this page and see it: lines, arcs, circles, polylines, and text, drawn with per-layer toggles — and an honest note about anything we can&rsquo;t draw.</p>
       <p><a class="textlink" href="/learn/dxf/">New to the format? Read the plain-English DXF guide &rarr;</a></p>
 
-      <div class="trust">
-        <span class="tag">How this works</span>
-        <p>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</p>
+      <details class="trust" id="trust" open>
+        <summary><span class="tag">How this works</span>Runs entirely in your browser. Your file is never uploaded — there is no server to upload to.</summary>
         <p>Parsing and drawing happen right here on this page. No accounts, no analytics, no uploads.</p>
-      </div>
+      </details>
     </div>
   </section>
 
@@ -380,7 +398,7 @@
 
       <div class="viewer-grid">
         <div>
-          <div class="stage ticked" id="stage">
+          <div class="stage ticked" id="stage" tabindex="0" role="region" aria-label="DXF drawing. Zoom with plus and minus keys, pan with arrow keys, press 0 to fit.">
             <canvas id="cv" aria-label="DXF drawing canvas. Drawn geometry appears here; entity and layer details are listed in the layers and file panels."></canvas>
             <div class="empty" id="empty">
               <p class="big">Drop a .dxf file here</p>
@@ -426,9 +444,9 @@
     <div class="titleblock" role="presentation">
       <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
       <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
-      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL-DXF-VIEWER</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">Tool &middot; DXF viewer</span></div>
       <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
-      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Free in-browser tools</span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
       <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
     </div>
     <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/learn/dxf/" style="color:#93c5fd;text-decoration:none">DXF guide</a></p>
@@ -888,7 +906,7 @@ var DxfMini = (function () {
   var errBox = document.getElementById('errbox');
 
   var doc = null;
-  var view = { scale: 1, ox: 0, oy: 0 };
+  var view = { scale: 1, ox: 0, oy: 0, touched: false };
   var dpr = window.devicePixelRatio || 1;
 
   var PALETTE = ['#1e3a8a', '#b45309', '#15803d', '#b91c1c', '#6d28d9', '#0e7490', '#be185d', '#374151'];
@@ -984,6 +1002,7 @@ var DxfMini = (function () {
     view.scale = sc;
     view.ox = w / 2 - (doc.bounds.x0 + doc.bounds.x1) / 2 * sc;
     view.oy = h / 2 + (doc.bounds.y0 + doc.bounds.y1) / 2 * sc;
+    view.touched = false;
     render();
   }
 
@@ -992,7 +1011,8 @@ var DxfMini = (function () {
     var r = stage.getBoundingClientRect();
     canvas.width = Math.max(1, Math.round(r.width * dpr));
     canvas.height = Math.max(1, Math.round(r.height * dpr));
-    render();
+    /* refit untouched views so a rotation/resize can't strand the drawing off-canvas */
+    if (doc && doc.hasBounds && !view.touched) fit(); else render();
   }
 
   /* ---------- panels ---------- */
@@ -1078,6 +1098,12 @@ var DxfMini = (function () {
     errBox.hidden = false;
   }
 
+  /* For fully static messages only — never pass user- or file-derived strings. */
+  function showErrorHTML(html) {
+    errBox.innerHTML = html;
+    errBox.hidden = false;
+  }
+
   function clearError() {
     errBox.hidden = true;
     errBox.textContent = '';
@@ -1088,11 +1114,11 @@ var DxfMini = (function () {
   function loadText(text, name, size) {
     clearError();
     if (text.slice(0, 32).indexOf('AutoCAD Binary DXF') === 0) {
-      showError('This is a binary DXF. This viewer reads ASCII DXF only — re-export the file as ASCII DXF (every CAD package offers the option) and try again.');
+      showError('This is a binary DXF. This viewer reads ASCII DXF only — re-export the file as ASCII DXF (practically every CAD package offers the option) and try again.');
       return;
     }
     if (/^AC1\d{3}/.test(text.slice(0, 6))) {
-      showError('This looks like a DWG, not a DXF. Same drawing inside, different container — renaming the extension doesn’t convert it. Export a DXF from your CAD program and try again. Free conversion paths are in our DWG guide at /learn/dwg/.');
+      showErrorHTML('This looks like a DWG, not a DXF. Same drawing inside, different container — renaming the extension doesn’t convert it. Export a DXF from your CAD program and try again. Free conversion paths are in <a href="/learn/dwg/">our DWG guide</a>.');
       return;
     }
     var parsed;
@@ -1121,6 +1147,11 @@ var DxfMini = (function () {
     }
     resize();
     fit();
+    /* on small screens the stage starts below the fold — bring the result into view */
+    if (window.innerWidth < 700 && stage.scrollIntoView) {
+      var smooth = window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+      stage.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    }
   }
 
   function handleFile(file) {
@@ -1147,21 +1178,26 @@ var DxfMini = (function () {
     btn.addEventListener('click', loadSample);
   });
 
-  /* drag & drop — prevent the browser from navigating away, highlight the stage */
-  ['dragover', 'drop'].forEach(function (ev) {
-    document.addEventListener(ev, function (e) { e.preventDefault(); });
-  });
+  /* drag & drop — the whole page is the drop target ("Drop a DXF on this page"),
+     with the stage highlighted while a file is over the window. Single document-level
+     drop handler so a drop on the stage can't load the file twice. */
   var dragDepth = 0;
-  stage.addEventListener('dragenter', function (e) {
+  function hasFiles(e) {
+    return !!(e.dataTransfer && e.dataTransfer.types &&
+      Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1);
+  }
+  document.addEventListener('dragenter', function (e) {
     e.preventDefault();
+    if (!hasFiles(e)) return;
     dragDepth++;
     stage.classList.add('drag');
   });
-  stage.addEventListener('dragleave', function () {
+  document.addEventListener('dragover', function (e) { e.preventDefault(); });
+  document.addEventListener('dragleave', function () {
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0) stage.classList.remove('drag');
   });
-  stage.addEventListener('drop', function (e) {
+  document.addEventListener('drop', function (e) {
     e.preventDefault();
     dragDepth = 0;
     stage.classList.remove('drag');
@@ -1176,6 +1212,7 @@ var DxfMini = (function () {
     view.ox = mx - (mx - view.ox) * f;
     view.oy = my - (my - view.oy) * f;
     view.scale = ns;
+    view.touched = true;
     render();
   }
   stage.addEventListener('wheel', function (e) {
@@ -1209,6 +1246,7 @@ var DxfMini = (function () {
       if (lastMid) {
         view.ox += mx - lastMid.x;
         view.oy += my - lastMid.y;
+        view.touched = true;
         render();
       }
       lastMid = { x: mx, y: my };
@@ -1219,6 +1257,7 @@ var DxfMini = (function () {
       if (lastMid && lastDist > 0) {
         view.ox += mid.x - lastMid.x;
         view.oy += mid.y - lastMid.y;
+        view.touched = true;
         zoomAt(mid.x, mid.y, dist / lastDist);
       }
       lastMid = mid;
@@ -1234,9 +1273,30 @@ var DxfMini = (function () {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('dblclick', fit);
 
+  /* keyboard zoom/pan (mirrors the SVG viewer) */
+  stage.addEventListener('keydown', function (e) {
+    if (!doc) return;
+    var w = canvas.width / dpr, h = canvas.height / dpr;
+    var step = 40, used = true;
+    switch (e.key) {
+      case '+': case '=': zoomAt(w / 2, h / 2, 1.25); break;
+      case '-': case '_': zoomAt(w / 2, h / 2, 0.8); break;
+      case '0': case 'f': case 'F': fit(); break;
+      case 'ArrowLeft':  view.ox += step; view.touched = true; render(); break;
+      case 'ArrowRight': view.ox -= step; view.touched = true; render(); break;
+      case 'ArrowUp':    view.oy += step; view.touched = true; render(); break;
+      case 'ArrowDown':  view.oy -= step; view.touched = true; render(); break;
+      default: used = false;
+    }
+    if (used) e.preventDefault();
+  });
+
   /* ---------- init ---------- */
   window.addEventListener('resize', resize);
   resize();
+  /* collapse the how-it-works box on small screens so the primary buttons land in the first viewport */
+  var trustBox = document.getElementById('trust');
+  if (trustBox && window.matchMedia('(max-width:600px)').matches) trustBox.open = false;
   if (location.hash === '#sample') loadSample();
 })();
 </script>
