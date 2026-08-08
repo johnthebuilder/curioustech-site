@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is a DWG file? DWG vs DXF explained — Curious Technologies</title>
+<meta name="description" content="DWG is AutoCAD's native, closed binary drawing format. A plain-English guide: DWG vs DXF, free ways to convert DWG to DXF (ODA File Converter, DWG TrueView, save-as), and why machines want DXF.">
+<link rel="canonical" href="https://www.curioustech.org/learn/dwg/">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://www.curioustech.org/learn/dwg/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="What is a DWG file? DWG vs DXF explained">
+<meta property="og:description" content="What a DWG actually is, how it differs from DXF, the free ways to convert one, and why your machine software wants the DXF instead.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="What is a DWG file? DWG vs DXF explained">
+<meta name="twitter:description" content="AutoCAD's native format explained plainly — closed binary, version codes like AC1032, and the free paths to an open DXF.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I open a DWG file without AutoCAD?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Two free routes. Autodesk's free DWG TrueView opens, measures, and prints DWG files on the desktop. Or convert the DWG to DXF — free with the ODA File Converter — and open the DXF anywhere, including a free in-browser DXF viewer. DWG itself is closed binary, so honest in-browser options for the raw file are thin." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I convert DWG to DXF for free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The ODA File Converter, a free desktop app from the Open Design Alliance, converts single files or whole folders between DWG and DXF and lets you pick the output version. Alternatively, any CAD package that opens DWG can Save As or export a DXF." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is DWG the same as DXF?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No — they describe the same drawing, but in different containers. DWG is the closed, binary format native to AutoCAD; DXF is the open, text-based interchange version with a published spec. Renaming the file extension converts nothing — use a real converter or re-export from CAD." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I convert a DWG to PDF?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Open it in anything that reads DWG and plot or print to PDF — Autodesk's free DWG TrueView does this. Remember that a PDF is a picture of the drawing: fine for review and approval, useless as machine input. For cutting, convert to DXF instead." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why won't my machine or nesting software take a DWG?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because DWG is a closed format that changes with AutoCAD releases, most CNC, nesting, and CAM toolchains standardize on DXF instead. Nothing is broken — convert the DWG to DXF and the same drawing goes through." }
+    },
+    {
+      "@type": "Question",
+      "name": "What does a version code like AC1032 mean?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It's the version stamp at the very start of every DWG file — the format changes by AutoCAD release. When software refuses a DWG and reports a code like AC1032, the file was saved by a newer release than the reader understands. Save it down to an older DWG version (DWG TrueView converts between versions) or convert it to DXF." }
+    }
+  ]
+}
+</script>
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site chrome.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  section{padding:4.2rem 0}
+  @media (max-width:600px){section{padding:3rem 0}}
+
+  .btn{
+    display:inline-block;text-decoration:none;font-weight:600;font-size:.95rem;
+    padding:.72rem 1.35rem;border-radius:4px;
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+  }
+  .btn-primary{background:var(--navy);color:#fff;border:1px solid var(--navy)}
+  .btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--hairline-strong)}
+  .btn-ghost:hover{border-color:var(--navy);color:var(--navy)}
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+  .cta-row{display:flex;gap:.85rem;margin-top:1.8rem;flex-wrap:wrap;align-items:center}
+
+  .fig{
+    background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    padding:.9rem;position:relative;margin:1.8rem 0;
+  }
+  .fig svg{display:block;width:100%;height:auto}
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+  .fig-caption{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:.8rem;padding-top:.6rem;
+  }
+
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  .features{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1px;background:var(--hairline);border:1px solid var(--hairline);
+    margin-top:2.2rem;list-style:none;
+  }
+  @media (max-width:760px){.features{grid-template-columns:1fr}}
+  .features li{
+    background:var(--paper-raised);padding:1.3rem 1.4rem;
+  }
+  .features .idx{
+    font-family:var(--mono);font-size:.7rem;color:var(--blue);
+    letter-spacing:.12em;display:block;margin-bottom:.45rem;
+  }
+  .features h3{margin-bottom:.35rem}
+  .features p{font-size:.93rem;color:var(--muted);max-width:none}
+
+  /* ============ PAGE HEAD ============ */
+  .pagehead{padding:3.6rem 0 3.2rem;border-bottom:1px solid var(--hairline)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .pagehead p.sub{margin-top:1.2rem;font-size:1.08rem}
+  .pagehead .lede{margin-top:1.2rem}
+
+  /* ============ ARTICLE FURNITURE ============ */
+  #where{border-bottom:1px solid var(--hairline)}
+  #versus{border-bottom:1px solid var(--hairline)}
+  #convert{border-bottom:1px solid var(--hairline)}
+  #problems{border-bottom:1px solid var(--hairline)}
+  #faq{border-bottom:1px solid var(--hairline)}
+  section p+p{margin-top:.9rem}
+
+  .tscroll{overflow-x:auto;margin:1.6rem 0}
+  .sectable{
+    width:100%;border-collapse:collapse;background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);font-size:.92rem;
+  }
+  .sectable th{
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);font-weight:400;text-align:left;
+    padding:.55rem .85rem;border-bottom:1px solid var(--hairline-strong);
+  }
+  .sectable td{padding:.6rem .85rem;border-bottom:1px solid var(--hairline);vertical-align:top}
+  .sectable tr:last-child td{border-bottom:0}
+  .sectable td:first-child{
+    font-family:var(--mono);font-size:.8rem;color:var(--navy);white-space:nowrap;width:1%;
+  }
+
+  .codewalk{font-family:var(--mono);font-size:.82rem;line-height:1.5}
+  .cw-row{
+    display:grid;grid-template-columns:7.5rem minmax(0,1fr);gap:.9rem;
+    padding:.12rem .2rem;align-items:baseline;
+  }
+  @media (max-width:480px){.cw-row{grid-template-columns:5.5rem minmax(0,1fr);gap:.6rem}}
+  .cw-row:nth-child(odd){background:rgba(37,99,235,.035)}
+  .cw-code{color:var(--blue);white-space:pre}
+  .cw-val{color:var(--ink-strong);font-weight:600;white-space:pre}
+  .cw-bin{color:var(--hairline-strong);white-space:pre;letter-spacing:.05em}
+  .cw-note{font-size:.72rem;color:var(--muted);letter-spacing:.02em}
+  .cw-note::before{content:"\2190\00a0";color:var(--hairline-strong)}
+  .cw-note.blank::before{content:""}
+
+  .chips{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem;padding:0;list-style:none;max-width:none}
+  .chips li{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;
+    border:1px solid var(--hairline-strong);background:var(--paper-raised);
+    padding:.28rem .55rem;color:var(--navy);
+  }
+
+  .faq{margin-top:1.8rem;border-top:1px solid var(--hairline-strong)}
+  .faq details{border-bottom:1px solid var(--hairline)}
+  .faq summary{
+    cursor:pointer;padding:1rem .2rem;font-weight:600;color:var(--ink-strong);
+    list-style:none;display:flex;gap:.7rem;align-items:baseline;
+  }
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::before{content:"Q";font-family:var(--mono);font-size:.8rem;color:var(--blue);flex:none}
+  .faq summary::after{content:"+";font-family:var(--mono);color:var(--muted);margin-left:auto;flex:none}
+  .faq details[open] summary::after{content:"\2013"}
+  .faq .a{padding:0 .2rem 1.15rem 1.5rem;font-size:.97rem;max-width:66ch}
+  .faq .a p{max-width:none}
+  .faq .a p+p{margin-top:.6rem}
+
+  .svc{
+    margin-top:1.8rem;font-size:.9rem;color:var(--muted);
+    border-top:1px solid var(--hairline);padding-top:1.1rem;max-width:62ch;
+  }
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site sections">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/dwg/" class="active" aria-current="page">DWG</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/dxf-viewer/">Free DXF viewer</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ PAGE HEAD / PLAIN ANSWER ============ -->
+  <section class="pagehead" aria-labelledby="h-title">
+    <div class="wrap">
+      <p class="eyebrow">Learn &middot; File formats &middot; DWG</p>
+      <h1 id="h-title">What is a DWG file?</h1>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">A DWG file is a drawing saved in <strong>AutoCAD&rsquo;s native format</strong> — Autodesk-proprietary, binary, and versioned with each release. It holds the complete drawing database: model and paper space, layers, blocks, dimensions, styles. If AutoCAD made the drawing and nobody exported anything, the DWG <em>is</em> the drawing.</p>
+      <p>That&rsquo;s also why your shop software probably won&rsquo;t open it. DWG has an open, text-based sibling — <strong>DXF</strong> — that carries the same drawing model, and DXF is what most CNC, nesting, and non-Autodesk software expects. The standard move is a two-minute conversion, covered <a href="#convert">below</a>, free.</p>
+      <p class="sub"><a class="textlink" href="/tools/dxf-viewer/">Already have it as a DXF? Open it in the free viewer &rarr;</a></p>
+    </div>
+  </section>
+
+  <!-- ============ WHERE IT SITS ============ -->
+  <section id="where" aria-labelledby="where-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 01 <b>&middot; Where it sits</b></p>
+      <h2 id="where-h">Native format on one side, interchange world on the other</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">DWG is the file the design side lives in. Everything downstream — nesting software, CAM, machine controls, viewers, other CAD — lives in the interchange world, and the passport there is DXF.</p>
+      <p>Inside the DWG is everything AutoCAD knows about the drawing, not just the visible geometry:</p>
+      <ul class="chips" aria-label="What a DWG file holds">
+        <li>MODEL SPACE</li><li>PAPER SPACE</li><li>LAYERS</li><li>BLOCKS</li><li>DIMENSIONS</li><li>STYLES</li>
+      </ul>
+      <p>Keeping all of that intact is what a native format is for — the working copy should stay a DWG as long as it&rsquo;s being edited. But the moment the drawing crosses a software boundary, it needs translating — and that boundary is usually your shop&rsquo;s front door.</p>
+
+      <figure class="fig ticked reveal">
+        <svg viewBox="0 0 700 150" role="img" aria-label="Diagram showing a DWG file in the native AutoCAD world converted to a DXF file, which then flows to nesting, CAM, and viewer software in the open interchange world">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,1.5 L9,5 L0,8.5 Z" fill="#1e3a8a"/>
+            </marker>
+          </defs>
+          <!-- station 1: the DWG -->
+          <rect x="8" y="30" width="180" height="66" fill="#f2f6fc" stroke="#1e3a8a" stroke-width="2"/>
+          <text x="98" y="58" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="13" fill="#1e3a8a" letter-spacing="1" font-weight="bold">THE .DWG</text>
+          <text x="98" y="78" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9.5" fill="#4d5d80">native &#183; closed binary</text>
+          <!-- convert arrow -->
+          <line x1="192" y1="63" x2="252" y2="63" stroke="#1e3a8a" stroke-width="1.2" marker-end="url(#arr)"/>
+          <text x="224" y="24" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9" fill="#4d5d80" letter-spacing="1">CONVERT /</text>
+          <text x="224" y="36" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9" fill="#4d5d80" letter-spacing="1">SAVE AS</text>
+          <!-- station 2: the DXF -->
+          <rect x="258" y="30" width="180" height="66" fill="#ffffff" stroke="#1e3a8a" stroke-width="2" stroke-dasharray="6 3"/>
+          <text x="348" y="58" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="13" fill="#1e3a8a" letter-spacing="1" font-weight="bold">THE .DXF</text>
+          <text x="348" y="78" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9.5" fill="#4d5d80">open text &#183; interchange</text>
+          <!-- arrow -->
+          <line x1="442" y1="63" x2="502" y2="63" stroke="#1e3a8a" stroke-width="1.2" marker-end="url(#arr)"/>
+          <!-- station 3: the shop -->
+          <rect x="508" y="30" width="184" height="66" fill="#ffffff" stroke="#9db1d1" stroke-width="1"/>
+          <text x="600" y="58" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#0b1324" letter-spacing="1">NEST &#183; CAM &#183; VIEW</text>
+          <text x="600" y="78" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9.5" fill="#4d5d80">the software your shop runs</text>
+          <!-- boundary note -->
+          <line x1="224" y1="104" x2="224" y2="126" stroke="#9db1d1" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="224" y="142" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="9.5" fill="#4d5d80" letter-spacing="1">AUTODESK WORLD&#160;&#160;|&#160;&#160;EVERYTHING ELSE</text>
+        </svg>
+        <figcaption class="fig-caption">FIG. 1 &mdash; THE DOOR MOST SHOPS NEED: DWG &rarr; DXF &rarr; MACHINE SOFTWARE</figcaption>
+      </figure>
+
+      <p>DWG isn&rsquo;t a bad format — it&rsquo;s a very good one, for the software it belongs to. The grief starts when it&rsquo;s treated as a handoff file. It isn&rsquo;t one, and the fix costs nothing.</p>
+    </div>
+  </section>
+
+  <!-- ============ DWG VS DXF ============ -->
+  <section id="versus" aria-labelledby="versus-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 02 <b>&middot; The big one</b></p>
+      <h2 id="versus-h">DWG vs DXF: same drawing, two containers</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Every &ldquo;DWG vs DXF&rdquo; question comes down to one distinction: DWG is the native file a drawing <em>lives</em> in; DXF is the open copy you hand to everyone else.</p>
+      <p>They share the same drawing model — a line in one is the same line in the other. What differs is the wrapper. DWG is binary and its specification is Autodesk&rsquo;s own; DXF is plain text with a published spec, created by Autodesk precisely so drawings could move between programs. Converting between them is routine, built into every CAD package that reads DWG.</p>
+
+      <div class="tscroll">
+        <table class="sectable">
+          <thead>
+            <tr><th scope="col">&nbsp;</th><th scope="col">DWG</th><th scope="col">DXF</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>What it is</td><td>AutoCAD&rsquo;s native drawing file</td><td>The open interchange version of the same drawing</td></tr>
+            <tr><td>Encoding</td><td>Binary — unreadable in a text editor</td><td>Plain text — group code / value pairs</td></tr>
+            <tr><td>Specification</td><td>Autodesk-proprietary</td><td>Autodesk-published, open</td></tr>
+            <tr><td>Who reads it</td><td>AutoCAD and software specifically built for DWG</td><td>Nearly every CAD, CAM, and nesting package</td></tr>
+            <tr><td>Role</td><td>The design side&rsquo;s working file</td><td>The handoff the shop side expects</td></tr>
+            <tr><td>Typical failure</td><td>&ldquo;File is too new&rdquo; — version codes like AC1032</td><td>Unit guessing, splines, blocks — <a href="/learn/dxf/">see the DXF guide</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The closed-vs-open difference isn&rsquo;t abstract. Open a DXF in a text editor and you can read it — codes and values, all the way down. Open a DWG the same way and you get exactly six useful characters:</p>
+
+      <figure class="fig ticked reveal">
+        <div class="codewalk" role="figure" aria-label="What a DWG file looks like opened in a text editor: a six-character version stamp followed by unreadable binary data">
+          <div class="cw-row"><span class="cw-val">AC1032</span><span class="cw-note">the version stamp — the only part a person can read</span></div>
+          <div class="cw-row"><span class="cw-bin">&#9618;&#9617;&#9619;&#9617;&#9618;&#9619;&#9617;&#9618;&#9617;&#9619;&#9618;&#9617;</span><span class="cw-note">everything after it: the full drawing database, closed binary</span></div>
+          <div class="cw-row"><span class="cw-bin">&#9617;&#9619;&#9618;&#9618;&#9617;&#9619;&#9618;&#9617;&#9619;&#9617;&#9618;&#9619;</span><span class="cw-note">model space &middot; paper space &middot; layers &middot; blocks &middot; dimensions &middot; styles</span></div>
+          <div class="cw-row"><span class="cw-bin">&#9619;&#9617;&#9618;&#9619;&#9617;&#9618;&#9617;&#9619;&#9618;&#9619;&#9617;&#9618;</span><span class="cw-note">readable only by software built to read DWG — which shop tools mostly aren&rsquo;t</span></div>
+        </div>
+        <figcaption class="fig-caption">FIG. 2 &mdash; A DWG IN A TEXT EDITOR: SIX CHARACTERS OF SENSE, THEN SILENCE</figcaption>
+      </figure>
+
+      <p>That version stamp matters. The DWG format changes by AutoCAD release, and when software refuses a file as &ldquo;too new,&rdquo; a code like <span style="font-family:var(--mono);font-size:.85em">AC1032</span> is usually what it reports. DXF has versions too, but as open text it travels across software generations more gracefully.</p>
+      <p><strong>The working rule:</strong> staying inside the Autodesk world, keep the DWG — it&rsquo;s the full database, nothing lost in translation. Crossing any software boundary — to a shop, a machine, a viewer, a different CAD — send a DXF, and say what units it&rsquo;s in while you&rsquo;re at it.</p>
+    </div>
+  </section>
+
+  <!-- ============ FREE CONVERSION PATHS ============ -->
+  <section id="convert" aria-labelledby="convert-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 03 <b>&middot; Getting it out</b></p>
+      <h2 id="convert-h">Three free ways to turn a DWG into a DXF</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">No path here costs money. Which one fits depends on what&rsquo;s already installed and how many files you&rsquo;re holding.</p>
+
+      <ul class="features">
+        <li class="reveal">
+          <span class="idx">Path 01</span>
+          <h3>ODA File Converter</h3>
+          <p>The workhorse: a free desktop app from the Open Design Alliance. Point it at a file — or a whole folder — pick DWG&nbsp;&rarr;&nbsp;DXF and an output version, done. The batch ability is the reason to know it exists.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">Path 02</span>
+          <h3>Autodesk DWG TrueView</h3>
+          <p>Autodesk&rsquo;s own free desktop app. It opens, measures, and prints DWG files without an AutoCAD license, and converts between DWG versions — the fix when a file is &ldquo;too new.&rdquo; Honest note: it&rsquo;s a viewer and version converter, so for DWG&nbsp;&rarr;&nbsp;DXF pair it with Path&nbsp;01 or&nbsp;03.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">Path 03</span>
+          <h3>Save As DXF from any CAD</h3>
+          <p>Any CAD package that opens DWG can save or export a DXF: open, Save&nbsp;As, choose ASCII DXF. Better yet, ask the design side to send a DXF alongside the DWG in the first place — one sentence in an email saves the whole exercise.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">Note</span>
+          <h3>About online converters</h3>
+          <p>Web-based DWG converters exist, but they work by uploading your file to someone else&rsquo;s server. For a garden-shed drawing, fine. For customer work, use one of the three desktop paths above — the drawing never leaves your machine.</p>
+        </li>
+      </ul>
+
+      <div class="trust reveal">
+        <span class="tag">Straight answer</span>
+        <p>We don&rsquo;t offer in-browser DWG viewing, and we won&rsquo;t pretend to. DWG is a closed binary format — parsing it honestly in a browser isn&rsquo;t something we&rsquo;ll promise.</p>
+        <p>Our free viewer reads DXF. Convert once with any path above, then drop the DXF in and see your drawing — nothing uploaded, no server involved.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMMON PROBLEMS ============ -->
+  <section id="problems" aria-labelledby="problems-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 04 <b>&middot; Field notes</b></p>
+      <h2 id="problems-h">Common DWG problems in the wild</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Four repeat offenders cover most DWG grief on the receiving end — and every one has a no-cost fix.</p>
+
+      <ul class="features">
+        <li class="reveal">
+          <span class="idx">01</span>
+          <h3>The machine software refuses it outright</h3>
+          <p>Most CNC, nesting, and CAM toolchains simply don&rsquo;t read DWG — they want DXF. Nothing is broken. Convert the file (three free paths above) and the same drawing goes through.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">02</span>
+          <h3>&ldquo;File is too new&rdquo;</h3>
+          <p>The DWG format changes with AutoCAD releases, and older software can&rsquo;t read newer files — the error usually quotes a version code like AC1032. Fix: save it down to an older DWG version (DWG TrueView does this free), convert to DXF, or ask the sender to save down.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">03</span>
+          <h3>Someone renamed .dwg to .dxf</h3>
+          <p>The oldest trick, and it converts nothing — the file is still binary inside, and any importer that trusts the extension chokes on it. Conversion is a real translation, not a label change — use a real converter or a CAD export.</p>
+        </li>
+        <li class="reveal">
+          <span class="idx">04</span>
+          <h3>The conversion brought the whole drawing along</h3>
+          <p>A DWG holds everything — dimensions, text, borders, layouts — and a straight conversion can carry all of it into the DXF. Nesting software then dutifully tries to cut the dimension lines. Isolate the part geometry before exporting, or switch off the extra layers after import.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" aria-labelledby="faq-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 05 <b>&middot; FAQ</b></p>
+      <h2 id="faq-h">DWG questions, answered plainly</h2>
+      <div class="dim" aria-hidden="true"></div>
+
+      <div class="faq">
+        <details>
+          <summary>How do I open a DWG file without AutoCAD?</summary>
+          <div class="a">
+            <p>Two free routes. Autodesk&rsquo;s free DWG TrueView opens, measures, and prints DWG files on the desktop. Or convert the DWG to DXF — free with the ODA File Converter — and open the DXF anywhere, including <a href="/tools/dxf-viewer/">our free in-browser DXF viewer</a>. DWG itself is closed binary, which is why honest in-browser options for the raw file are thin.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How do I convert DWG to DXF for free?</summary>
+          <div class="a">
+            <p>The ODA File Converter — a free desktop app from the Open Design Alliance — converts single files or entire folders between DWG and DXF, and lets you choose the output version. Alternatively, any CAD package that opens DWG can Save&nbsp;As or export a DXF. Both routes keep the file on your own machine.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Is DWG the same as DXF?</summary>
+          <div class="a">
+            <p>No — but they describe the same drawing. DWG is the closed, binary format native to AutoCAD; DXF is the open, text-based interchange version with a published spec. Renaming the extension converts nothing — the bytes inside don&rsquo;t care what the file is called. Use a real converter or re-export from CAD. The full comparison is <a href="#versus">above</a>.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How do I convert a DWG to PDF?</summary>
+          <div class="a">
+            <p>Open it in anything that reads DWG and plot or print to PDF — Autodesk&rsquo;s free DWG TrueView does this without an AutoCAD license. One caution: a PDF is a <em>picture</em> of the drawing. Fine for review and approval, useless as machine input — for cutting, convert to DXF instead.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Why won&rsquo;t my machine take a DWG?</summary>
+          <div class="a">
+            <p>Because DWG is a closed format that changes with every AutoCAD release, most machine-side software — nesting, CAM, controllers — standardizes on DXF and never learns DWG at all. It isn&rsquo;t a fault in your file or your machine. Convert DWG&nbsp;&rarr;&nbsp;DXF and the same geometry goes through; then check units on import, <a href="/learn/dxf/">as always with DXF</a>.</p>
+          </div>
+        </details>
+        <details>
+          <summary>What does a version code like AC1032 mean?</summary>
+          <div class="a">
+            <p>It&rsquo;s the version stamp at the very start of every DWG file — the format is versioned by AutoCAD release. When software refuses a DWG and reports a code like AC1032, the file was saved by a newer release than the reader understands. Save it down to an older DWG version (DWG TrueView converts between versions free) or convert it to DXF.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section id="try" aria-labelledby="try-h">
+    <div class="wrap">
+      <p class="secmark">Sec. 06 <b>&middot; Convert, then look</b></p>
+      <h2 id="try-h">Convert it once — then look at it anywhere</h2>
+      <div class="dim" aria-hidden="true"></div>
+
+      <div class="trust reveal">
+        <span class="tag">Free tool</span>
+        <p>Once your drawing is a DXF, our free viewer opens it right in your browser — entities drawn, layers you can toggle, and an honest note about anything it can&rsquo;t draw.</p>
+        <p>Nothing is uploaded — there is no server to upload to. It reads DXF, not DWG: that&rsquo;s a promise kept, not a feature missing.</p>
+      </div>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/tools/dxf-viewer/">Open the free DXF viewer</a>
+        <a class="textlink" href="/learn/dxf/">New to DXF? Read the plain-English guide &rarr;</a>
+      </div>
+      <p style="margin-top:1.4rem"><a class="textlink" href="/learn/nc1/">Next up: what is an NC1 file? &rarr;</a></p>
+
+      <p class="svc">Curious Technologies builds tools that batch-process files like this — checking, converting, and correcting whole job folders at a time. If DWG-to-shop handoffs eat hours in your week, tell us about it: <a href="mailto:john@curioustech.org">john@curioustech.org</a>.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">LEARN-DWG</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Format education</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/dxf-viewer/" style="color:#93c5fd;text-decoration:none">Free DXF viewer</a></p>
+  </div>
+</footer>
+
+<script>
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  // Reveal-on-scroll — enabled ONLY when motion is allowed AND IntersectionObserver
+  // exists. Otherwise the .js class is never added and the page is simply static.
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+        'IntersectionObserver' in window) {
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  })();
+</script>
+</body>
+</html>

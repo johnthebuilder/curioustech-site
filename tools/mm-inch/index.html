@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mm to Inch Fraction Converter — free, runs in your browser | Curious Technologies</title>
+<meta name="description" content="Free mm to inch fraction converter: decimal inches plus the nearest 1/16, 1/32, or 1/64 with the rounding error stated and signed. Inches to mm accepts fractions like 13/16 and 1 3/8. Runs entirely in your browser.">
+<link rel="canonical" href="https://www.curioustech.org/tools/mm-inch/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/tools/mm-inch/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="mm &#8596; inch fraction converter — free, runs in your browser">
+<meta property="og:description" content="Millimeters to decimal inches and the nearest fraction — 1/16, 1/32, or 1/64 — with the rounding error stated. Inches to mm takes 13/16 or 1 3/8 straight off the tape. Client-side only.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="mm &#8596; inch fraction converter">
+<meta name="twitter:description" content="Decimal inches, nearest fraction, signed rounding error. Fractions in, millimeters out. Nothing leaves your browser.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site system.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  /* ============ TRUST BOX ============ */
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  /* ============ CARDS ============ */
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--hairline-strong);
+    position:relative;min-width:0;
+  }
+  .card-h{
+    display:flex;align-items:center;gap:.8rem;
+    padding:.55rem .9rem;border-bottom:1px solid var(--hairline);
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--navy);
+  }
+  .card-h::after{content:"";flex:1;height:1px;background:var(--hairline)}
+  .card-body{padding:1rem 1.1rem 1.2rem}
+
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:2;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+
+  /* ============ CONVERTER ============ */
+  .tool-hero{padding:3.4rem 0 2.2rem}
+  .conv-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1.4rem;align-items:start;margin:0 0 1.4rem;
+  }
+  @media (max-width:860px){.conv-grid{grid-template-columns:1fr}}
+
+  .field-label{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.4rem;
+  }
+  .num-input{
+    width:100%;font-family:var(--mono);font-size:1.25rem;
+    padding:.55rem .75rem;border:1px solid var(--hairline-strong);border-radius:3px;
+    background:var(--paper);color:var(--ink-strong);
+  }
+  .num-input:focus{border-color:var(--navy)}
+  .field-hint{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;
+    color:var(--muted);margin-top:.4rem;max-width:none;overflow-wrap:anywhere;
+  }
+
+  .prec-row{display:flex;align-items:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap}
+  .tbtn{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--paper);border:1px solid var(--hairline-strong);color:var(--ink);
+    padding:.42rem .68rem;border-radius:3px;cursor:pointer;line-height:1.2;
+  }
+  .tbtn:hover{border-color:var(--navy);color:var(--navy)}
+  .tbtn[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .bar-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-right:.2rem}
+
+  .result{
+    margin-top:1rem;padding:.85rem .95rem;
+    border:1px solid var(--hairline);background:var(--paper);
+  }
+  .res-line{
+    font-family:var(--mono);font-size:1.06rem;line-height:1.55;
+    color:var(--ink-strong);max-width:none;overflow-wrap:anywhere;
+  }
+  .res-line .op{color:var(--muted)}
+  .res-line .frac{color:var(--navy);font-weight:700}
+  .res-line .ok{color:var(--ok);font-size:.72em;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+  .res-line .errv{color:var(--muted)}
+  .res-hint{font-family:'Inter',system-ui,sans-serif;font-size:.88rem;color:var(--muted);font-weight:400}
+  .res-hint b{font-family:var(--mono);color:var(--ink-strong);font-weight:600}
+
+  .snaps{margin-top:1rem;border:1px solid var(--hairline);overflow-x:auto}
+  .snaps table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem}
+  .snaps th{
+    font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);
+    text-align:left;padding:.4rem .65rem;border-bottom:1px solid var(--hairline-strong);
+    background:var(--paper);font-weight:600;
+  }
+  .snaps td{padding:.34rem .65rem;border-bottom:1px solid var(--hairline);color:var(--ink)}
+  .snaps tr:last-child td{border-bottom:0}
+  .snaps td:first-child{color:var(--muted)}
+  .snaps th:last-child,.snaps td:last-child{text-align:right}
+  .snaps tr.sel td{background:rgba(96,165,250,.14);color:var(--navy);font-weight:600}
+  .snaps .ok{color:var(--ok);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:.9em}
+
+  .signnote{font-size:.8rem;color:var(--muted);margin-top:.7rem;max-width:none}
+  .aside-note{font-size:.85rem;color:var(--muted);margin:0 0 3.4rem;max-width:none}
+
+  /* ============ REFERENCE TABLE ============ */
+  #reference{padding:0 0 4.2rem}
+  .reftables{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1.4rem;margin-top:1.8rem;
+  }
+  @media (max-width:640px){.reftables{grid-template-columns:1fr}}
+  .reftable{overflow-x:auto}
+  .reftable table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem}
+  .reftable th{
+    font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);
+    text-align:left;padding:.45rem .75rem;border-bottom:1px solid var(--hairline-strong);
+    background:var(--paper);font-weight:600;
+  }
+  .reftable td{padding:.34rem .75rem;border-bottom:1px solid var(--hairline);color:var(--ink)}
+  .reftable tr:last-child td{border-bottom:0}
+  .reftable td:first-child{color:var(--navy);font-weight:600}
+  .reftable th:nth-child(n+2),.reftable td:nth-child(n+2){text-align:right}
+  .ref-foot{font-size:.8rem;color:var(--muted);margin-top:1rem;max-width:none}
+
+  /* ============ NOSCRIPT ============ */
+  .errbox{
+    margin:0 0 1.2rem;padding:.9rem 1.1rem;border:1px solid var(--bad);
+    background:var(--paper-raised);color:var(--bad);font-weight:600;max-width:none;
+  }
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .limits{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;
+    color:#8fa3c4;border:1px dashed rgba(147,197,253,.3);
+    padding:.75rem 1rem;margin-bottom:1.3rem;max-width:none;
+  }
+  .limits b{color:#c3d2ea;font-weight:600;letter-spacing:.1em}
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/mm-inch/" class="active" aria-current="page">Converter</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ INTRO ============ -->
+  <section class="tool-hero" aria-labelledby="hero-h">
+    <div class="wrap">
+      <p class="eyebrow">Free tool &middot; Calculator &middot; Client-side</p>
+      <h1 id="hero-h">mm &#8596; inch fraction converter</h1>
+      <p class="sub" style="margin-top:1.1rem;font-size:1.08rem">Type millimeters, get decimal inches and the nearest fraction your tape can actually show &mdash; with the rounding error stated and signed, so you know what the snap costs. It works the other way too: type <span style="font-family:var(--mono)">13/16</span> or <span style="font-family:var(--mono)">1&nbsp;3/8</span> and get millimeters, exactly.</p>
+
+      <div class="trust">
+        <span class="tag">Nothing leaves this page</span>
+        <p>Runs entirely in your browser. Nothing you type is sent anywhere &mdash; there is no server on the other end.</p>
+        <p>No analytics either; the only outside request this page makes is for its font. The math is ordinary arithmetic on the international inch: 1&nbsp;in = 25.4&nbsp;mm, exactly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONVERTER ============ -->
+  <section aria-label="Millimeter and inch converter" style="padding:0">
+    <div class="wrap">
+
+      <noscript><p class="errbox">This converter is a small JavaScript program that runs inside this page — with JavaScript off, nothing computes. Either way, nothing talks to a server.</p></noscript>
+
+      <div class="conv-grid">
+
+        <!-- mm → inch -->
+        <div class="card ticked">
+          <div class="card-h">mm &rarr; inch</div>
+          <div class="card-body">
+            <label class="field-label" for="mmInput">Millimeters</label>
+            <input class="num-input" id="mmInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="21" placeholder="21">
+            <p class="field-hint">DECIMAL MILLIMETERS &middot; e.g. 21 or 20.6375</p>
+
+            <div class="prec-row" role="group" aria-label="Snap fraction precision">
+              <span class="bar-label" id="precLabel">Snap to nearest</span>
+              <button class="tbtn" id="prec16" type="button" aria-pressed="false">1/16</button>
+              <button class="tbtn" id="prec32" type="button" aria-pressed="false">1/32</button>
+              <button class="tbtn" id="prec64" type="button" aria-pressed="true">1/64</button>
+            </div>
+
+            <div class="result">
+              <p class="res-line" id="mmLine" aria-live="polite"></p>
+            </div>
+
+            <div class="snaps">
+              <table aria-label="Nearest fraction at each precision">
+                <thead><tr><th scope="col">Snap</th><th scope="col">Nearest</th><th scope="col">Error</th></tr></thead>
+                <tbody id="snapBody"></tbody>
+              </table>
+            </div>
+
+            <p class="signnote">Sign convention: <strong>+</strong> means the fraction reads over the true size (the part comes out big); <strong>&minus;</strong> means under. Halves round up.</p>
+          </div>
+        </div>
+
+        <!-- inch → mm -->
+        <div class="card ticked">
+          <div class="card-h">inch &rarr; mm</div>
+          <div class="card-body">
+            <label class="field-label" for="inInput">Inches &mdash; decimal, fraction, or mixed</label>
+            <input class="num-input" id="inInput" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="1 3/8" placeholder="13/16">
+            <p class="field-hint">ACCEPTS: 0.8125 &middot; 13/16 &middot; 1 3/8 &middot; 1-3/8</p>
+
+            <div class="result">
+              <p class="res-line" id="inLine" aria-live="polite"></p>
+            </div>
+
+            <p class="signnote">Fractions convert exactly &mdash; 13/16&Prime; is 20.6375&nbsp;mm, not &ldquo;about 20.64&rdquo;. When a value can&rsquo;t terminate (say 1/3&Prime;), the result says <span style="font-family:var(--mono)">&asymp;</span> instead of <span style="font-family:var(--mono)">=</span>.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="aside-note">Numbers are half the job &mdash; if you&rsquo;re also staring at the files, the free <a href="/tools/nc1-viewer/">NC1 viewer</a> and <a href="/tools/dxf-viewer/">DXF viewer</a> run in your browser the same way: nothing uploaded.</p>
+    </div>
+  </section>
+
+  <!-- ============ REFERENCE TABLE ============ -->
+  <section id="reference" aria-labelledby="ref-h">
+    <div class="wrap">
+      <p class="secmark">Ref <b>&middot; Sixteenths</b></p>
+      <h2 id="ref-h">Sixteenths, in millimeters</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Every sixteenth from 1/16&Prime; to 1&Prime;, with the exact decimal and the millimeter value to three places. These are computed on this page from 1&nbsp;in&nbsp;=&nbsp;25.4&nbsp;mm &mdash; not typed in from a chart.</p>
+
+      <div class="reftables">
+        <div class="card reveal">
+          <div class="card-h">1/16&Prime; &ndash; 1/2&Prime;</div>
+          <div class="reftable">
+            <table>
+              <thead><tr><th scope="col">Fraction</th><th scope="col">Inch</th><th scope="col">mm</th></tr></thead>
+              <tbody id="ref1"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="card-h">9/16&Prime; &ndash; 1&Prime;</div>
+          <div class="reftable">
+            <table>
+              <thead><tr><th scope="col">Fraction</th><th scope="col">Inch</th><th scope="col">mm</th></tr></thead>
+              <tbody id="ref2"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <p class="ref-foot">Millimeter values rounded half-up to three decimals; the fourth decimal is always a 0 or a 5, so nothing here is off by more than 0.0005&nbsp;mm. Need it exact? Type the fraction into the converter above.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <p class="limits"><b>LIMITS, STATED PLAINLY:</b> millimeters and inches only, on the international inch &mdash; 1&nbsp;in = 25.4&nbsp;mm exactly. Fractions snap to the denominator you choose; the signed error tells you what the snap costs. No tolerance math, no thread callouts, no guessing your units.</p>
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL &middot; MM &#8596; INCH</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Manufacturing software</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- footer year ----------
+  var yr = String(new Date().getFullYear());
+  document.getElementById('y').textContent = yr;
+  document.getElementById('y2').textContent = yr;
+
+  // ---------- reveal (motion-safe only; same pattern as site) ----------
+  if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+      'IntersectionObserver' in window) {
+    document.documentElement.classList.add('js');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  }
+
+  /* ============ MATH CORE (pure — no DOM; unit-tested in node) ============ */
+  var PRIME = '″';   // ″ double prime
+  var MINUS = '−';   // − true minus
+
+  function gcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { var t = a % b; a = b; b = t; }
+    return a;
+  }
+
+  // "1,5" → "1.5"; "1,000.5" / "1,000,000" → separators stripped
+  function normalizeNum(s) {
+    s = String(s).trim();
+    if (s.indexOf(',') !== -1) {
+      if (s.indexOf('.') !== -1 || (s.match(/,/g) || []).length > 1) s = s.replace(/,/g, '');
+      else s = s.replace(',', '.');
+    }
+    return s;
+  }
+
+  // "21" | "20.6375" | ".5" | "21." → {num, den} (exact rational); null if unreadable.
+  // Caps: 7 digits before the point, 6 after — keeps all integer math inside 2^53.
+  function parseDecimal(str) {
+    var s = normalizeNum(str);
+    var m = s.match(/^(\d{1,7})\.?$/) || s.match(/^(\d{0,7})\.(\d{1,6})$/);
+    if (!m) return null;
+    var i = m[1] || '0', f = m[2] || '';
+    var den = Math.pow(10, f.length);
+    return { num: parseInt(i, 10) * den + (f ? parseInt(f, 10) : 0), den: den };
+  }
+
+  function parseMm(str) {
+    return parseDecimal(String(str).replace(/\s*mm\.?\s*$/i, ''));
+  }
+
+  // "0.8125" | "13/16" | "1 3/8" | "1-3/8" (optional trailing ", ″, in, inch, inches)
+  function parseInches(str) {
+    var s = String(str).trim().replace(/\s*(?:"|″|”|in\.?|inch(?:es)?)\s*$/i, '');
+    s = normalizeNum(s);
+    var m;
+    if ((m = s.match(/^(\d{1,6})[ \-]+(\d{1,5})\s*\/\s*(\d{1,4})$/))) {
+      var w = parseInt(m[1], 10), n = parseInt(m[2], 10), d = parseInt(m[3], 10);
+      if (!d) return null;
+      return { kind: 'frac', num: w * d + n, den: d, w: w, n: n, d: d };
+    }
+    if ((m = s.match(/^(\d{1,5})\s*\/\s*(\d{1,4})$/))) {
+      var n2 = parseInt(m[1], 10), d2 = parseInt(m[2], 10);
+      if (!d2) return null;
+      return { kind: 'frac', num: n2, den: d2, w: 0, n: n2, d: d2 };
+    }
+    var p = parseDecimal(s);
+    return p ? { kind: 'dec', num: p.num, den: p.den } : null;
+  }
+
+  // Nearest n/D inches to (mmNum/mmDen) mm. Exact integer math:
+  // inches = mm/25.4 = mmNum*5/(mmDen*127). Halves round up.
+  function mmToInches(mmNum, mmDen, D) {
+    var N = mmNum * 5, M = mmDen * 127;
+    var n = Math.floor((2 * N * D + M) / (2 * M));
+    return {
+      n: n, D: D,
+      exact: (N * D) % M === 0,
+      inches: N / M,
+      err: n / D - N / M
+    };
+  }
+
+  // reduced fraction string: "13/16" | "1 3/8" | "2" | "0"
+  function fracStr(n, D) {
+    var w = Math.floor(n / D), r = n - w * D;
+    if (r === 0) return String(w);
+    var g = gcd(r, D) || 1;
+    return (w ? w + ' ' : '') + (r / g) + '/' + (D / g);
+  }
+
+  // exact terminating-decimal string of p/q (≤ 9 places), or null if it doesn't terminate
+  function decStr(p, q) {
+    if (!isFinite(p) || !isFinite(q) || q <= 0 || p < 0) return null;
+    var g = gcd(p, q) || 1; p /= g; q /= g;
+    var a = 0, b = 0;
+    while (q % 2 === 0) { q /= 2; a++; }
+    while (q % 5 === 0) { q /= 5; b++; }
+    if (q !== 1) return null;
+    var k = Math.max(a, b);
+    if (k > 9) return null;
+    var mult = Math.pow(2, k - a) * Math.pow(5, k - b);
+    if (p > 9e15 / mult) return null;
+    var s = String(p * mult);
+    if (k === 0) return s;
+    while (s.length <= k) s = '0' + s;
+    var ip = s.slice(0, s.length - k), fp = s.slice(s.length - k).replace(/0+$/, '');
+    return fp ? ip + '.' + fp : ip;
+  }
+
+  // signed inch error, 3 places — more if 3 would print as zero (never shows ±0.000)
+  function fmtErr(err) {
+    var a = Math.abs(err), d = 3;
+    while (d < 6 && Number(a.toFixed(d)) === 0) d++;
+    return (err >= 0 ? '+' : MINUS) + a.toFixed(d) + PRIME;
+  }
+  /* ============ END MATH CORE ============ */
+
+  // ---------- elements ----------
+  var mmInput  = document.getElementById('mmInput');
+  var mmLine   = document.getElementById('mmLine');
+  var snapBody = document.getElementById('snapBody');
+  var inInput  = document.getElementById('inInput');
+  var inLine   = document.getElementById('inLine');
+
+  var DENOMS = [16, 32, 64];
+  var PREC = 64;
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ---------- mm → inch ----------
+  function renderMm() {
+    var raw = mmInput.value;
+    snapBody.innerHTML = '';
+    if (!raw.trim()) {
+      mmLine.innerHTML = '<span class="res-hint">Type a millimeter value above.</span>';
+      return;
+    }
+    var p = parseMm(raw);
+    if (!p) {
+      mmLine.innerHTML = '<span class="res-hint">Couldn&rsquo;t read that as millimeters &mdash; digits and one decimal point, e.g. <b>20.6375</b> (up to 7 digits before the point, 6 after).</span>';
+      return;
+    }
+    var mmStr = decStr(p.num, p.den); // always terminates: den is a power of 10
+    var r = mmToInches(p.num, p.den, PREC);
+    var html;
+    if (r.exact) {
+      var f = fracStr(r.n, r.D);
+      if (f.indexOf('/') === -1) {
+        // whole inches — decimal and fraction are the same number; say it once
+        html = esc(mmStr) + ' mm <span class="op">=</span> <span class="frac">' + esc(f) + PRIME +
+               '</span> <span class="ok">exactly</span>';
+      } else {
+        html = esc(mmStr) + ' mm <span class="op">=</span> ' + esc(decStr(r.n, r.D)) + PRIME +
+               ' <span class="op">=</span> <span class="frac">' + esc(f) + PRIME +
+               '</span> <span class="ok">exactly</span>';
+      }
+    } else {
+      html = esc(mmStr) + ' mm <span class="op">=</span> ' + r.inches.toFixed(4) + PRIME +
+             ' <span class="op">&asymp;</span> <span class="frac">' + esc(fracStr(r.n, r.D)) + PRIME +
+             '</span> <span class="errv">(' + esc(fmtErr(r.err)) + ')</span>';
+    }
+    mmLine.innerHTML = html;
+
+    var rows = '';
+    DENOMS.forEach(function (D) {
+      var s = mmToInches(p.num, p.den, D);
+      rows += '<tr' + (D === PREC ? ' class="sel"' : '') + '><td>1/' + D + '</td><td>' +
+              esc(fracStr(s.n, D)) + PRIME + '</td><td>' +
+              (s.exact ? '<span class="ok">exact</span>' : esc(fmtErr(s.err))) +
+              '</td></tr>';
+    });
+    snapBody.innerHTML = rows;
+  }
+
+  // ---------- inch → mm ----------
+  function renderIn() {
+    var raw = inInput.value;
+    if (!raw.trim()) {
+      inLine.innerHTML = '<span class="res-hint">Type inches above &mdash; decimal, fraction, or mixed.</span>';
+      return;
+    }
+    var p = parseInches(raw);
+    if (!p) {
+      inLine.innerHTML = '<span class="res-hint">Couldn&rsquo;t read that &mdash; try <b>0.8125</b>, <b>13/16</b>, or <b>1 3/8</b>.</span>';
+      return;
+    }
+    var mmNum = p.num * 127, mmDen = p.den * 5; // mm = inches × 25.4 = inches × 127/5
+    var mmExact = decStr(mmNum, mmDen);
+    var mmPart = (mmExact !== null)
+      ? '<span class="op">=</span> <span class="frac">' + esc(mmExact) + ' mm</span>'
+      : '<span class="op">&asymp;</span> <span class="frac">' + (mmNum / mmDen).toFixed(4) + ' mm</span>';
+    var html;
+    if (p.kind === 'frac') {
+      var inDisp = (p.w ? p.w + ' ' : '') + p.n + '/' + p.d;
+      var dIn = decStr(p.num, p.den);
+      var mid = (dIn !== null)
+        ? '<span class="op">=</span> ' + esc(dIn) + PRIME
+        : '<span class="op">&asymp;</span> ' + (p.num / p.den).toFixed(4) + PRIME;
+      html = esc(inDisp) + PRIME + ' ' + mid + ' ' + mmPart;
+    } else {
+      html = esc(decStr(p.num, p.den)) + PRIME + ' ' + mmPart;
+    }
+    inLine.innerHTML = html;
+  }
+
+  // ---------- precision buttons ----------
+  DENOMS.forEach(function (D) {
+    document.getElementById('prec' + D).addEventListener('click', function () {
+      PREC = D;
+      DENOMS.forEach(function (E) {
+        document.getElementById('prec' + E).setAttribute('aria-pressed', String(E === D));
+      });
+      renderMm();
+    });
+  });
+
+  mmInput.addEventListener('input', renderMm);
+  inInput.addEventListener('input', renderIn);
+
+  // ---------- reference table (computed, not typed) ----------
+  function buildRef(tbodyId, from, to) {
+    var rows = '';
+    for (var i = from; i <= to; i++) {
+      // i/16 in = i × 1.5875 mm; work in 0.0001-mm integers, round half-up to 3 places
+      var mm1e3 = Math.round(i * 15875 / 10);
+      var ip = Math.floor(mm1e3 / 1000), fp = String(mm1e3 % 1000);
+      while (fp.length < 3) fp = '0' + fp;
+      rows += '<tr><td>' + esc(fracStr(i, 16)) + PRIME + '</td><td>' +
+              (i / 16).toFixed(4) + '</td><td>' + ip + '.' + fp + '</td></tr>';
+    }
+    document.getElementById(tbodyId).innerHTML = rows;
+  }
+  buildRef('ref1', 1, 8);
+  buildRef('ref2', 9, 16);
+
+  // ---------- init ----------
+  renderMm();
+  renderIn();
+})();
+</script>
+</body>
+</html>

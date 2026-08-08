@@ -1092,7 +1092,7 @@ var DxfMini = (function () {
       return;
     }
     if (/^AC1\d{3}/.test(text.slice(0, 6))) {
-      showError('This looks like a DWG, not a DXF. Same drawing inside, different container — renaming the extension doesn’t convert it. Export a DXF from your CAD program and try again.');
+      showError('This looks like a DWG, not a DXF. Same drawing inside, different container — renaming the extension doesn’t convert it. Export a DXF from your CAD program and try again. Free conversion paths are in our DWG guide at /learn/dwg/.');
       return;
     }
     var parsed;

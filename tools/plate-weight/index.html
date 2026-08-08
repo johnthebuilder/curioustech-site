@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steel Plate Weight Calculator — lb &amp; kg, fractions accepted — Curious Technologies</title>
+<meta name="description" content="Free steel plate weight calculator — inches (fractions like 3/16 accepted) or millimeters, instant weight in pounds and kilograms for steel, stainless, and aluminum. Runs entirely in your browser.">
+<link rel="canonical" href="https://www.curioustech.org/tools/plate-weight/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.curioustech.org/tools/plate-weight/">
+<meta property="og:site_name" content="Curious Technologies">
+<meta property="og:title" content="Steel Plate Weight Calculator — lb &amp; kg, fractions accepted">
+<meta property="og:description" content="Length × width × thickness × quantity — in inches (fractions accepted) or millimeters. Per-piece and total weight in both pounds and kilograms, live as you type. All math runs in your browser.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Steel Plate Weight Calculator — lb &amp; kg, fractions accepted">
+<meta name="twitter:description" content="Plate weight in lb and kg, live as you type. Inches with fractions or millimeters. Steel, stainless, aluminum. Runs entirely in your browser.">
+<meta name="theme-color" content="#f7f9fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231e3a8a'/%3E%3Cstop offset='1' stop-color='%2360a5fa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M43.3 20.7A16 16 0 1 0 43.3 43.3' fill='none' stroke='%23fff' stroke-width='6.5' stroke-linecap='round'/%3E%3Cpath d='M26 26h12M32 26v16' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Steel Plate Weight Calculator",
+  "url": "https://www.curioustech.org/tools/plate-weight/",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (runs in the browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "publisher": { "@type": "Organization", "name": "Curious Technologies LLC", "url": "https://www.curioustech.org/" }
+}
+</script>
+<style>
+  /* ============ BLUEPRINT PRECISION ============
+     Paper, ink, hairlines. A shop drawing that
+     learned graphic design. (Shared site chrome.) */
+
+  :root{
+    --paper:#f7f9fc;
+    --paper-raised:#ffffff;
+    --ink:#16264a;          /* body ink */
+    --ink-strong:#0b1324;   /* headline ink */
+    --navy:#1e3a8a;
+    --blue:#2563eb;
+    --blue-bright:#3b82f6;
+    --sky:#60a5fa;
+    --sky-light:#93c5fd;
+    --muted:#4d5d80;
+    --hairline:#c6d2e6;
+    --hairline-strong:#9db1d1;
+    --grid-ink:rgba(30,58,138,.055);
+    --grid-ink-major:rgba(30,58,138,.09);
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1060px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-padding-top:4.5rem}
+  html,body{overflow-x:clip}
+  @media (prefers-reduced-motion:no-preference){
+    html{scroll-behavior:smooth}
+  }
+
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-ink) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    font-size:17px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--sky-light);color:var(--ink-strong)}
+
+  a{color:var(--blue)}
+  a:hover{color:var(--navy)}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+  .skip-link{
+    position:absolute;left:-999px;top:0;background:var(--navy);color:#fff;
+    padding:.6rem 1rem;z-index:100;font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{left:0;color:#fff}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+
+  /* ============ HEADER / NAV ============ */
+  header.site{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,249,252,.92);
+    -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .nav{
+    display:flex;align-items:center;gap:1rem;
+    min-height:3.6rem;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem;
+  }
+  .brand{
+    display:flex;align-items:center;gap:.6rem;
+    text-decoration:none;color:var(--ink-strong);
+    font-weight:700;letter-spacing:-.01em;font-size:1.02rem;
+    margin-right:auto;white-space:nowrap;
+  }
+  .brand svg{display:block;flex:none}
+  .nav-links{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;list-style:none}
+  .nav-links a{
+    text-decoration:none;color:var(--muted);
+    font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:.25rem 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--navy)}
+  .nav-links a.active{color:var(--navy);border-bottom-color:var(--blue-bright)}
+
+  /* ============ DRAWING FURNITURE ============ */
+  .secmark{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+    margin-bottom:1.1rem;
+  }
+  .secmark::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .secmark b{font-weight:400;color:var(--muted)}
+
+  .dim{
+    position:relative;height:1px;background:var(--hairline-strong);
+    margin:1.2rem 0 1.4rem;max-width:220px;
+  }
+  .dim::before,.dim::after{
+    content:"";position:absolute;top:-4px;width:1px;height:9px;background:var(--hairline-strong);
+  }
+  .dim::before{left:0}
+  .dim::after{right:0}
+
+  h1,h2,h3{color:var(--ink-strong);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+  h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:800}
+  h2{font-size:clamp(1.45rem,3vw,2.05rem);font-weight:700}
+  h3{font-size:1.05rem;font-weight:700}
+  p{max-width:62ch}
+  .lede{font-size:1.1rem;color:var(--ink)}
+  .muted{color:var(--muted)}
+
+  .textlink{
+    font-weight:600;color:var(--navy);text-decoration:none;
+    border-bottom:1px solid var(--hairline-strong);padding-bottom:.1rem;
+  }
+  .textlink:hover{color:var(--blue);border-bottom-color:var(--blue)}
+
+  .trust{
+    background:var(--paper-raised);
+    border:1px solid var(--navy);
+    padding:1.25rem 1.4rem;margin:1.9rem 0 0;
+    position:relative;max-width:640px;
+  }
+  .trust p{font-size:1.02rem;font-weight:600;color:var(--ink-strong);max-width:none}
+  .trust p+p{font-size:.95rem;font-weight:400;color:var(--muted);margin-top:.45rem}
+  .trust .tag{
+    position:absolute;top:-0.62rem;left:1rem;background:var(--paper-raised);
+    padding:0 .5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--navy);text-transform:uppercase;
+  }
+
+  .ticked::before,.ticked::after{
+    content:"";position:absolute;width:12px;height:12px;pointer-events:none;z-index:5;
+  }
+  .ticked::before{top:-1px;left:-1px;border-top:2px solid var(--navy);border-left:2px solid var(--navy)}
+  .ticked::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--navy);border-right:2px solid var(--navy)}
+
+  /* ============ PAGE HEAD ============ */
+  .pagehead{padding:3.4rem 0 2.6rem;border-bottom:1px solid var(--hairline)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:1rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--blue-bright)}
+  .pagehead .lede{margin-top:1.2rem}
+  .pagehead p+p{margin-top:.9rem}
+
+  /* ============ CALCULATOR ============ */
+  .calc-sec{padding:2.6rem 0 1.4rem}
+  .calc-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:1.4rem;align-items:start}
+  @media (max-width:860px){.calc-grid{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:1.1rem 1.2rem 1.2rem;margin-bottom:1.4rem;
+  }
+  .panel h2{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--navy);font-weight:400;margin-bottom:.8rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .panel h2::after{content:"";flex:1;height:1px;background:var(--hairline)}
+
+  .seg{
+    position:relative;display:inline-flex;border:1px solid var(--hairline-strong);
+    border-radius:4px;overflow:hidden;background:var(--paper);
+  }
+  .seg input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .seg label{
+    padding:.42rem 1.05rem;font-size:.85rem;font-weight:600;color:var(--muted);
+    cursor:pointer;border-left:1px solid var(--hairline);
+  }
+  .seg label:first-of-type{border-left:0}
+  .seg input:checked+label{background:var(--navy);color:#fff}
+  .seg input:focus-visible+label{outline:2px solid var(--blue);outline-offset:-2px}
+
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.1rem;margin-top:1.15rem}
+  @media (max-width:430px){.fields{grid-template-columns:1fr}}
+  .field label{
+    display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--navy);margin-bottom:.35rem;
+  }
+  .field input,.field select{
+    width:100%;font-family:var(--mono);font-size:1rem;color:var(--ink-strong);
+    background:var(--paper);border:1px solid var(--hairline-strong);
+    padding:.55rem .65rem;border-radius:3px;
+  }
+  .field select{cursor:pointer}
+  .field input.badval{border-color:var(--bad)}
+  .field-full{grid-column:1 / -1}
+
+  .hint{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:1.1rem;padding-top:.6rem;
+  }
+
+  .readout{padding:.75rem 0;border-bottom:1px solid var(--hairline)}
+  .readout:last-of-type{border-bottom:0}
+  .rlabel{
+    display:block;font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+    color:var(--muted);text-transform:uppercase;margin-bottom:.15rem;
+  }
+  .rlb{
+    display:block;font-size:1.75rem;font-weight:800;color:var(--ink-strong);
+    letter-spacing:-.02em;line-height:1.15;overflow-wrap:anywhere;
+  }
+  .rkg{
+    display:block;font-family:var(--mono);font-size:.95rem;color:var(--muted);
+    margin-top:.1rem;overflow-wrap:anywhere;
+  }
+  .parsed{
+    font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.8rem;
+    border-top:1px dashed var(--hairline);padding-top:.6rem;
+    overflow-wrap:anywhere;max-width:none;
+  }
+  .errline{color:var(--bad);font-size:.85rem;margin-top:.6rem;max-width:none}
+  .errline[hidden]{display:none}
+
+  .tscroll{overflow-x:auto}
+  .dtable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.78rem}
+  .dtable th{
+    text-align:left;font-weight:400;color:var(--muted);font-size:.62rem;
+    letter-spacing:.12em;text-transform:uppercase;
+    border-bottom:1px solid var(--hairline-strong);padding:.3rem .45rem;white-space:nowrap;
+  }
+  .dtable td{
+    padding:.42rem .45rem;border-bottom:1px solid var(--hairline);
+    color:var(--ink-strong);white-space:nowrap;
+  }
+  .dtable tr:last-child td{border-bottom:0}
+  .dtable .num,.dtable th.num{text-align:right}
+  .dtable tr.on td{background:#eaf1fb}
+  .densnote{font-size:.82rem;color:var(--muted);margin-top:.7rem;max-width:none}
+
+  /* ============ FIGURE ============ */
+  .fig-panel{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:.9rem;position:relative;margin-top:.4rem;
+  }
+  .fig-panel svg{display:block;width:100%;height:auto}
+  .fig-caption{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--muted);
+    border-top:1px solid var(--hairline);margin-top:.8rem;padding-top:.6rem;
+  }
+
+  /* ============ QUICK TABLE ============ */
+  .qt-sec{padding:1.6rem 0 2.2rem}
+  .qt-wrap{max-width:620px}
+  .qt-sec .lede{margin-bottom:1.4rem}
+
+  /* ============ LIMITS ============ */
+  .limits-sec{padding:0 0 3.6rem}
+  .limits{
+    background:var(--paper-raised);border:1px solid var(--hairline-strong);
+    padding:1.1rem 1.3rem;font-size:.9rem;color:var(--muted);max-width:none;
+  }
+  .limits b{color:var(--ink-strong)}
+
+  /* ============ FOOTER: TITLE BLOCK ============ */
+  footer.site{
+    background:#0b1324;color:#8fa3c4;
+    border-top:1px solid rgba(147,197,253,.25);
+    padding:2rem 0 2.6rem;font-size:.8rem;
+  }
+  .titleblock{
+    display:grid;grid-template-columns:2fr 1fr 1fr;
+    border:1px solid rgba(147,197,253,.3);
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;
+    margin-bottom:1.3rem;
+  }
+  @media (max-width:600px){.titleblock{grid-template-columns:1fr 1fr}}
+  .tb-cell{
+    padding:.55rem .8rem;border-right:1px solid rgba(147,197,253,.18);
+    border-bottom:1px solid rgba(147,197,253,.18);min-width:0;overflow-wrap:anywhere;
+  }
+  .tb-cell:last-child{border-right:0}
+  .tb-cell .lbl{display:block;color:#5f7499;font-size:.6rem;letter-spacing:.14em;margin-bottom:.15rem;text-transform:uppercase}
+  .tb-cell .val{color:#c3d2ea}
+  .tb-cell a{color:#93c5fd;text-decoration:none}
+  .tb-cell a:hover{color:#fff}
+  footer .fineprint{font-size:.75rem;color:#5f7499}
+
+  /* ============ REVEAL (motion-safe only) ============ */
+  @media (prefers-reduced-motion:no-preference){
+    .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+    .js .reveal.in{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Curious Technologies — home">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e3a8a"/>
+            <stop offset="1" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#lg)"/>
+        <path d="M43.3 20.7A16 16 0 1 0 43.3 43.3" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <path d="M26 26h12M32 26v16" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      Curious&nbsp;Technologies
+    </a>
+    <nav aria-label="Site sections">
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/learn/nc1/">NC1</a></li>
+        <li><a href="/learn/dxf/">DXF</a></li>
+        <li><a href="/learn/svg/">SVG</a></li>
+        <li><a href="/tools/plate-weight/" class="active" aria-current="page">Plate weight</a></li>
+        <li><a href="mailto:john@curioustech.org">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ PAGE HEAD + TRUST ============ -->
+  <section class="pagehead" aria-labelledby="h-title">
+    <div class="wrap">
+      <p class="eyebrow">Free tool &middot; Calculator</p>
+      <h1 id="h-title">Steel plate weight calculator</h1>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">Length &times; width &times; thickness &times; density — nothing more. Type your plate dimensions and quantity and the weight updates as you type, in pounds and kilograms. Imperial mode takes fractions the way the shop writes them: 3/16, 1&nbsp;1/4.</p>
+      <p><a class="textlink" href="/tools/dxf-viewer/">More free in-browser tools: the DXF viewer &rarr;</a></p>
+
+      <div class="trust">
+        <span class="tag">How this works</span>
+        <p>Runs entirely in your browser. Nothing you type is sent anywhere — there is no server to send it to.</p>
+        <p>The math is length &times; width &times; thickness &times; density, computed right here on this page. No accounts, no analytics, no uploads.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALCULATOR ============ -->
+  <section class="calc-sec" aria-label="Plate weight calculator">
+    <div class="wrap">
+      <noscript><p class="errline">This calculator is JavaScript running in your own browser — there is no server-side fallback because there is no server. Enable JavaScript to use it.</p></noscript>
+
+      <div class="calc-grid">
+        <div>
+          <div class="panel">
+            <h2>Plate</h2>
+            <div class="seg" role="radiogroup" aria-label="Unit system">
+              <input type="radio" name="units" id="u-imp" value="imp" checked>
+              <label for="u-imp">Inches</label>
+              <input type="radio" name="units" id="u-met" value="met">
+              <label for="u-met">Millimeters</label>
+            </div>
+
+            <div class="fields">
+              <div class="field">
+                <label for="f-len">Length &middot; <span id="u-len">in</span></label>
+                <input type="text" id="f-len" value="48" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label for="f-wid">Width &middot; <span id="u-wid">in</span></label>
+                <input type="text" id="f-wid" value="96" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label for="f-thk">Thickness &middot; <span id="u-thk">in</span></label>
+                <input type="text" id="f-thk" value="1/4" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label for="f-qty">Quantity &middot; pcs</label>
+                <input type="text" id="f-qty" value="1" inputmode="numeric" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field field-full">
+                <label for="f-mat">Material &middot; nominal density</label>
+                <select id="f-mat">
+                  <option value="steel" selected>Carbon steel — 7,850 kg/m&sup3; (0.2836 lb/in&sup3;)</option>
+                  <option value="stainless">Stainless steel — 8,000 kg/m&sup3; (0.289 lb/in&sup3;)</option>
+                  <option value="aluminum">Aluminum — 2,700 kg/m&sup3; (0.0975 lb/in&sup3;)</option>
+                </select>
+              </div>
+            </div>
+            <p class="hint" id="fields-hint">DECIMALS OR FRACTIONS — 3/16, 1 1/4, 1-1/4 ALL WORK &middot; FLAT RECTANGULAR PLATE ONLY</p>
+          </div>
+
+          <figure class="fig-panel ticked reveal">
+            <svg viewBox="0 0 560 400" role="img" aria-label="Dimensioned sketch of the entered plate: top view with length and width dimension lines, plus an edge view showing the thickness. Schematic, not to scale.">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,1.5 L9,5 L0,8.5 Z" fill="#1e3a8a"/>
+                </marker>
+                <pattern id="hatch" patternUnits="userSpaceOnUse" width="6" height="6">
+                  <path d="M0 6 L6 0" stroke="#1e3a8a" stroke-width=".7"/>
+                </pattern>
+              </defs>
+              <!-- sheet border ticks -->
+              <path d="M8 24 V8 H24 M536 8 H552 V24 M552 376 V392 H536 M24 392 H8 V376" fill="none" stroke="#9db1d1" stroke-width="1"/>
+              <!-- header annotation -->
+              <text id="fg-head" x="26" y="32" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">CARBON STEEL PLATE &middot; QTY 1 &middot; FLAT RECTANGULAR</text>
+
+              <!-- plate, top view -->
+              <rect id="fg-plate" x="70" y="58" width="400" height="196" fill="#f2f6fc" stroke="#1e3a8a" stroke-width="2"/>
+
+              <!-- horizontal dimension (length) -->
+              <path id="fg-exth" d="" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+              <line id="fg-dimh" x1="0" y1="0" x2="0" y2="0" stroke="#1e3a8a" stroke-width="1" marker-start="url(#arr)" marker-end="url(#arr)"/>
+              <g id="fg-hlbl-g">
+                <rect id="fg-hlbl-bg" fill="#f7f9fc" x="0" y="0" width="0" height="18"/>
+                <text id="fg-hlbl" x="0" y="0" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#16264a" text-anchor="middle">48 in</text>
+              </g>
+
+              <!-- vertical dimension (width) -->
+              <path id="fg-extv" d="" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+              <line id="fg-dimv" x1="0" y1="0" x2="0" y2="0" stroke="#1e3a8a" stroke-width="1" marker-start="url(#arr)" marker-end="url(#arr)"/>
+              <g id="fg-vlbl-g" transform="">
+                <rect id="fg-vlbl-bg" fill="#f7f9fc" x="0" y="0" width="0" height="18"/>
+                <text id="fg-vlbl" x="0" y="0" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#16264a" text-anchor="middle">96 in</text>
+              </g>
+
+              <!-- edge view (thickness, section-hatched) -->
+              <text id="fg-edge-lbl" x="70" y="330" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#1e3a8a" letter-spacing=".5">EDGE VIEW &middot; T = 1/4 in</text>
+              <rect id="fg-edge" x="70" y="338" width="400" height="8" fill="url(#hatch)" stroke="#1e3a8a" stroke-width="1.5"/>
+
+              <!-- figure title -->
+              <text x="70" y="380" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="11" fill="#4d5d80" letter-spacing="1">FIG. 1 &mdash; TOP VIEW + EDGE &middot; SKETCH NOT TO SCALE</text>
+            </svg>
+            <figcaption class="fig-caption">SKETCH FOLLOWS YOUR INPUTS &middot; WEIGHT = L &times; W &times; T &times; DENSITY &middot; NOT TO SCALE</figcaption>
+          </figure>
+        </div>
+
+        <aside aria-label="Result and densities">
+          <div class="panel">
+            <h2>Weight</h2>
+            <div aria-live="polite">
+              <div class="readout">
+                <span class="rlabel">Per piece</span>
+                <span class="rlb" id="r-pp-lb">&mdash;</span>
+                <span class="rkg" id="r-pp-kg">&mdash;</span>
+              </div>
+              <div class="readout">
+                <span class="rlabel" id="r-tot-label">Total</span>
+                <span class="rlb" id="r-tot-lb">&mdash;</span>
+                <span class="rkg" id="r-tot-kg">&mdash;</span>
+              </div>
+              <p class="parsed" id="r-echo"></p>
+              <p class="errline" id="r-err" hidden></p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Densities used</h2>
+            <div class="tscroll">
+              <table class="dtable" id="dens-table">
+                <thead>
+                  <tr><th>Material</th><th class="num">kg/m&sup3;</th><th class="num">lb/in&sup3;</th></tr>
+                </thead>
+                <tbody>
+                  <tr data-mat="steel"><td>Carbon steel</td><td class="num">7,850</td><td class="num">0.2836</td></tr>
+                  <tr data-mat="stainless"><td>Stainless steel</td><td class="num">8,000</td><td class="num">0.289</td></tr>
+                  <tr data-mat="aluminum"><td>Aluminum</td><td class="num">2,700</td><td class="num">0.0975</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="densnote">Nominal densities — real plate varies with chemistry and rolling tolerance. <b>Mill certs govern.</b></p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUICK TABLE ============ -->
+  <section class="qt-sec" aria-labelledby="qt-h">
+    <div class="wrap">
+      <p class="secmark">Quick reference <b>&middot; carbon steel</b></p>
+      <h2 id="qt-h">Common plate weights per square foot</h2>
+      <div class="dim" aria-hidden="true"></div>
+      <p class="lede">The numbers below are computed from the carbon-steel density above (0.2836 lb/in&sup3; = 7,850 kg/m&sup3;) — the same math as the calculator, not a catalog lookup.</p>
+      <div class="panel qt-wrap">
+        <div class="tscroll">
+          <table class="dtable" aria-label="Carbon steel plate weight per square foot by thickness">
+            <thead>
+              <tr><th>Thickness</th><th class="num">in</th><th class="num">mm</th><th class="num">lb/ft&sup2;</th><th class="num">kg/m&sup2;</th></tr>
+            </thead>
+            <tbody id="qt-body">
+              <!-- rows computed by script from the stated density -->
+            </tbody>
+          </table>
+        </div>
+        <p class="densnote">A 4&times;8&nbsp;ft sheet is 32&nbsp;ft&sup2; — multiply the lb/ft&sup2; figure by 32 for a full-sheet weight.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIMITS ============ -->
+  <section class="limits-sec" aria-labelledby="limits-h">
+    <div class="wrap">
+      <p class="secmark" id="limits-h">Limits <b>&middot; stated plainly</b></p>
+      <p class="limits"><b>What this calculates:</b> flat rectangular plate only — length &times; width &times; thickness &times; density, times quantity. No shapes, no cutouts, no holes deducted, no camber. <b>What the numbers are:</b> nominal weights from the densities shown above; actual plate varies with rolling tolerance and chemistry, and the mill cert governs. Weights are computed from the kg/m&sup3; figure; pounds are derived at 2.204623&nbsp;lb/kg, and both round to one decimal. <b>Where the math runs:</b> in this page, in your browser. Nothing you type is stored or sent anywhere.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER / TITLE BLOCK ============ -->
+<footer class="site">
+  <div class="wrap">
+    <div class="titleblock" role="presentation">
+      <div class="tb-cell"><span class="lbl">Company</span><span class="val">Curious Technologies LLC</span></div>
+      <div class="tb-cell"><span class="lbl">Location</span><span class="val">Asheville, NC</span></div>
+      <div class="tb-cell"><span class="lbl">Sheet</span><span class="val">TOOL-PLATE-WEIGHT</span></div>
+      <div class="tb-cell"><span class="lbl">Contact</span><span class="val"><a href="mailto:john@curioustech.org">john@curioustech.org</a></span></div>
+      <div class="tb-cell"><span class="lbl">Focus</span><span class="val">Free in-browser tools</span></div>
+      <div class="tb-cell"><span class="lbl">Rev</span><span class="val">A &middot; <span id="y">2026</span></span></div>
+    </div>
+    <p class="fineprint">&copy; <span id="y2">2026</span> Curious Technologies LLC. Focused software for manufacturing and operations. <a href="/" style="color:#93c5fd;text-decoration:none">Home</a> &middot; <a href="/tools/dxf-viewer/" style="color:#93c5fd;text-decoration:none">DXF viewer</a></p>
+  </div>
+</footer>
+
+<script>
+/* ============ PlateMath — parsing + weight, no DOM ============
+   Pure functions so the math is testable on its own. */
+var PlateMath = (function () {
+  'use strict';
+
+  var MATS = {
+    steel:     { name: 'Carbon steel',    kg: 7850, lb: 0.2836 },
+    stainless: { name: 'Stainless steel', kg: 8000, lb: 0.289  },
+    aluminum:  { name: 'Aluminum',        kg: 2700, lb: 0.0975 }
+  };
+  var LB_PER_KG = 2.20462262185;
+  var M_PER_IN = 0.0254;
+
+  /* Inches: "12", "0.75", ".5", "3/16", "1 1/4", "1-1/4",
+     with an optional trailing " / in / inch marker. */
+  function parseImperial(raw) {
+    var s = String(raw == null ? '' : raw).trim().toLowerCase();
+    s = s.replace(/(?:"|″|''|inches|inch|in\.?)\s*$/, '').trim();
+    if (!s) return NaN;
+    var m = s.match(/^(\d+(?:\.\d+)?|\.\d+)$/);
+    if (m) return parseFloat(m[1]);
+    m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (m) {
+      var d = parseInt(m[2], 10);
+      return d > 0 ? parseInt(m[1], 10) / d : NaN;
+    }
+    m = s.match(/^(\d+(?:\.\d+)?|\.\d+)(?:\s+|\s*-\s*)(\d+)\s*\/\s*(\d+)$/);
+    if (m) {
+      var d2 = parseInt(m[3], 10);
+      return d2 > 0 ? parseFloat(m[1]) + parseInt(m[2], 10) / d2 : NaN;
+    }
+    return NaN;
+  }
+
+  /* Millimeters: plain decimal, optional trailing "mm". */
+  function parseMetric(raw) {
+    var s = String(raw == null ? '' : raw).trim().toLowerCase();
+    s = s.replace(/(?:millimetres?|millimeters?|mm)\s*$/, '').trim();
+    if (!s) return NaN;
+    var m = s.match(/^(\d+(?:\.\d+)?|\.\d+)$/);
+    return m ? parseFloat(m[1]) : NaN;
+  }
+
+  /* L, W, T are numbers in the native unit ('imp' = inches, 'met' = mm).
+     Returns per-piece and total weights; volume in m^3. */
+  function weigh(L, W, T, unit, qty, mat) {
+    var m = MATS[mat];
+    if (!m) return null;
+    var f = unit === 'imp' ? M_PER_IN : 0.001;
+    var volM3 = (L * f) * (W * f) * (T * f);
+    var perKg = volM3 * m.kg;
+    var perLb = perKg * LB_PER_KG;
+    return {
+      perKg: perKg, perLb: perLb,
+      totKg: perKg * qty, totLb: perLb * qty,
+      volM3: volM3
+    };
+  }
+
+  /* Quick-table row math, computed from the STATED densities:
+     lb/ft^2 = t_in * 144 * (lb/in^3); kg/m^2 = t_m * (kg/m^3). */
+  function perSqFt(tIn, mat) {
+    var m = MATS[mat];
+    return {
+      lbFt2: tIn * 144 * m.lb,
+      kgM2: (tIn * M_PER_IN) * m.kg,
+      mm: tIn * 25.4
+    };
+  }
+
+  return {
+    MATS: MATS,
+    LB_PER_KG: LB_PER_KG,
+    parseImperial: parseImperial,
+    parseMetric: parseMetric,
+    weigh: weigh,
+    perSqFt: perSqFt
+  };
+})();
+</script>
+
+<script>
+/* ============ Calculator app: inputs, results, figure ============ */
+(function () {
+  'use strict';
+
+  var elLen = document.getElementById('f-len');
+  var elWid = document.getElementById('f-wid');
+  var elThk = document.getElementById('f-thk');
+  var elQty = document.getElementById('f-qty');
+  var elMat = document.getElementById('f-mat');
+  var uImp = document.getElementById('u-imp');
+  var uMet = document.getElementById('u-met');
+  var unitSpans = [document.getElementById('u-len'), document.getElementById('u-wid'), document.getElementById('u-thk')];
+  var hint = document.getElementById('fields-hint');
+
+  var rPpLb = document.getElementById('r-pp-lb');
+  var rPpKg = document.getElementById('r-pp-kg');
+  var rTotLb = document.getElementById('r-tot-lb');
+  var rTotKg = document.getElementById('r-tot-kg');
+  var rTotLabel = document.getElementById('r-tot-label');
+  var rEcho = document.getElementById('r-echo');
+  var rErr = document.getElementById('r-err');
+  var densTable = document.getElementById('dens-table');
+
+  var HINT_IMP = 'DECIMALS OR FRACTIONS — 3/16, 1 1/4, 1-1/4 ALL WORK · FLAT RECTANGULAR PLATE ONLY';
+  var HINT_MET = 'MILLIMETERS, DECIMALS OK — 6, 9.525, 12.7 · FLAT RECTANGULAR PLATE ONLY';
+
+  function unit() { return uMet.checked ? 'met' : 'imp'; }
+  function unitName() { return unit() === 'imp' ? 'in' : 'mm'; }
+  function parseDim(raw) {
+    return unit() === 'imp' ? PlateMath.parseImperial(raw) : PlateMath.parseMetric(raw);
+  }
+
+  function fmt1(n) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+  function fmtDim(n) { /* up to 4 decimals, trailing zeros trimmed */
+    return parseFloat(n.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+  }
+
+  /* ---------- figure ---------- */
+
+  var fig = {
+    head: document.getElementById('fg-head'),
+    plate: document.getElementById('fg-plate'),
+    exth: document.getElementById('fg-exth'),
+    dimh: document.getElementById('fg-dimh'),
+    hlblBg: document.getElementById('fg-hlbl-bg'),
+    hlbl: document.getElementById('fg-hlbl'),
+    extv: document.getElementById('fg-extv'),
+    dimv: document.getElementById('fg-dimv'),
+    vlblG: document.getElementById('fg-vlbl-g'),
+    vlblBg: document.getElementById('fg-vlbl-bg'),
+    vlbl: document.getElementById('fg-vlbl'),
+    edge: document.getElementById('fg-edge'),
+    edgeLbl: document.getElementById('fg-edge-lbl')
+  };
+
+  function clampTxt(s) {
+    s = String(s).trim();
+    return s.length > 14 ? s.slice(0, 13) + '…' : s;
+  }
+
+  function updateFigure(st) {
+    /* plate region */
+    var RX = 70, RY = 58, RW = 400, RH = 196;
+    var L = st.L > 0 ? st.L : 2;
+    var W = st.W > 0 ? st.W : 1;
+    var s = Math.min(RW / L, RH / W);
+    var pw = Math.max(L * s, 90);
+    var ph = Math.max(W * s, 56);
+    var x = RX + (RW - pw) / 2;
+    var y = RY + (RH - ph) / 2;
+    var xr = x + pw, yb = y + ph;
+
+    fig.plate.setAttribute('x', x); fig.plate.setAttribute('y', y);
+    fig.plate.setAttribute('width', pw); fig.plate.setAttribute('height', ph);
+
+    /* horizontal dimension (length) */
+    var dy = 296;
+    fig.exth.setAttribute('d', 'M' + x + ' ' + (yb + 6) + ' V' + (dy + 8) + ' M' + xr + ' ' + (yb + 6) + ' V' + (dy + 8));
+    fig.dimh.setAttribute('x1', x + 5); fig.dimh.setAttribute('y1', dy);
+    fig.dimh.setAttribute('x2', xr - 5); fig.dimh.setAttribute('y2', dy);
+    var hTxt = st.Ltxt + ' ' + st.unitName;
+    if (!st.okL) hTxt = '—';
+    fig.hlbl.textContent = hTxt;
+    var hw = hTxt.length * 7.4 + 14;
+    var hcx = (x + xr) / 2;
+    fig.hlblBg.setAttribute('x', hcx - hw / 2); fig.hlblBg.setAttribute('y', dy - 9);
+    fig.hlblBg.setAttribute('width', hw);
+    fig.hlbl.setAttribute('x', hcx); fig.hlbl.setAttribute('y', dy + 4);
+
+    /* vertical dimension (width) */
+    var dx = 505;
+    fig.extv.setAttribute('d', 'M' + (xr + 6) + ' ' + y + ' H' + (dx + 8) + ' M' + (xr + 6) + ' ' + yb + ' H' + (dx + 8));
+    fig.dimv.setAttribute('x1', dx); fig.dimv.setAttribute('y1', y + 5);
+    fig.dimv.setAttribute('x2', dx); fig.dimv.setAttribute('y2', yb - 5);
+    var vTxt = st.Wtxt + ' ' + st.unitName;
+    if (!st.okW) vTxt = '—';
+    fig.vlbl.textContent = vTxt;
+    var vw = vTxt.length * 7.4 + 14;
+    var vcy = (y + yb) / 2;
+    fig.vlblG.setAttribute('transform', 'rotate(-90 ' + dx + ' ' + vcy + ')');
+    fig.vlblBg.setAttribute('x', dx - vw / 2); fig.vlblBg.setAttribute('y', vcy - 9);
+    fig.vlblBg.setAttribute('width', vw);
+    fig.vlbl.setAttribute('x', dx); fig.vlbl.setAttribute('y', vcy + 4);
+
+    /* edge view (thickness) */
+    var eh = Math.min(Math.max((st.okT ? st.T : 0.5) * s, 3), 18);
+    fig.edge.setAttribute('x', x); fig.edge.setAttribute('width', pw);
+    fig.edge.setAttribute('y', 338); fig.edge.setAttribute('height', eh);
+    fig.edgeLbl.setAttribute('x', x);
+    fig.edgeLbl.textContent = 'EDGE VIEW · T = ' + (st.okT ? st.Ttxt + ' ' + st.unitName : '—');
+
+    /* header */
+    fig.head.textContent = st.matName.toUpperCase() + ' PLATE · QTY ' +
+      (st.okQ ? st.qty : '—') + ' · FLAT RECTANGULAR';
+  }
+
+  /* ---------- recalc ---------- */
+
+  function readField(el) {
+    var v = parseDim(el.value);
+    var ok = isFinite(v) && v > 0;
+    el.classList.toggle('badval', !ok);
+    return ok ? v : NaN;
+  }
+
+  function recalc() {
+    var L = readField(elLen);
+    var W = readField(elWid);
+    var T = readField(elThk);
+    var qRaw = elQty.value.trim();
+    var okQ = /^\d+$/.test(qRaw) && parseInt(qRaw, 10) >= 1;
+    var qty = okQ ? parseInt(qRaw, 10) : NaN;
+    elQty.classList.toggle('badval', !okQ);
+    var mat = PlateMath.MATS[elMat.value];
+
+    updateFigure({
+      L: L, W: W, T: T, qty: qty,
+      okL: isFinite(L), okW: isFinite(W), okT: isFinite(T), okQ: okQ,
+      Ltxt: clampTxt(elLen.value), Wtxt: clampTxt(elWid.value), Ttxt: clampTxt(elThk.value),
+      unitName: unitName(), matName: mat.name
+    });
+
+    var bad = [];
+    if (!isFinite(L)) bad.push('length');
+    if (!isFinite(W)) bad.push('width');
+    if (!isFinite(T)) bad.push('thickness');
+    if (!okQ) bad.push('quantity');
+
+    rTotLabel.textContent = okQ ? 'Total · ' + qty + ' pc' + (qty === 1 ? '' : 's') : 'Total';
+
+    if (bad.length) {
+      rPpLb.textContent = '—'; rPpKg.textContent = '—';
+      rTotLb.textContent = '—'; rTotKg.textContent = '—';
+      rEcho.textContent = '';
+      rErr.hidden = false;
+      rErr.textContent = 'Can’t read: ' + bad.join(', ') + '. ' +
+        (unit() === 'imp'
+          ? 'Decimals or fractions work — 0.1875, 3/16, 1 1/4. Quantity is a whole number.'
+          : 'Plain millimeters work — 6, 9.525, 12.7. Quantity is a whole number.');
+      return;
+    }
+    rErr.hidden = true;
+    rErr.textContent = '';
+
+    var w = PlateMath.weigh(L, W, T, unit(), qty, elMat.value);
+    rPpLb.textContent = fmt1(w.perLb) + ' lb';
+    rPpKg.textContent = fmt1(w.perKg) + ' kg';
+    rTotLb.textContent = fmt1(w.totLb) + ' lb';
+    rTotKg.textContent = fmt1(w.totKg) + ' kg';
+
+    var volTxt;
+    if (unit() === 'imp') {
+      volTxt = (L * W * T).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' in³';
+    } else {
+      volTxt = (L * W * T / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' cm³';
+    }
+    rEcho.textContent = '= ' + fmtDim(L) + ' × ' + fmtDim(W) + ' × ' + fmtDim(T) + ' ' +
+      unitName() + ' each · ' + volTxt + ' · ' + mat.name.toLowerCase();
+  }
+
+  /* ---------- unit switching (converts parseable values in place) ---------- */
+
+  function convertField(el, toMet) {
+    var v = toMet ? PlateMath.parseImperial(el.value) : PlateMath.parseMetric(el.value);
+    if (!isFinite(v) || v <= 0) return; /* leave unreadable text as typed */
+    var nv = toMet ? v * 25.4 : v / 25.4;
+    el.value = String(parseFloat(nv.toFixed(4)));
+  }
+
+  var lastUnit = 'imp';
+  function onUnitChange() {
+    var u = unit();
+    if (u === lastUnit) return;
+    var toMet = u === 'met';
+    [elLen, elWid, elThk].forEach(function (el) {
+      convertField(el, toMet);
+      if (toMet) el.setAttribute('inputmode', 'decimal');
+      else el.removeAttribute('inputmode'); /* full keyboard so "/" is typable */
+    });
+    unitSpans.forEach(function (sp) { sp.textContent = toMet ? 'mm' : 'in'; });
+    hint.textContent = toMet ? HINT_MET : HINT_IMP;
+    lastUnit = u;
+    recalc();
+  }
+
+  /* ---------- density-row highlight ---------- */
+
+  function highlightMat() {
+    Array.prototype.forEach.call(densTable.querySelectorAll('tbody tr'), function (tr) {
+      tr.classList.toggle('on', tr.getAttribute('data-mat') === elMat.value);
+    });
+  }
+
+  /* ---------- quick table (computed, not copied) ---------- */
+
+  function buildQuickTable() {
+    var rows = [
+      ['1/4', 0.25], ['5/16', 0.3125], ['3/8', 0.375], ['1/2', 0.5],
+      ['5/8', 0.625], ['3/4', 0.75], ['1', 1]
+    ];
+    var tb = document.getElementById('qt-body');
+    rows.forEach(function (r) {
+      var q = PlateMath.perSqFt(r[1], 'steel');
+      var tr = document.createElement('tr');
+      function cell(txt, num) {
+        var td = document.createElement('td');
+        if (num) td.className = 'num';
+        td.textContent = txt;
+        tr.appendChild(td);
+      }
+      cell(r[0] === '1' ? '1″' : r[0] + '″', false);
+      cell(r[1].toFixed(4).replace(/0+$/, '').replace(/\.$/, '.0'), true);
+      cell(q.mm.toFixed(3).replace(/\.?0+$/, ''), true);
+      cell(q.lbFt2.toFixed(2), true);
+      cell(q.kgM2.toFixed(1), true);
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---------- wiring ---------- */
+
+  [elLen, elWid, elThk, elQty].forEach(function (el) {
+    el.addEventListener('input', recalc);
+  });
+  elMat.addEventListener('change', function () { highlightMat(); recalc(); });
+  uImp.addEventListener('change', onUnitChange);
+  uMet.addEventListener('change', onUnitChange);
+
+  buildQuickTable();
+  highlightMat();
+  recalc();
+})();
+</script>
+
+<script>
+  // Footer year
+  var y = String(new Date().getFullYear());
+  document.getElementById('y').textContent = y;
+  document.getElementById('y2').textContent = y;
+
+  // Reveal-on-scroll — enabled ONLY when motion is allowed AND IntersectionObserver
+  // exists. Otherwise the .js class is never added and the page is simply static.
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches &&
+        'IntersectionObserver' in window) {
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  })();
+</script>
+</body>
+</html>
