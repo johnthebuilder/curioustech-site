@@ -1180,8 +1180,12 @@ const CH_DEFS = [
   { key: 'EDGE', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v9';
+const GAME_VERSION = 'v9.1';
 const CHANGELOG = [
+  { v: 'v9.1', title: 'A VERY SMALL EXPLORER', lines: [
+    '🧒 GEORGE toddles around the island now — he has QUESTIONS',
+    "he's small. be nice to him. he thinks builders are the best kind of somebody.",
+  ]},
   { v: 'v9', title: 'THE FAMILY KEY', lines: [
     '🔑 make a FAMILY KEY — a magic word that carries your heroes to ANY phone or tablet',
     '👥 THREE hero slots — the whole family can share one key',
@@ -1476,6 +1480,78 @@ function updateCount() {
   const n = 1 + puppets.size;
   $('p2badge').textContent = `🌐 ${n}`;
   $('p2badge').style.display = MMO.on ? 'block' : 'none';
+}
+
+/* ---------- GEORGE, the tiny explorer (curious about EVERYTHING) ----------
+   Original character — a very small kid in a backwards cap, not anyone licensed. */
+const george = new THREE.Group();
+{
+  const shirt = new THREE.MeshLambertMaterial({ color: 0x3fae49 });
+  const capM = new THREE.MeshLambertMaterial({ color: 0xd1342f });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.4), shirt);
+  body.position.y = 0.45; george.add(body);
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.4, 0.2), shirt); armL.position.set(-0.36, 0.5, 0); george.add(armL);
+  const armR = armL.clone(); armR.position.x = 0.36; george.add(armR);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.58, 0.62), mat.skin);
+  head.position.y = 1.02; george.add(head);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.2, 0.68), capM);
+  cap.position.y = 1.4; george.add(cap);
+  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.08, 0.34), capM);
+  brim.position.set(0, 1.31, 0.46); george.add(brim);   // backwards, obviously
+  const eL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.05), eyeMat); eL.position.set(-0.14, 1.05, 0.32); george.add(eL);
+  const eR = eL.clone(); eR.position.x = 0.14; george.add(eR);
+  const pL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.04), pupilMat); pL.position.set(-0.14, 1.03, 0.35); george.add(pL);
+  const pR = pL.clone(); pR.position.x = 0.14; george.add(pR);
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.24), mat.pants); legL.position.set(-0.15, 0.2, 0); george.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.15; george.add(legR);
+  george.position.set(-4, 0, 2);
+  scene.add(george);
+}
+const GEORGE_POI = [[0, 6], [6, 6.5], [-25, -26], [28, 28], [12, 38], [-37, 24], [8, -25], [-14, -8], [18, 8], [-36, -36], [27, -18], [5.2, -24]];
+const GEORGE_LINES = [
+  'why do the stars come BACK? where do they GO first?',
+  "what's cheese made of? is it... cheese?",
+  'do the sharks have birthdays?',
+  'can you build a house? a BIG one? can I live in it?',
+  'the gnome talks funny. I like him.',
+  'if I dig down, is there MORE island?',
+  'why is the moon slower than me?',
+  'I saw a flower GROW. did you DO that??',
+  'what does THAT button do? what does THIS one do?',
+  'when I grow up I want to be a bounce pad.',
+  'somebody built that. builders are the best kind of somebody.',
+  'will you watch me run? okay watch. WATCH!',
+];
+const geo = { tx: 0, tz: 6, waitT: 3, lineIdx: (Math.random() * GEORGE_LINES.length) | 0, lastLineT: 0, tag: null, wonder: null };
+function initGeorgeSprites() {   // deferred: nameSprite/emojiSprite live further down the file
+  geo.tag = nameSprite('GEORGE'); geo.tag.position.y = 2.05; geo.tag.scale.set(2.4, 0.42, 1); george.add(geo.tag);
+  geo.wonder = emojiSprite('❓'); geo.wonder.scale.set(0.7, 0.7, 1); geo.wonder.position.y = 2.55; geo.wonder.visible = false; george.add(geo.wonder);
+}
+function stepGeorge(dt, mt) {
+  if (!geo.tag) initGeorgeSprites();
+  const dx = geo.tx - george.position.x, dz = geo.tz - george.position.z, d = Math.hypot(dx, dz);
+  if (d > 0.6) {                                       // toddling somewhere interesting
+    george.position.x += dx / d * 1.7 * dt;
+    george.position.z += dz / d * 1.7 * dt;
+    george.rotation.y = Math.atan2(dx, dz);
+    george.position.y = Math.abs(Math.sin(mt * 9)) * 0.09;
+    geo.wonder.visible = false;
+  } else {                                             // arrived: stand there wondering at it
+    george.position.y = Math.sin(mt * 2.2) * 0.04;
+    geo.wonder.visible = Math.sin(mt * 1.3) > 0.2;
+    if ((geo.waitT -= dt) <= 0) {
+      const p = GEORGE_POI[(Math.random() * GEORGE_POI.length) | 0];
+      geo.tx = p[0] + (Math.random() - 0.5) * 5;
+      geo.tz = p[1] + (Math.random() - 0.5) * 5;
+      geo.waitT = 5 + Math.random() * 7;
+    }
+  }
+  if ((state === 'PLAY' || state === 'WON') && mt - geo.lastLineT > 25) {
+    if (Math.hypot(P.x - george.position.x, P.z - george.position.z) < 4.5) {
+      geo.lastLineT = mt;
+      toast('🧒 GEORGE: ' + GEORGE_LINES[geo.lineIdx++ % GEORGE_LINES.length], 4800);
+    }
+  }
 }
 
 /* ---------- crumbs ---------- */
@@ -2533,6 +2609,7 @@ function spinCollectibles(dt, mt) {
   plants.forEach(p => { if (p.bloom) p.bloom.rotation.y += 2 * dt; });
   gnome.position.y = Math.sin(mt * 1.6) * 0.06;
   gnome.rotation.y = Math.sin(mt * 0.4) * 0.5;
+  stepGeorge(dt, mt);
   /* the gnome speaks to whoever stands close */
   if ((state === 'PLAY' || state === 'WON') && mt - lastGnomeT > 40) {
     if (Math.hypot(P.x - gnome.position.x, P.z - gnome.position.z) < 5) {
