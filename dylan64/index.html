@@ -99,6 +99,23 @@
     display: grid; place-items: center; font-size: 1.25rem; cursor: pointer; opacity: .75; }
   #palette .chip.sel { opacity: 1; outline: 3px solid #ffd23e; transform: scale(1.08); }
 
+  /* ---------- quests + welcome ---------- */
+  #quest { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + clamp(4.6rem, 17vw, 6.6rem));
+    left: 16px; font-size: clamp(.75rem, 3vw, 1rem); color: #ffe9a3; }
+  #welcome { position: fixed; inset: 0; z-index: 90; display: none; place-items: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,40,.35) 30%, rgba(0,0,30,.8) 100%); }
+  #welcome .wcard { background: rgba(8, 8, 34, .93); border: 4px solid #ffd23e; border-radius: 18px;
+    padding: 26px 30px; max-width: min(92vw, 430px); box-shadow: 0 0 60px rgba(255, 210, 62, .3); }
+  #welcome h1 { font-size: clamp(1.15rem, 5vw, 1.6rem); margin-bottom: 14px; text-align: center; }
+  #welcome .wrow { color: #e8eef8; font-family: Arial, sans-serif; font-size: clamp(.8rem, 3.4vw, .95rem);
+    margin: 8px 0; text-shadow: 1px 1px 0 #000; }
+  #welcome .wgoal { color: #ffd23e; font-family: Arial, sans-serif; font-weight: bold; font-size: clamp(.78rem, 3.2vw, .9rem);
+    margin: 14px 0; text-align: center; line-height: 1.5; text-shadow: 1px 1px 0 #000; }
+  #wgo { display: block; margin: 0 auto; font-family: inherit; font-size: 1.05rem; padding: 12px 30px;
+    border-radius: 999px; border: 3px solid #000; background: #3fae49; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; }
+  #wgo:active { transform: translateY(3px); box-shadow: none; }
+
   /* ---------- fourth wall ---------- */
   #wall { position: fixed; inset: 0; z-index: 120; background: #000; display: none; place-items: center; }
   #wallText { font-family: "Courier New", monospace; color: #8be89b; font-size: clamp(1rem, 3.6vw, 1.5rem);
@@ -180,6 +197,7 @@
   <div class="stars chunk">⭐ <span id="starCt">0</span>/10</div>
   <div class="cheesehud chunk">🧀 <span id="cheesePct">0</span>%</div>
   <div id="p2badge" class="chunk">🌐 1</div>
+  <div id="quest" class="chunk"></div>
   <div class="coins chunk">🪙 <span id="coinCt">0</span></div>
   <div class="clock" id="clock">0:00</div>
   <div id="toast" class="chunk"></div>
@@ -197,7 +215,21 @@
   <div class="chip" data-tool="3" style="background:#3fae49">🍃</div>
   <div class="chip" data-tool="4" style="background:#bcd8e8">◽</div>
   <div class="chip" data-tool="seed" style="background:#7a5230">🌱</div>
+  <div class="chip" data-tool="mop" style="background:#4a90d9">🧹</div>
   <div class="chip" data-tool="del" style="background:#c0392b">💥</div>
+</div>
+
+<div id="welcome">
+  <div class="wcard">
+    <h1 class="chunk">🏝️ WELCOME TO THE ISLAND</h1>
+    <div class="wrow">⭐ <b>collect stars</b> — they always come back</div>
+    <div class="wrow">🧀 <b>hold the cheese button</b> — paint the ground, then SWIM in it</div>
+    <div class="wrow">🔨 <b>build anything</b> — it stays, for everyone, forever</div>
+    <div class="wrow">🌱 <b>plant seeds</b> — walk away, come back, magic</div>
+    <div class="wrow">👥 <b>everyone here is a real person</b> — be kind, build together</div>
+    <div class="wgoal">📜 today's goal: finish the quests (top-left).<br>the REAL goal: leave the island cooler than you found it.</div>
+    <button id="wgo">LET'S GO!</button>
+  </div>
 </div>
 <div id="wall"><div id="wallText"></div></div>
 <button id="mute">🔊</button>
@@ -296,6 +328,7 @@ const AU = {
   place() { this.beep('triangle', 210, 130, 0.09, 0.2); },
   breakB() { this.beep('sawtooth', 160, 55, 0.14, 0.18); },
   plant() { this.beep('triangle', 520, 780, 0.1, 0.12); },
+  mop() { this.beep('triangle', 300, 520, 0.12, 0.12); },
   harvest() { [659, 880, 1175].forEach((f, i) => setTimeout(() => this.beep('square', f, null, 0.12, 0.14), i * 70)); },
   leave() { [784, 659, 523].forEach((f, i) => setTimeout(() => this.beep('square', f, null, 0.1, 0.1), i * 70)); },
   shark() { this.beep('square', 110, null, 0.28, 0.2); setTimeout(() => this.beep('square', 98, null, 0.34, 0.22), 320); },
@@ -632,7 +665,7 @@ function addBlock(k, ty, byMe) {
   colliders.push(col);
   blocks.set(k, { mesh, col, ty });
   if (byMe) {
-    blocksPlacedByMe++; AU.place(); buzz(12);
+    blocksPlacedByMe++; AU.place(); buzz(12); questBump('build5');
     if (blocksPlacedByMe === 3) toast('YOU\'RE BUILDING! it stays on the island — for everyone', 2600);
     if (blocksPlacedByMe === 20) wallBreak();
   }
@@ -688,6 +721,7 @@ function removePlant(k, harvested, byMe) {
     coinCount += 8; $('coinCt').textContent = coinCount;
     AU.harvest(); buzz([30, 30, 60]);
     toast('🌼 GOLDEN ZINNIA! +8 COINS', 1800);
+    questBump('zinnia');
   }
 }
 setInterval(() => plants.forEach(p => growPlant(p)), 5000);
@@ -1059,7 +1093,7 @@ function stepCheese(dt) {
         if (!c.alive) continue;
         const dx = c.g.position.x - g.x, dy2 = (c.g.position.y + 0.8) - g.y, dz = c.g.position.z - g.z;
         if (dx * dx + dy2 * dy2 + dz * dz < 1.4) {
-          c.hitT = 0.3; AU.hitCrumb();
+          c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
           if (MMO.on) MMO.send({ t: 'hitcrumb', i: ci });
           else if (--c.hp <= 0) crumbDie(c, null);
           paintCheese(c.g.position.x, c.g.position.z, 1.5, MMO.on);
@@ -1127,7 +1161,7 @@ function collectStarIdx(i, announce) {
   $('starCt').textContent = starCount;
   AU.star(); buzz([50, 40, 90]);
   burst(s.position.x, s.position.y, s.position.z, 20, 5);
-  if (announce) MMO.send({ t: 'star', i });
+  if (announce) { MMO.send({ t: 'star', i }); questBump('stars3'); }
   if (starCount === 10) winGame();
   else if (starCount === 1) toast('A STAR! 9 MORE TO GO!');
   else if (starCount === 5) toast('HALFWAY THERE!');
@@ -1349,6 +1383,22 @@ function handleTap(cx, cy) {
     if (bk) { removeBlock(bk); AU.breakB(); buzz(15); if (MMO.on) MMO.send({ t: 'unblock', k: bk }); }
     return;
   }
+  if (tool === 'mop') {
+    const mx = h.point.x, mz = h.point.z;
+    if (Math.abs(mx) > 45 || Math.abs(mz) > 45) return;
+    if (Math.hypot(mx - P.x, mz - P.z) > 10) { toast('TOO FAR — WALK CLOSER', 1200); return; }
+    const gx = clamp(((mx + 45) / 90 * CG) | 0, 0, CG - 1), gz = clamp(((mz + 45) / 90 * CG) | 0, 0, CG - 1);
+    const cells = [];
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+      const nx = gx + dx, nz = gz + dz;
+      if (nx < 0 || nz < 0 || nx >= CG || nz >= CG) continue;
+      cells.push(nz * CG + nx);
+    }
+    unpaintCells(cells);
+    AU.mop(); buzz(10);
+    if (MMO.on) MMO.send({ t: 'clean', x: +mx.toFixed(1), z: +mz.toFixed(1) });
+    return;
+  }
   const pnt = h.point.clone().add(h.face.normal.clone().multiplyScalar(0.2));
   const bx = Math.round(pnt.x / GRID), bz = Math.round(pnt.z / GRID);
   const by = Math.max(0, Math.round((pnt.y - GRID / 2) / GRID));
@@ -1397,6 +1447,34 @@ function readPad() {
 /* ---------- game state ---------- */
 let state = 'BOOT';
 let starCount = 0, coinCount = 0, playT = 0, won = false, swoopT = 0;
+/* ---------- starter quests: the "sort of goal" (daily, per device) ---------- */
+const QUESTS = [
+  { id: 'stars3', label: 'collect 3 ⭐', n: 3 },
+  { id: 'build5', label: 'place 5 blocks 🔨', n: 5 },
+  { id: 'splat', label: 'splat a crumb with cheese 💥', n: 1 },
+  { id: 'zinnia', label: 'grow & pick a zinnia 🌼', n: 1 },
+];
+const qKey = 'd64_q_' + new Date().toISOString().slice(0, 10);
+let quest = { i: 0, p: 0 };
+try { quest = JSON.parse(localStorage.getItem(qKey) || '{"i":0,"p":0}'); } catch (e) {}
+function renderQuest() {
+  const q = QUESTS[quest.i];
+  $('quest').textContent = q ? `📜 ${q.label} (${quest.p}/${q.n})` : '📜 quests done! now go build ✨';
+}
+function questBump(id) {
+  const q = QUESTS[quest.i];
+  if (!q || q.id !== id) return;
+  quest.p++;
+  if (quest.p >= q.n) {
+    coinCount += 10; $('coinCt').textContent = coinCount;
+    AU.harvest(); buzz([40, 40, 80]);
+    quest.i++; quest.p = 0;
+    toast(QUESTS[quest.i] ? `📜 QUEST DONE! +10 COINS · next: ${QUESTS[quest.i].label}` : '📜 ALL QUESTS DONE! +10 · the island is your canvas now', 3200);
+  }
+  try { localStorage.setItem(qKey, JSON.stringify(quest)); } catch (e) {}
+  renderQuest();
+}
+
 const toastEl = $('toast'); let toastTimer = null;
 function toast(msg, ms = 2200) {
   if (!msg) return;
@@ -1420,6 +1498,9 @@ function startGame() {
   $('mute').textContent = AU.muted ? '🔇' : '🔊';
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
   $('btnBuild').style.display = 'grid';
+  renderQuest();
+  if (!localStorage.getItem('d64_welcomed'))
+    setTimeout(() => { if (state === 'PLAY' || state === 'SWOOP') $('welcome').style.display = 'grid'; }, 1900);
   $('hint').textContent = isTouch ? 'STICK run · A jump ×2 · 🧀 cheese · 🔨 BUILD & plant · your builds STAY'
                                   : 'WASD run · SPACE jump ×2 · X cheese · 🔨/B build & plant · your builds STAY';
   setTimeout(() => $('hint').style.opacity = 0, 9000);
@@ -1667,6 +1748,11 @@ raf = requestAnimationFrame(loop);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { cancelAnimationFrame(raf); if (AU.ctx) AU.ctx.suspend(); }
   else { last = performance.now(); raf = requestAnimationFrame(loop); if (AU.ctx) AU.ctx.resume(); }
+});
+
+$('wgo').addEventListener('click', () => {
+  $('welcome').style.display = 'none';
+  try { localStorage.setItem('d64_welcomed', '1'); } catch (e) {}
 });
 
 /* ---------- boot ---------- */
