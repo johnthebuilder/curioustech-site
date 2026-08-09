@@ -920,6 +920,7 @@ const movCol = colliders[colliders.length - 1]; movCol.moving = true;
 let movDX = 0;
 box(-37.5, 4.8, 25, 5, 5, 4.8, mat.dirt);
 for (let i = 0; i < 4; i++) box(47 + i * 3.2, 0.5, 0, 3, 3.4, 0.5, mat.crate);
+const worldTrees = [];   // reactive: attacks shake them and knock the leaves loose
 const treeAt = (x, z, s = 1) => {
   const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.45 * s, 0.6 * s, 3 * s, 6), mat.trunk);
   tr.position.set(x, 1.5 * s, z); scene.add(tr);
@@ -927,25 +928,91 @@ const treeAt = (x, z, s = 1) => {
   lf.position.set(x, 4.1 * s, z); scene.add(lf);
   const lf2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 * s, 0), lf.material === mat.leaf ? mat.leaf2 : mat.leaf);
   lf2.position.set(x + 0.8 * s, 5.3 * s, z - 0.4 * s); scene.add(lf2);
+  worldTrees.push({ x, z, s, tr, lf, lf2, shakeT: 0, leafK: 1, regrowT: 0 });
 };
 [[-34, 8], [-28, 14, 1.2], [-10, -12], [8, -8, 0.9], [15, 12, 1.3], [34, -8], [38, 14, 0.8], [-8, 36, 1.1], [-20, -32, 0.9], [12, -28], [33, -30, 1.2], [-38, -8, 0.8]].forEach(a => treeAt(a[0], a[1], a[2] || 1));
-for (let i = -3; i <= 3; i++) { if (Math.abs(i) < 2) continue;
-  const p = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, 0.3), mat.crate); p.position.set(i * 2, 0.6, 14); scene.add(p); }
-/* meadow dressing: grass tufts + wildflowers */
+/* (the old decorative pillar row at z=14 is gone — it cluttered the landing) */
+/* meadow dressing: grass tufts + wildflowers — all mowable by attacks, all grow back */
+const mowables = [];
 const tuftG = new THREE.ConeGeometry(0.14, 0.75, 4);
 for (let i = 0; i < 70; i++) {
   const x = (Math.random() - 0.5) * 84, z = (Math.random() - 0.5) * 84;
+  if (Math.hypot(x, z - 8) < 9.5) continue;   // keep the landing plaza clean
   const t = new THREE.Mesh(tuftG, Math.random() < 0.5 ? mat.leaf : mat.leaf2);
   t.position.set(x, 0.35, z); t.rotation.y = Math.random() * 3;
-  t.scale.setScalar(0.7 + Math.random() * 0.9); scene.add(t);
+  const sc = 0.7 + Math.random() * 0.9;
+  t.scale.setScalar(sc); scene.add(t);
+  mowables.push({ x, z, meshes: [t], scale: sc, mowT: 0 });
 }
 const flowerCols = [0xe86fb2, 0xffd23e, 0xf2ede2, 0x8bb6f2];
 for (let i = 0; i < 26; i++) {
   const x = (Math.random() - 0.5) * 80, z = (Math.random() - 0.5) * 80;
+  if (Math.hypot(x, z - 8) < 9.5) continue;   // not on the plaza either
   const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.55, 4), mat.leaf);
   stem.position.set(x, 0.27, z); scene.add(stem);
   const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.14, 0), new THREE.MeshLambertMaterial({ color: flowerCols[i % 4] }));
   head.position.set(x, 0.62, z); scene.add(head);
+  mowables.push({ x, z, meshes: [stem, head], scale: 1, mowT: 0 });
+}
+
+/* boulders: three hits from anything — or one MEGA WAVE — and they pop into coins */
+const smashables = [];
+[[14, -18], [-18, 22], [30, 8], [-8, -22], [22, 36], [-32, -14], [38, -22]].forEach(([x, z]) => {
+  const g = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 0), mat.stone);
+  g.position.set(x, 0.75, z); g.scale.y = 0.8; g.rotation.y = Math.random() * 3;
+  scene.add(g);
+  const col = { minX: x - 1, maxX: x + 1, minZ: z - 1, maxZ: z + 1, top: 1.4 };
+  colliders.push(col);
+  smashables.push({ g, col, x, z, hp: 3, respawnT: 0 });
+});
+
+/* ---------- THE LANDING: the welcome plaza — spawn teaches the game ---------- */
+const pavers = new THREE.MeshLambertMaterial({ map: checker('#cfc8b8', '#bdb5a4', 6) });
+{
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 0.12, 24), pavers);
+  disc.position.set(0, 0.06, 8); scene.add(disc);
+  colliders.push({ minX: -7.2, maxX: 7.2, minZ: 0.8, maxZ: 15.2, top: 0.12 });
+  for (let a = 0; a < 12; a++) {                       // rim stones, gateway left open
+    const th = a / 12 * Math.PI * 2;
+    if (Math.abs(Math.sin(th)) < 0.35 && Math.cos(th) < 0) continue;
+    const st2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.9), mat.stone);
+    st2.position.set(Math.sin(th) * 8.2, 0.25, 8 + Math.cos(th) * 8.2);
+    st2.rotation.y = th; scene.add(st2);
+  }
+  // the gateway arch out into the island
+  box(-3.2, 4.6, 0, 1.1, 1.1, 4.6, mat.stone);
+  box(3.2, 4.6, 0, 1.1, 1.1, 4.6, mat.stone);
+  box(0, 5.7, 0, 8.6, 1.2, 1.1, mat.stone, false);
+  const ban1 = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.8), mat.red);
+  ban1.position.set(-3.2, 3.9, 0.6); scene.add(ban1);
+  const ban2 = ban1.clone(); ban2.position.x = 3.2; scene.add(ban2);
+  const wsign = nameSprite('WELCOME TO THE ISLAND');
+  wsign.scale.set(9.5, 1.6, 1); wsign.position.set(0, 7.3, 0); scene.add(wsign);
+}
+/* the teaching plinths: walk up to one and it tells you what it's for */
+const TUTOR_SPOTS = [];
+[['⭐', 'STARS', '⭐ stars are EVERYWHERE — and they always come back. grab 10 for a surprise.', -0.85],
+ ['🧀', 'CHEESE', '🧀 hold the cheese button to paint the ground — then WALK ON YOUR PAINT to swim fast.', -0.45],
+ ['👆', 'TALK', "👆 that's the ping wheel — point, cheer, dance. no typing on this island, ever.", 0],
+ ['🔨', 'BUILD', '🔨 tap the hammer, pick a block, tap the ground. builds stay FOREVER — for everyone.', 0.45],
+ ['🌱', 'GROW', '🌱 plant a seed, wander off, come back rich. zinnias pay 8 🪙 — even while you sleep.', 0.85]].forEach(([emoji, label, tip, k]) => {
+  const th = k * 1.15;
+  const px = Math.sin(th) * 6.3, pz = 8 + Math.cos(th) * 6.3;
+  box(px, 0.85, pz, 1.1, 1.1, 0.85, mat.crate);
+  const em = emojiSprite(emoji); em.scale.set(1.1, 1.1, 1); em.position.set(px, 2.15, pz); scene.add(em);
+  const lb = nameSprite(label); lb.scale.set(2.2, 0.4, 1); lb.position.set(px, 1.4, pz); scene.add(lb);
+  TUTOR_SPOTS.push({ x: px, z: pz, tip, em, coolT: 0 });
+});
+function stepTutor(dt, mt) {
+  for (const s of TUTOR_SPOTS) {
+    s.em.position.y = 2.15 + Math.sin(mt * 2 + s.x) * 0.12;
+    if (s.coolT > 0) { s.coolT -= dt; continue; }
+    if ((state === 'PLAY' || state === 'WON') && Math.hypot(P.x - s.x, P.z - s.z) < 2.6) {
+      s.coolT = 45;
+      toast(s.tip, 5200);
+      AU.ping('light');
+    }
+  }
 }
 
 /* ---------- BUILDING: what you place, stays (Minecraft hands) ---------- */
@@ -1212,8 +1279,15 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v10';
+const GAME_VERSION = 'v11';
 const CHANGELOG = [
+  { v: 'v11', title: 'THE LANDING & THE WRECKAGE', lines: [
+    '🏛️ NEW: the welcome plaza — walk up to the plinths, they explain everything',
+    '🪨 NEW: boulders — smash them with anything for coins (they come back)',
+    '💥 the MEGA WAVE now flattens grass, strips trees, breaks blocks, pops ripe zinnias',
+    '🌪️ cheese splats shake trees and mow the meadow. it ALL grows back.',
+    '📳 the camera shakes when you mean it',
+  ]},
   { v: 'v10', title: 'GOLD & AIRWAVES', lines: [
     '⚡ SPARK (was EDGE) got a makeover: black spiky hair… until FINAL FORM',
     '⚡ FINAL FORM: tap the gold button when charged — glowing gold, you can FLY (hold A in the air)',
@@ -1630,6 +1704,8 @@ function fireMegaWave() {
     setTimeout(() => {
       paintCheese(bx, bz, 2.4, true);
       burst(bx, 0.8 + Math.random() * 1.4, bz, 18, 7);
+      smashAt(bx, bz, 2.6, 3, true);           // the wave REALLY leaves a mark
+      camShakeT = Math.max(camShakeT, 0.9);
       crumbs.forEach((c, ci) => {
         if (c.alive && Math.hypot(c.g.position.x - bx, c.g.position.z - bz) < 2.6) {
           c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
@@ -1673,6 +1749,95 @@ function stepFF(dt, mt) {
     if (ffS.charge >= 1 && b.textContent !== '⚡') b.textContent = '⚡';
   }
   if (ffS.on) b.textContent = '⚡';
+}
+
+/* ---------- SMASH: attacks leave a mark on the world (and it all grows back) ---------- */
+let camShakeT = 0;
+function smashAt(x, z, r, power, canBreak) {
+  // trees: shake; a big hit knocks the leaves loose (they grow back)
+  for (const t of worldTrees) {
+    const d = Math.hypot(t.x - x, t.z - z);
+    if (d < r + 2.4) {
+      t.shakeT = Math.max(t.shakeT, power >= 3 ? 1.2 : 0.6);
+      burst(t.x, 4 * t.s, t.z, power >= 3 ? 14 : 5, 3);
+      if (power >= 3 && t.leafK > 0.3) { t.leafK = 0.25; t.regrowT = 90; }
+    }
+  }
+  // meadow: mowed flat, regrows
+  for (const m of mowables) {
+    if (m.mowT <= 0 && Math.hypot(m.x - x, m.z - z) < r + 0.6) {
+      m.mowT = 60;
+      m.meshes.forEach(ms => ms.scale.setScalar(0.04));
+      burst(m.x, 0.4, m.z, 4, 2);
+    }
+  }
+  // boulders: chip → shatter → coins
+  for (const s of smashables) {
+    if (s.respawnT > 0) continue;
+    if (Math.hypot(s.x - x, s.z - z) < r + 1.2) {
+      s.hp -= power;
+      s.g.rotation.y += 0.3; s.g.scale.setScalar(0.8 + s.hp * 0.07); s.g.scale.y *= 0.8;
+      AU.breakB();
+      if (s.hp <= 0) {
+        s.respawnT = 90;
+        s.g.visible = false;
+        const ci = colliders.indexOf(s.col); if (ci >= 0) colliders.splice(ci, 1);
+        burst(s.x, 1, s.z, 22, 6);
+        coinCount += 2; $('coinCt').textContent = coinCount;
+        AU.poof(); AU.coin();
+        toast('🪨💥 BOULDER SMASHED! +2 🪙', 2000);
+      }
+    }
+  }
+  // the big hits break placed blocks (same power kids already have with the 💥 tool)
+  if (canBreak && power >= 3) {
+    for (const k of [...blocks.keys()]) {
+      const [bx, by, bz] = k.split(',').map(Number);
+      if (by <= 2 && Math.hypot(bx * GRID - x, bz * GRID - z) < r) {
+        removeBlock(k); AU.breakB();
+        if (MMO.on) MMO.send({ t: 'unblock', k });
+      }
+    }
+    // …and pop MATURE zinnias (the server pays out like a normal harvest)
+    for (const [pk, p] of plants) {
+      const [cx, cz] = pk.split(',').map(Number);
+      if (p.stage === 2 && Math.hypot(cx * GRID - x, cz * GRID - z) < r) {
+        if (MMO.on) MMO.send({ t: 'harvest', k: pk }); else removePlant(pk, true, true);
+      }
+    }
+  }
+}
+function stepSmash(dt) {
+  if (camShakeT > 0) camShakeT = Math.max(0, camShakeT - dt);
+  for (const t of worldTrees) {
+    if (t.shakeT > 0) {
+      t.shakeT -= dt;
+      const j = t.shakeT * 0.12;
+      t.lf.position.x = t.x + (Math.random() - 0.5) * j * 4;
+      t.lf.position.z = t.z + (Math.random() - 0.5) * j * 4;
+      t.lf2.position.x = t.x + 0.8 * t.s + (Math.random() - 0.5) * j * 4;
+      if (t.shakeT <= 0) { t.lf.position.set(t.x, 4.1 * t.s, t.z); t.lf2.position.x = t.x + 0.8 * t.s; }
+    }
+    if (t.regrowT > 0) { t.regrowT -= dt; t.leafK = Math.min(1, 0.25 + (1 - t.regrowT / 90) * 0.75); }
+    const target = t.leafK;
+    if (Math.abs(t.lf.scale.x - target) > 0.01) { t.lf.scale.setScalar(target); t.lf2.scale.setScalar(target); }
+  }
+  for (const m of mowables) {
+    if (m.mowT > 0) {
+      m.mowT -= dt;
+      if (m.mowT <= 0) { m.meshes.forEach(ms => ms.scale.setScalar(m.scale)); burst(m.x, 0.4, m.z, 3, 1.5); }
+    }
+  }
+  for (const s of smashables) {
+    if (s.respawnT > 0) {
+      s.respawnT -= dt;
+      if (s.respawnT <= 0) {
+        s.hp = 3; s.g.visible = true; s.g.scale.set(1, 0.8, 1);
+        colliders.push(s.col);
+        burst(s.x, 1, s.z, 8, 3);
+      }
+    }
+  }
 }
 
 /* ---------- ISLAND RADIO: the dial + the commercials ---------- */
@@ -1952,6 +2117,7 @@ function stepCheese(dt) {
     }
     const gy = groundYAt(g.x, g.z, g.y);
     if (g.vy < 0 && gy > -900 && g.y <= gy + 0.08) {
+      if (!g.remote) smashAt(g.x, g.z, g.mega ? 2 : 1.3, g.mega ? 2 : 1, false);   // every splat rattles the world
       if (!g.remote && gy === 0 && Math.abs(g.x) <= 45 && Math.abs(g.z) <= 45) {
         paintCheese(g.x, g.z, (1.8 + Math.random() * 0.7) * splatF() * (g.mega ? 3 : 1), true);
       } else {
@@ -2773,6 +2939,8 @@ function spinCollectibles(dt, mt) {
   stepGeorge(dt, mt);
   stepFF(dt, mt);
   stepRadio(dt);
+  stepSmash(dt);
+  stepTutor(dt, mt);
   /* the gnome speaks to whoever stands close */
   if ((state === 'PLAY' || state === 'WON') && mt - lastGnomeT > 40) {
     if (Math.hypot(P.x - gnome.position.x, P.z - gnome.position.z) < 5) {
@@ -2806,6 +2974,10 @@ function stepCam(dt) {
   camPos.y = Math.max(camPos.y, 0.8);
   camera.position.copy(camPos);
   camera.lookAt(lx, ly, lz);
+  if (camShakeT > 0) {
+    camera.position.x += (Math.random() - 0.5) * camShakeT * 0.7;
+    camera.position.y += (Math.random() - 0.5) * camShakeT * 0.5;
+  }
 }
 
 /* ---------- main loop ---------- */
