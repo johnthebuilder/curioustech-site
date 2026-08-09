@@ -14,6 +14,10 @@
     font-family: "Arial Black", "Arial Bold", Arial, sans-serif; }
   canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
     image-rendering: pixelated; image-rendering: crisp-edges; }
+  /* touch-action does NOT inherit: without this, rapid A-taps trigger the
+     browser's double-tap zoom and the game gets stuck zoomed (John, 8/9) */
+  button, canvas, #btnA, #btnB, #btnBuild, #btnPing, #btnTree, #stickZone, #stickBase, #nub,
+  #palette, #palette .chip, #pingWheel, #pingWheel .pw, #mute { touch-action: none; }
 
   /* ---------- chunky text helpers ---------- */
   .chunk { color: #ffd23e; -webkit-text-stroke: 0; letter-spacing: .02em;
@@ -115,6 +119,55 @@
     border-radius: 999px; border: 3px solid #000; background: #3fae49; color: #fff; cursor: pointer;
     text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; }
   #wgo:active { transform: translateY(3px); box-shadow: none; }
+
+  /* ---------- title buttons + overlays (wback/tree/chlog/fb) ---------- */
+  #titleBtns { display: flex; gap: 10px; }
+  .tbtn { font-family: inherit; font-size: clamp(.7rem, 2.6vw, .85rem); padding: 8px 14px;
+    border-radius: 999px; border: 3px solid #000; background: rgba(10,10,40,.6); color: #cfe3ff;
+    cursor: pointer; text-shadow: 1px 1px 0 #000; }
+  #wback, #tree, #chlog, #fb { position: fixed; inset: 0; z-index: 88; display: none; place-items: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,40,.3) 30%, rgba(0,0,30,.78) 100%); }
+  #wback .wcard, #chlog .wcard, #fb .wcard { text-align: center; }
+  #wbHero { font-size: 2.6rem; margin: 6px 0 2px; }
+  #wbHero .nm { display: block; font-size: 1.2rem; color: #ffd23e; text-shadow: 2px 2px 0 #000; font-family: inherit; }
+  #wbStats { color: #cfe3ff; font-family: "Courier New", monospace; margin-bottom: 14px; }
+  #wbPlay { font-family: inherit; font-size: 1.15rem; padding: 13px 42px; border-radius: 999px;
+    border: 3px solid #000; background: #3fae49; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; margin-bottom: 12px; }
+  #wbPlay:active { transform: translateY(3px); box-shadow: none; }
+  #wbRow { display: flex; gap: 10px; justify-content: center; }
+  .wbsm { font-family: inherit; font-size: .78rem; padding: 8px 12px; border-radius: 10px;
+    border: 3px solid #000; background: #4a4a5a; color: #fff; cursor: pointer; box-shadow: 0 3px 0 #222230; }
+  .wbsm:active { transform: translateY(2px); box-shadow: none; }
+  .tcard { background: rgba(8, 8, 34, .95); border: 4px solid #ffd23e; border-radius: 18px;
+    padding: 20px 22px; width: min(94vw, 440px); max-height: 86vh; overflow-y: auto;
+    box-shadow: 0 0 60px rgba(255, 210, 62, .3); text-align: center; }
+  #treeHead { font-size: clamp(1rem, 4.4vw, 1.35rem); margin-bottom: 12px; }
+  .tnode { border: 3px solid #000; border-radius: 12px; padding: 9px 12px; margin: 7px 0; text-align: left;
+    font-family: Arial, sans-serif; color: #e8eef8; font-size: .85rem; background: rgba(255,255,255,.06); }
+  .tnode b { font-family: inherit; font-size: .8rem; color: #ffd23e; display: block; }
+  .tnode.lit { background: rgba(63, 174, 73, .25); border-color: #3fae49; }
+  .tnode.pickable { background: rgba(255, 210, 62, .14); border-color: #ffd23e; cursor: pointer; }
+  .tnode.dim { opacity: .42; }
+  .trow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tlabel { color: #8b9ac2; font-family: Arial, sans-serif; font-size: .7rem; margin-top: 10px; text-transform: uppercase; letter-spacing: .12em; }
+  #chlogBody { text-align: left; color: #e8eef8; font-family: Arial, sans-serif; font-size: .88rem;
+    max-height: 50vh; overflow-y: auto; margin-bottom: 14px; line-height: 1.65; }
+  #chlogBody h3 { color: #ffd23e; font-family: inherit; font-size: .85rem; margin: 10px 0 4px; }
+  #chlogGo, #fbSend { font-family: inherit; font-size: 1rem; padding: 11px 30px; border-radius: 999px;
+    border: 3px solid #000; background: #2a5fd0; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #12275c; margin-bottom: 8px; }
+  #chlogGo:active, #fbSend:active { transform: translateY(3px); box-shadow: none; }
+  #fbKinds { display: flex; gap: 8px; margin-bottom: 10px; }
+  .fbk { flex: 1; font-family: inherit; font-size: .72rem; padding: 10px 6px; border-radius: 10px;
+    border: 3px solid #000; background: rgba(255,255,255,.08); color: #fff; cursor: pointer; opacity: .7; }
+  .fbk.sel { opacity: 1; outline: 3px solid #ffd23e; }
+  #fbText { width: 100%; border-radius: 10px; border: 3px solid #000; background: #fffdf2; color: #1a1a2e;
+    font-family: Arial, sans-serif; font-size: .95rem; padding: 10px; margin-bottom: 10px; resize: none; }
+  #btnTree { position: fixed; left: 26px; bottom: calc(246px + env(safe-area-inset-bottom)); width: 48px; height: 48px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #57c463, #2f8c3a 65%); border: 4px solid #1c5a24;
+    font-size: 1.2rem; display: none; place-items: center; z-index: 55; box-shadow: 0 4px 0 #1c5a24; cursor: pointer; }
+  #btnTree:active { transform: translateY(3px); box-shadow: none; }
 
   /* ---------- character picker ---------- */
   #picker { position: fixed; inset: 0; z-index: 85; display: none; place-items: center;
@@ -225,6 +278,52 @@
   </div>
   <div id="start" class="chunk">PRESS START</div>
   <div class="tag" id="worldLine">ONE ISLAND · EVERYONE PLAYS TOGETHER</div>
+  <div id="titleBtns">
+    <button class="tbtn" id="btnChlog">📋 WHAT'S NEW</button>
+    <button class="tbtn" id="btnFb">📬 TELL US STUFF</button>
+  </div>
+</div>
+
+<div id="wback">
+  <div class="wcard">
+    <h1 class="chunk" id="wbTitle">WELCOME BACK</h1>
+    <div id="wbHero"></div>
+    <div id="wbStats"></div>
+    <button id="wbPlay">PLAY!</button>
+    <div id="wbRow">
+      <button class="wbsm" id="wbTree">🌳 SKILLS</button>
+      <button class="wbsm" id="wbSwitch">🔁 SWITCH HERO</button>
+    </div>
+  </div>
+</div>
+
+<div id="tree">
+  <div class="tcard">
+    <div class="chunk" id="treeHead"></div>
+    <div id="treeBody"></div>
+    <button class="wbsm" id="treeClose">DONE</button>
+  </div>
+</div>
+
+<div id="chlog">
+  <div class="wcard">
+    <h1 class="chunk">📋 WHAT'S NEW</h1>
+    <div id="chlogBody"></div>
+    <button id="chlogGo">COOL!</button>
+  </div>
+</div>
+
+<div id="fb">
+  <div class="wcard">
+    <h1 class="chunk">📬 TELL US STUFF</h1>
+    <div id="fbKinds">
+      <button class="fbk sel" data-k="bug">🐛 SOMETHING'S BROKEN</button>
+      <button class="fbk" data-k="idea">💡 I HAVE AN IDEA</button>
+    </div>
+    <textarea id="fbText" maxlength="240" rows="4" placeholder="tell us! (this goes to the island keeper, not to other players)"></textarea>
+    <button id="fbSend">SEND IT</button>
+    <button class="wbsm" id="fbClose">never mind</button>
+  </div>
 </div>
 
 <div id="hud">
@@ -249,6 +348,7 @@
   <div class="chip" data-tool="3" style="background:#3fae49">🍃</div>
   <div class="chip" data-tool="4" style="background:#bcd8e8">◽</div>
   <div class="chip" data-tool="seed" style="background:#7a5230">🌱</div>
+  <div class="chip" data-tool="lamp" style="background:#d9a12b;display:none">🏮</div>
   <div class="chip" data-tool="mop" style="background:#4a90d9">🧹</div>
   <div class="chip" data-tool="del" style="background:#c0392b">💥</div>
 </div>
@@ -280,6 +380,7 @@
 </div>
 
 <div id="btnPing">👆</div>
+<div id="btnTree">🌳</div>
 <div id="pingWheel">
   <div class="pw" data-k="hi">👋</div><div class="pw" data-k="here">❗</div><div class="pw" data-k="build">🔨</div>
   <div class="pw" data-k="blast">🧀</div><div class="pw" data-k="light">✨</div><div class="pw" data-k="nice">👍</div>
@@ -572,8 +673,29 @@ for (let i = 0; i < 40; i++) {
 _fg.setAttribute('position', new THREE.BufferAttribute(_fp, 3));
 const fireflies = new THREE.Points(_fg, new THREE.PointsMaterial({ color: 0xd9f77a, size: 0.45, transparent: true, opacity: 0.9 }));
 fireflies.visible = false; scene.add(fireflies);
+/* WICK: glimmer + thrown lanterns */
+const heroLight = new THREE.PointLight(0xffe28a, 0, 12); scene.add(heroLight);
+const lanterns = [];
+function dropLantern(x, y, z) {
+  if (lanterns.filter(l => l.life > 0).length >= 3) { toast('3 LANTERNS MAX — one will fade soon', 1400); return; }
+  const s = emojiSprite('🏮'); s.scale.set(1.4, 1.4, 1); s.position.set(x, y + 0.6, z); scene.add(s);
+  const li = new THREE.PointLight(0xffc860, 1.1, 14); li.position.set(x, y + 1, z); scene.add(li);
+  lanterns.push({ s, li, life: 60 });
+  AU.ping('light');
+  MMO.send({ t: 'ping', kind: 'light', x: +x.toFixed(1), y: +y.toFixed(1), z: +z.toFixed(1) });
+}
 function stepVisuals(dt, mt) {
   applyDayNight();
+  heroLight.position.set(P.x, P.y + 2.2, P.z);
+  heroLight.intensity = myCh === 3 ? nightAmt * 1.1 : myCh === 6 ? 0.8 : 0;   // WICK · GLIMMER / EDGE · AURA
+  heroLight.color.setHex(myCh === 6 ? 0xffd23e : 0xffe28a);
+  for (const l of lanterns) {
+    if (l.life <= 0) continue;
+    l.life -= dt;
+    l.s.position.y += Math.sin(mt * 2) * 0.002;
+    if (l.life <= 0) { scene.remove(l.s); scene.remove(l.li); }
+    else if (l.life < 5) l.li.intensity = l.life / 5;
+  }
   clouds.forEach((c, i) => { c.position.x += dt * (0.5 + i * 0.09); if (c.position.x > 130) c.position.x = -130; });
   if (fireflies.visible) {
     const pos = _fg.attributes.position.array;
@@ -729,6 +851,11 @@ function addBlock(k, ty, byMe) {
   blocks.set(k, { mesh, col, ty });
   if (byMe) {
     blocksPlacedByMe++; AU.place(); buzz(12); questBump('build5');
+    if (hero) {
+      hero.life.blocks = (hero.life.blocks || 0) + 1; saveHero();
+      if (hero.life.blocks === 1) addSpark('firstblock', 'your FIRST block — and it stays');
+      if (hero.life.blocks === 20) addSpark('build20', 'twenty blocks placed. builder confirmed.');
+    }
     if (blocksPlacedByMe === 3) toast('YOU\'RE BUILDING! it stays on the island — for everyone', 2600);
     if (blocksPlacedByMe === 20) wallBreak();
   }
@@ -781,10 +908,12 @@ function removePlant(k, harvested, byMe) {
   scene.remove(p.group);
   plants.delete(k);
   if (harvested && byMe) {
-    coinCount += 8; $('coinCt').textContent = coinCount;
+    const pay = (myCh === 5 && perk('t1b')) ? 12 : 8;    // SPROUT · HARVEST HANDS
+    coinCount += pay; $('coinCt').textContent = coinCount;
     AU.harvest(); buzz([30, 30, 60]);
-    toast('🌼 GOLDEN ZINNIA! +8 COINS', 1800);
+    toast(`🌼 GOLDEN ZINNIA! +${pay} COINS`, 1800);
     questBump('zinnia');
+    addSpark('zinnia1', 'your first golden zinnia — planted, waited, won');
   }
 }
 setInterval(() => plants.forEach(p => growPlant(p)), 5000);
@@ -863,6 +992,10 @@ function sendPing(kind) {
   const px = isEmote ? P.x : P.x + Math.sin(P.yaw) * 3.5;
   const pz = isEmote ? P.z : P.z + Math.cos(P.yaw) * 3.5;
   showPing(kind, px, P.y, pz);
+  if ((myCh === 3 || myCh === 6) && perk('t1b')) {                   // WICK · BRIGHT PINGS / EDGE · MAXIMUM DRAMA
+    const m = pingPool[pingPool.length - 1];
+    if (m && m.sprite) { m.sprite.scale.set(3.6, 3.6, 1); m.life = 12; }
+  }
   MMO.send({ t: 'ping', kind, x: +px.toFixed(1), y: +P.y.toFixed(1), z: +pz.toFixed(1) });
   $('pingWheel').style.display = 'none';
 }
@@ -871,6 +1004,7 @@ let wallDone = false;
 function wallBreak() {
   if (wallDone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   wallDone = true;
+  addSpark('wall', 'the island spoke to YOU. the biggest finish there is.');
   const lines = [
     "…hold on.", "",
     "hey. you. yes, YOU, holding the phone.",
@@ -953,12 +1087,75 @@ const CH_DEFS = [
   { key: 'WICK', emoji: '🔦', zoom: 3, hop: 3, splat: 3, line: 'brings the light, calms the crumbs' },
   { key: 'GLOOP', emoji: '🧀', zoom: 2, hop: 2, splat: 5, line: 'is mostly cheese, honestly' },
   { key: 'SPROUT', emoji: '🌱', zoom: 4, hop: 2, splat: 3, line: 'plants things, then goes and does something else' },
+  { key: 'EDGE', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
-let myCh = clamp(parseInt(localStorage.getItem('d64_ch') ?? '1', 10) || 1, 0, 5);
+/* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
+const GAME_VERSION = 'v8';
+const CHANGELOG = [
+  { v: 'v8', title: 'YOUR HERO GROWS NOW', lines: [
+    '🦸 your hero is YOURS — you log in as them and they remember everything',
+    '✨ SPARKS! earn them by FINISHING things (first zinnia, all quests, big builds…)',
+    '🌳 SKILL TREE — spend 2 ✨ to pick your first perk. real powers. no wrong picks.',
+    '📬 this TELL US STUFF button is new too — bugs and ideas go straight to the keeper',
+    '⚡ NEW HERO: EDGE — spiky gold hair, black coat, katana on his back (it\'s for cake)',
+    '📱 fixed: fast double-jumps no longer zoom your phone in',
+  ]},
+  { v: 'v7', title: 'WHO ARE YOU TODAY?', lines: [
+    '🎭 six heroes to pick from — PLONK, ZIP, BOP, WICK, GLOOP, SPROUT',
+    '👆 the PING WHEEL — point at stuff, cheer, dance. no typing ever.',
+    '🧀 fixed: cheese no longer sprays forever on phones (sorry!)',
+  ]},
+  { v: 'v6', title: 'THE ISLAND GETS A HEART', lines: [
+    '🏝️ welcome screen · 📜 daily quests · 🧹 the cheese mop',
+    '🔨 building, farming, day & night, the gnome — it all STAYS. forever.',
+  ]},
+];
+let hero = null;
+try { hero = JSON.parse(localStorage.getItem('d64_hero') || 'null'); } catch (e) {}
+if (!hero && localStorage.getItem('d64_ch') !== null) {   // migrate v7 picks into a hero
+  hero = { ch: clamp(parseInt(localStorage.getItem('d64_ch'), 10) || 1, 0, 5), sparks: 0, trees: {}, earned: {}, life: {} };
+}
+function saveHero() { try { localStorage.setItem('d64_hero', JSON.stringify(hero)); } catch (e) {} }
+function heroLevel() { return hero ? 1 + Object.keys(hero.trees[hero.ch] || {}).length : 1; }
+let myCh = hero ? clamp(hero.ch, 0, 6) : 1;
 const statF = n => 0.85 + 0.06 * n;   // 1..5 pips → ×0.91..×1.15 (every char totals 9 pips)
-const zoomF = () => statF(CH_DEFS[myCh].zoom);
+const perk = node => !!(hero && hero.trees[hero.ch] && hero.trees[hero.ch][node]);
+const zoomF = () => statF(CH_DEFS[myCh].zoom) * (myCh === 1 ? 1.15 : 1);            // ZIP root QUICKFOOT
 const hopF = () => statF(CH_DEFS[myCh].hop);
-const splatF = () => statF(CH_DEFS[myCh].splat);
+const splatF = () => statF(CH_DEFS[myCh].splat) * (myCh === 4 ? 1.3 : 1);           // GLOOP root THICK SAUCE
+const buildReach = () => myCh === 0 ? (perk('t1b') ? 20 : 14) : 10;                 // PLONK roots+LONG ARM
+
+/* the trees: ROOT is free the moment you pick; T1 is a real choice (2 ✨).
+   T2/T3 are shown but land in the next update — no fake effects, ever.
+   (integrator remaps vs VISION, documented: ZIP T1 = SLIDE BURST + POCKETS;
+    WICK T1b = BRIGHT PINGS; SPROUT T1b = HARVEST HANDS — client-side honest set) */
+const TREES = [
+  { name: 'HANDS', root: ['STEADY HANDS', 'build reach 14m'], t1a: ['DOUBLE PLONK', 'one tap places two blocks, stacked'], t1b: ['LONG ARM', 'build reach 20m'] },
+  { name: 'LEGS', root: ['QUICKFOOT', '+15% run speed'], t1a: ['SLIDE BURST', 'jumping at full sprint slings you forward'], t1b: ['POCKETS', 'coins near you fly into your pockets'] },
+  { name: 'SPRING', root: ['BOUNCY', 'big landings bounce you instead of stopping you'], t1a: ['TRIPLE HOP', 'a third jump'], t1b: ['FLOAT', 'hold jump at the top to hang in the air'] },
+  { name: 'LIGHT', root: ['GLIMMER', 'you glow at night'], t1a: ['LANTERN THROW', 'stick a light where you tap (🏮 in the build bar)'], t1b: ['BRIGHT PINGS', 'your pings are huge and last 12s'] },
+  { name: 'SPLAT', root: ['THICK SAUCE', 'globs paint 30% wider'], t1a: ['TRIPLE EYE', 'a third glob fires straight up — cheese rain'], t1b: ['MEGA GLOB', 'every 4th glob while spraying is a monster'] },
+  { name: 'GROW', root: ['GREEN THUMB', 'tap a sprout to see how long till it blooms'], t1a: ['BROADCAST', 'plant a 2×2 patch of seeds in one tap'], t1b: ['HARVEST HANDS', 'zinnias pay 12 🪙 instead of 8'] },
+  { name: 'STYLE', root: ['AURA', 'you glow gold. always. even at noon.'], t1a: ['AFTERIMAGE', 'your double jump erupts in golden light'], t1b: ['MAXIMUM DRAMA', 'your pings are enormous and last 12s'] },
+];
+const SOON = [
+  ['CHEESE MASON', 'SOFT LANDING', 'THE ARCH', 'UNDO BREATH'],
+  ['PING BLOOM', 'WALL KISS', 'BLINK STEP', 'THE LONG LOOK'],
+  ['BUTT STOMP', 'PAD MAKER', 'SKY WALK', 'THE CANNONBALL'],
+  ['UNSTICK', 'CALM VOICE', 'DAYBREAK', 'THE LAMP LINE'],
+  ['BOUNCE SAUCE', 'NACHO SHIELD', 'THE FONDUE', 'SHARK WHISPERER'],
+  ['ZINNIA SPRAY', 'WARM POCKET', 'THE ORCHARD', 'BLOOM BOMB'],
+  ['POWER STANCE', 'THE SLOW WALK', 'CAKE CUTTER', 'FINAL FORM'],
+];
+function addSpark(flag, why) {
+  if (!hero || hero.earned[flag]) return;
+  hero.earned[flag] = true;
+  hero.sparks = (hero.sparks || 0) + 1;
+  saveHero();
+  toast(`✨ SPARK! ${why} (${hero.sparks} ✨ — spend them at 🌳)`, 3400);
+  AU.harvest(); buzz([50, 40, 90]);
+  renderQuest();
+}
 
 function makeChar(shirtHex, capHex, ch = 1) {
   const shirt = new THREE.MeshLambertMaterial({ color: shirtHex });
@@ -1007,6 +1204,28 @@ function makeChar(shirtHex, capHex, ch = 1) {
       capTop.visible = capBrim.visible = false;
       const wedge = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.55, 4), mat.gold);
       wedge.position.y = 2.5; wedge.rotation.z = 0.35; group.add(wedge);
+      break;
+    }
+    case 6: { // EDGE: spiky golden hair, black trench coat, katana (for cake)
+      capTop.visible = capBrim.visible = false;
+      torso.material = new THREE.MeshLambertMaterial({ color: 0x16161e });   // the coat
+      armL.material = armR.material = torso.material;
+      torso.scale.set(1.05, 1.15, 1.05);
+      const hairMat = new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0x8a6b00 });
+      [[-0.2, 0.15, -0.15], [0.02, 0.3, 0.05], [0.22, 0.12, -0.1], [-0.05, 0.22, -0.28]].forEach(([hx, hs, hz]) => {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55 + hs, 4), hairMat);
+        spike.position.set(hx, 2.35, hz); spike.rotation.z = -hx * 0.9; spike.rotation.x = hz * 0.8;
+        group.add(spike);
+      });
+      const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.6, 0.1), torso.material);
+      tailL.position.set(-0.22, 0.45, -0.32); tailL.rotation.x = 0.25; group.add(tailL);
+      const tailR = tailL.clone(); tailR.position.x = 0.22; group.add(tailR);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.35, 0.14),
+        new THREE.MeshLambertMaterial({ color: 0xc8ccd8 }));
+      blade.position.set(0.12, 1.35, -0.42); blade.rotation.z = 0.5; group.add(blade);
+      const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.16),
+        new THREE.MeshLambertMaterial({ color: 0x6b2530 }));
+      hilt.position.set(0.46, 1.95, -0.42); hilt.rotation.z = 0.5; group.add(hilt);
       break;
     }
     case 5: { // SPROUT: a seedling on the head
@@ -1236,15 +1455,22 @@ function spawnGlob(x, y, z, vx, vy, vz, remote) {
   }
   return null;
 }
+let globStreak = 0;
 function fireCheese() {
   AU.cheese(); buzz(8);
   const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw);
   const rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
+  globStreak++;
+  const mega = myCh === 4 && perk('t1b') && globStreak % 4 === 0;    // GLOOP · MEGA GLOB
   for (const side of [-0.17, 0.17]) {
     const g = spawnGlob(
       P.x + rx * side + fx * 0.5, P.y + 1.9, P.z + rz * side + fz * 0.5,
       fx * 13 + (Math.random() - 0.5) * 1.6, 3.2 + Math.random() * 1.2, fz * 13 + (Math.random() - 0.5) * 1.6,
       false);
+    if (g) { g.mega = mega; MMO.send({ t: 'glob', x: +g.x.toFixed(2), y: +g.y.toFixed(2), z: +g.z.toFixed(2), vx: +g.vx.toFixed(2), vy: +g.vy.toFixed(2), vz: +g.vz.toFixed(2) }); }
+  }
+  if (myCh === 4 && perk('t1a')) {                                   // GLOOP · TRIPLE EYE: cheese rain
+    const g = spawnGlob(P.x, P.y + 2.1, P.z, (Math.random() - 0.5) * 2, 9.5, (Math.random() - 0.5) * 2, false);
     if (g) MMO.send({ t: 'glob', x: +g.x.toFixed(2), y: +g.y.toFixed(2), z: +g.z.toFixed(2), vx: +g.vx.toFixed(2), vy: +g.vy.toFixed(2), vz: +g.vz.toFixed(2) });
   }
   if (!cheesedOnce) { cheesedOnce = true; toast('NACHO VISION ENGAGED! 🧀', 1800); }
@@ -1267,6 +1493,7 @@ function stepCheese(dt) {
         const dx = c.g.position.x - g.x, dy2 = (c.g.position.y + 0.8) - g.y, dz = c.g.position.z - g.z;
         if (dx * dx + dy2 * dy2 + dz * dz < 1.4) {
           c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
+          if (hero) { hero.life.splats = (hero.life.splats || 0) + 1; saveHero(); if (hero.life.splats === 10) addSpark('splat10', 'ten crumbs recycled back into the world'); }
           if (MMO.on) MMO.send({ t: 'hitcrumb', i: ci });
           else if (--c.hp <= 0) crumbDie(c, null);
           paintCheese(c.g.position.x, c.g.position.z, 1.5, MMO.on);
@@ -1299,7 +1526,7 @@ function stepCheese(dt) {
     const gy = groundYAt(g.x, g.z, g.y);
     if (g.vy < 0 && gy > -900 && g.y <= gy + 0.08) {
       if (!g.remote && gy === 0 && Math.abs(g.x) <= 45 && Math.abs(g.z) <= 45) {
-        paintCheese(g.x, g.z, (1.8 + Math.random() * 0.7) * splatF(), true);
+        paintCheese(g.x, g.z, (1.8 + Math.random() * 0.7) * splatF() * (g.mega ? 3 : 1), true);
       } else {
         for (const s of splats) {
           if (s.life > 0) continue;
@@ -1398,7 +1625,7 @@ const MMO = {
     ws.onclose = drop;
     ws.onerror = () => {};
   },
-  send(o) { if (this.on) { try { this.ws.send(JSON.stringify(o)); } catch (e) {} } },
+  send(o) { if (this.on && this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(o)); } catch (e) {} } },
   recv(m) {
     switch (m.t) {
       case 'join': addPuppet(m.id, m.look, m.ch ?? 1); AU.join(); toast('SOMEONE JOINED THE ISLAND! 👋', 2000); break;
@@ -1492,7 +1719,11 @@ function moveStick(e) {
   stick.x = Math.abs(dx) < 0.15 ? 0 : dx; stick.y = Math.abs(dy) < 0.15 ? 0 : dy;
   nub.style.transform = `translate(calc(-50% + ${dx * 36}px), calc(-50% + ${dy * 36}px))`;
 }
-$('btnA').addEventListener('pointerdown', e => { e.preventDefault(); P.jumpQueued = true; });
+let aHeld = false;
+$('btnA').addEventListener('pointerdown', e => { e.preventDefault(); P.jumpQueued = true; aHeld = true; });
+$('btnA').addEventListener('pointerup', () => aHeld = false);
+$('btnA').addEventListener('pointercancel', () => aHeld = false);
+$('btnA').addEventListener('pointerleave', () => aHeld = false);
 $('btnB').addEventListener('pointerdown', e => { e.preventDefault(); touchSpray = true; });
 $('btnB').addEventListener('pointerup', () => touchSpray = false);
 $('btnB').addEventListener('pointercancel', () => touchSpray = false);
@@ -1543,12 +1774,21 @@ function handleTap(cx, cy) {
   if (pk) {              // harvest works in any mode
     const p = plants.get(pk);
     if (p && p.stage === 2) { if (MMO.on) MMO.send({ t: 'harvest', k: pk }); else removePlant(pk, true, true); }
+    else if (p && myCh === 5) {                                      // SPROUT root · GREEN THUMB timer
+      const left = Math.max(0, Math.ceil((GROW2 - (Date.now() - p.born)) / 1000));
+      toast(`🌱 ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} until it blooms`, 1600);
+    }
     return;
   }
   if (!buildMode) return;
   const bk = h.object.userData.blockKey;
   if (tool === 'del') {
     if (bk) { removeBlock(bk); AU.breakB(); buzz(15); if (MMO.on) MMO.send({ t: 'unblock', k: bk }); }
+    return;
+  }
+  if (tool === 'lamp') {                                             // WICK · LANTERN THROW
+    if (!(myCh === 3 && perk('t1a'))) return;
+    dropLantern(h.point.x, h.point.y + 0.6, h.point.z);
     return;
   }
   if (tool === 'mop') {
@@ -1572,12 +1812,18 @@ function handleTap(cx, cy) {
   const by = Math.max(0, Math.round((pnt.y - GRID / 2) / GRID));
   const cellX = bx * GRID, cellZ = bz * GRID, cellY = by * GRID;
   if (Math.abs(bx) > 29 || Math.abs(bz) > 29 || by > 7) { toast("CAN'T BUILD THERE", 1200); return; }
-  if (Math.hypot(cellX - P.x, cellZ - P.z) > 10) { toast('TOO FAR — WALK CLOSER', 1200); return; }
+  if (Math.hypot(cellX - P.x, cellZ - P.z) > buildReach()) { toast('TOO FAR — WALK CLOSER', 1200); return; }
   if (tool === 'seed') {
     if (h.object !== island || by !== 0) { toast('SEEDS GO IN THE GRASS 🌱', 1400); return; }
-    const k2 = `${bx},${bz}`;
-    if (plants.has(k2) || blocks.has(`${bx},0,${bz}`)) return;
-    if (MMO.on) MMO.send({ t: 'plant', k: k2 }); else { plantAt(k2, 0); AU.plant(); }
+    const cells = (myCh === 5 && perk('t1a'))                        // SPROUT · BROADCAST 2×2
+      ? [[bx, bz], [bx + 1, bz], [bx, bz + 1], [bx + 1, bz + 1]] : [[bx, bz]];
+    for (const [sx, sz] of cells) {
+      if (Math.abs(sx) > 29 || Math.abs(sz) > 29) continue;
+      const k2 = `${sx},${sz}`;
+      if (plants.has(k2) || blocks.has(`${sx},0,${sz}`)) continue;
+      if (MMO.on) MMO.send({ t: 'plant', k: k2 }); else { plantAt(k2, 0); }
+    }
+    AU.plant();
     return;
   }
   const k = `${bx},${by},${bz}`;
@@ -1589,6 +1835,10 @@ function handleTap(cx, cy) {
   if (occupied) { toast("SOMEONE'S STANDING THERE!", 1200); return; }
   if (MMO.on) MMO.send({ t: 'block', k, ty: +tool });
   else addBlock(k, +tool, true);
+  if (myCh === 0 && perk('t1a') && by < 7) {                         // PLONK · DOUBLE PLONK
+    const k2 = `${bx},${by + 1},${bz}`;
+    if (!blocks.has(k2)) { if (MMO.on) MMO.send({ t: 'block', k: k2, ty: +tool }); else addBlock(k2, +tool, true); }
+  }
 }
 $('mute').addEventListener('click', () => AU.toggleMute());
 const isTouch = matchMedia('(pointer: coarse)').matches;
@@ -1626,7 +1876,8 @@ let quest = { i: 0, p: 0 };
 try { quest = JSON.parse(localStorage.getItem(qKey) || '{"i":0,"p":0}'); } catch (e) {}
 function renderQuest() {
   const q = QUESTS[quest.i];
-  $('quest').textContent = q ? `📜 ${q.label} (${quest.p}/${q.n})` : '📜 quests done! now go build ✨';
+  const sp = hero ? `✨${hero.sparks || 0} · ` : '';
+  $('quest').textContent = sp + (q ? `📜 ${q.label} (${quest.p}/${q.n})` : '📜 quests done! now go build ✨');
 }
 function questBump(id) {
   const q = QUESTS[quest.i];
@@ -1637,6 +1888,7 @@ function questBump(id) {
     AU.harvest(); buzz([40, 40, 80]);
     quest.i++; quest.p = 0;
     toast(QUESTS[quest.i] ? `📜 QUEST DONE! +10 COINS · next: ${QUESTS[quest.i].label}` : '📜 ALL QUESTS DONE! +10 · the island is your canvas now', 3200);
+    if (!QUESTS[quest.i]) addSpark('jobs' + qKey, 'every quest, one day. that\'s finishing.');
   }
   try { localStorage.setItem(qKey, JSON.stringify(quest)); } catch (e) {}
   renderQuest();
@@ -1657,10 +1909,16 @@ function respawn(msg) {
 function startGame() {
   if (state !== 'TITLE') return;
   AU.init();
-  state = 'PICK';                       // WHO ARE YOU TODAY?
+  state = 'PICK';
   $('title').classList.add('out');
-  buildPickerUI();
-  $('picker').style.display = 'grid';
+  if (hero) showWback();                // your hero is waiting
+  else { buildPickerUI(); $('pgo').textContent = "THAT'S ME — LET'S GROW!"; $('picker').style.display = 'grid'; }
+}
+function showWback() {
+  const c = CH_DEFS[hero.ch];
+  $('wbHero').innerHTML = `${c.emoji}<span class="nm">${c.key}</span>`;
+  $('wbStats').textContent = `LV ${heroLevel()} · ✨ ${hero.sparks || 0} sparks`;
+  $('wback').style.display = 'grid';
 }
 let pickerBuilt = false;
 function buildPickerUI() {
@@ -1688,7 +1946,14 @@ function selectCh(i) {
 }
 function confirmPick() {
   $('picker').style.display = 'none';
+  if (!hero) hero = { ch: myCh, sparks: 0, trees: {}, earned: {}, life: {} };
+  hero.ch = myCh;
+  saveHero();
   try { localStorage.setItem('d64_ch', myCh); } catch (e) {}
+  enterIsland();
+}
+function enterIsland() {
+  myCh = hero.ch;
   rebuildHero();
   MMO.connect();
   state = 'SWOOP'; swoopT = 0;
@@ -1698,6 +1963,8 @@ function confirmPick() {
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
   $('btnBuild').style.display = 'grid';
   $('btnPing').style.display = 'grid';
+  $('btnTree').style.display = 'grid';
+  refreshLampChip();
   renderQuest();
   if (!localStorage.getItem('d64_welcomed'))
     setTimeout(() => { if (state === 'PLAY' || state === 'SWOOP') $('welcome').style.display = 'grid'; }, 1900);
@@ -1708,6 +1975,7 @@ function confirmPick() {
 function winGame() {
   won = true;
   AU.fanfare(); buzz([80, 60, 80, 60, 160]);
+  addSpark('win10', 'all ten stars in one run — a real finish');
   const best = +(localStorage.getItem('d64_best') || 0);
   if (!best || playT < best) localStorage.setItem('d64_best', playT);
   $('winWho').textContent = MMO.on && puppets.size ? 'YOU DID IT, WITH FRIENDS! 🎉' : 'WAY TO GO, DYLAN!';
@@ -1776,9 +2044,22 @@ function stepHero(dt, mt) {
 
   if (P.jumpQueued) {
     P.jumpQueued = false;
-    if (P.grounded) { P.vy = 10 * hopF(); P.grounded = false; P.jumps = 1; AU.jump(); }
-    else if (P.jumps === 1) { P.vy = 10 * hopF(); P.jumps = 2; AU.djump(); burst(P.x, P.y + 0.2, P.z, 8, 3); }
+    const maxAir = (myCh === 2 && perk('t1a')) ? 3 : 2;               // BOP · TRIPLE HOP
+    if (P.grounded) {
+      P.vy = 10 * hopF(); P.grounded = false; P.jumps = 1; AU.jump();
+      if (myCh === 1 && perk('t1a') && Math.hypot(P.vx, P.vz) > 8) { P.vx *= 1.35; P.vz *= 1.35; }   // ZIP · SLIDE BURST
+    }
+    else if (P.jumps < maxAir) {
+      P.vy = 10 * hopF(); P.jumps++; AU.djump();
+      burst(P.x, P.y + 0.2, P.z, (myCh === 6 && perk('t1a')) ? 26 : 8, (myCh === 6 && perk('t1a')) ? 6 : 3);   // EDGE · AFTERIMAGE
+    }
   }
+  /* BOP · FLOAT: hold jump at the top to hang */
+  if (myCh === 2 && perk('t1b') && !P.grounded && (aHeld || keys.Space) && P.vy < 1 && (P.floatLeft ?? 1.5) > 0) {
+    P.vy = Math.max(P.vy, -0.4); P.floatLeft = (P.floatLeft ?? 1.5) - dt;
+  }
+  if (P.grounded) P.floatLeft = 1.5;
+  if (!P.grounded) P.peakY = Math.max(P.peakY ?? P.y, P.y);
   P.vy -= 24 * dt;
   const prevY = P.y;
   P.x += P.vx * dt; P.y += P.vy * dt; P.z += P.vz * dt;
@@ -1792,6 +2073,8 @@ function stepHero(dt, mt) {
     if (P.vy <= 0 && prevY >= c.top - 0.001 && P.y <= c.top) {
       P.y = c.top; P.vy = 0;
       if (!P.groundedPrev && prevY - P.y > 0.4) AU.land();
+      if (myCh === 2 && !P.groundedPrev && (P.peakY ?? P.y) - P.y > 4) { P.vy = 4.5; AU.bounce(); }   // BOP root · BOUNCY
+      P.peakY = P.y;
       P.grounded = true; P.jumps = 0;
       if (c.moving) P.onMov = true;
       if (c.pad) { P.vy = 16; P.grounded = false; P.jumps = 1; AU.bounce(); buzz(40); burst(P.x, P.y, P.z, 10, 4); }
@@ -1843,11 +2126,12 @@ function stepHero(dt, mt) {
     const dx = s.position.x - P.x, dy = s.position.y - (P.y + 1), dz = s.position.z - P.z;
     if (dx * dx + dy * dy + dz * dz < 1.9) collectStarIdx(i, true);
   }
+  const coinR = (myCh === 1 && perk('t1b')) ? 16 : 1.2;               // ZIP · POCKETS
   for (let i = 0; i < coins.length; i++) {
     const c = coins[i];
     if (!c.visible) continue;
     const dx = c.position.x - P.x, dy = c.position.y - (P.y + 0.9), dz = c.position.z - P.z;
-    if (dx * dx + dy * dy + dz * dz < 1.2) { collectCoinIdx(i, true); buzz(18); }
+    if (dx * dx + dy * dy + dz * dz < coinR) { collectCoinIdx(i, true); buzz(18); }
   }
   dcoins.forEach((m, id) => {
     const dx = m.position.x - P.x, dy = m.position.y - (P.y + 0.9), dz = m.position.z - P.z;
@@ -1964,6 +2248,94 @@ $('wgo').addEventListener('click', () => {
   $('welcome').style.display = 'none';
   try { localStorage.setItem('d64_welcomed', '1'); } catch (e) {}
 });
+/* ---------- wback / tree / changelog / feedback wiring ---------- */
+$('wbPlay').addEventListener('click', () => { $('wback').style.display = 'none'; enterIsland(); });
+$('wbSwitch').addEventListener('click', () => {
+  $('wback').style.display = 'none';
+  buildPickerUI(); $('picker').style.display = 'grid';
+});
+let treeFromWback = false;
+$('wbTree').addEventListener('click', () => { treeFromWback = true; $('wback').style.display = 'none'; openTree(); });
+$('btnTree').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); treeFromWback = false; openTree(); });
+$('treeClose').addEventListener('click', () => {
+  $('tree').style.display = 'none';
+  if (treeFromWback && state === 'PICK') showWback();
+});
+function openTree() {
+  const t = TREES[hero.ch], c = CH_DEFS[hero.ch];
+  const picks = hero.trees[hero.ch] || {};
+  const picked = picks.t1a ? 't1a' : picks.t1b ? 't1b' : null;
+  $('treeHead').textContent = `${c.emoji} ${c.key} — "${t.name}" · ✨ ${hero.sparks}`;
+  const node = (cls, name, desc, extra = '') =>
+    `<div class="tnode ${cls}" ${extra}><b>${name}</b>${desc}</div>`;
+  let html = `<div class="tlabel">root — yours from the start</div>`;
+  html += node('lit', t.root[0], t.root[1]);
+  html += `<div class="tlabel">tier 1 — pick ONE · costs 2 ✨</div><div class="trow">`;
+  for (const k of ['t1a', 't1b']) {
+    const [nm, ds] = t[k];
+    if (picked === k) html += node('lit', nm + ' ✓', ds);
+    else if (picked) html += node('dim', nm, ds);
+    else if ((hero.sparks || 0) >= 2) html += node('pickable', nm, ds, `data-pick="${k}"`);
+    else html += node('dim', nm, ds + ' · need 2 ✨');
+  }
+  html += `</div><div class="tlabel">tier 2 & 3 — growing in the next update 🌱</div><div class="trow">`;
+  SOON[hero.ch].forEach(nm => { html += node('dim', nm, 'soon'); });
+  html += `</div>`;
+  $('treeBody').innerHTML = html;
+  $('treeBody').querySelectorAll('[data-pick]').forEach(el => el.addEventListener('click', () => {
+    hero.sparks -= 2;
+    hero.trees[hero.ch] = { [el.dataset.pick]: true };
+    saveHero();
+    AU.fanfare(); buzz([60, 40, 100]);
+    toast(`🌳 ${TREES[hero.ch][el.dataset.pick][0]} IS YOURS!`, 2600);
+    refreshLampChip(); renderQuest();
+    openTree();
+  }));
+  $('tree').style.display = 'grid';
+}
+function refreshLampChip() {
+  const chip = document.querySelector('#palette .chip[data-tool="lamp"]');
+  if (chip) chip.style.display = (myCh === 3 && perk('t1a')) ? 'grid' : 'none';
+}
+/* changelog */
+function showChlog() {
+  $('chlogBody').innerHTML = CHANGELOG.map(c =>
+    `<h3>${c.v.toUpperCase()} · ${c.title}</h3>` + c.lines.map(l => `• ${l}<br>`).join('')).join('');
+  $('chlog').style.display = 'grid';
+}
+$('btnChlog').addEventListener('click', e => { e.stopPropagation(); showChlog(); });
+$('btnChlog').addEventListener('pointerdown', e => e.stopPropagation());
+$('chlogGo').addEventListener('click', () => {
+  $('chlog').style.display = 'none';
+  try { localStorage.setItem('d64_seenver', GAME_VERSION); } catch (e) {}
+});
+$('chlog').addEventListener('pointerdown', e => e.stopPropagation());
+/* feedback — kid → keeper, never player → player */
+let fbKind = 'bug';
+$('btnFb').addEventListener('click', e => { e.stopPropagation(); $('fb').style.display = 'grid'; });
+$('btnFb').addEventListener('pointerdown', e => e.stopPropagation());
+$('fb').addEventListener('pointerdown', e => e.stopPropagation());
+document.querySelectorAll('.fbk').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.fbk').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); fbKind = b.dataset.k;
+}));
+$('fbClose').addEventListener('click', () => $('fb').style.display = 'none');
+$('fbSend').addEventListener('click', () => {
+  const text = $('fbText').value.trim().slice(0, 240);
+  if (!text) return;
+  const msg = { t: 'feedback', kind: fbKind, text, ch: myCh };
+  if (MMO.on) MMO.send(msg);
+  else {   // from the title screen, before joining: one quick trip to the mailbox
+    try {
+      const w = new WebSocket(worldUrl() + '?ch=' + myCh);
+      w.onopen = () => { setTimeout(() => { try { w.send(JSON.stringify(msg)); setTimeout(() => w.close(), 800); } catch (e) {} }, 400); };
+    } catch (e) {}
+  }
+  $('fbText').value = '';
+  $('fb').style.display = 'none';
+  toast('📬 SENT TO THE ISLAND KEEPER! thank you!', 2600);
+});
+
 $('btnPing').addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation();
   const w = $('pingWheel');
@@ -1978,7 +2350,10 @@ addEventListener('keydown', e => {
 
 /* ---------- boot ---------- */
 setTimeout(() => $('boot').classList.add('out'), 2300);
-setTimeout(() => { $('boot').style.display = 'none'; state = 'TITLE'; }, 2850);
+setTimeout(() => {
+  $('boot').style.display = 'none'; state = 'TITLE';
+  if (localStorage.getItem('d64_seenver') !== GAME_VERSION) setTimeout(showChlog, 600);
+}, 2850);
 $('title').addEventListener('pointerdown', startGame);
 </script>
 </body>
