@@ -1473,13 +1473,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyR' && state === 'PLAY') respawn('Back to the start!');
   if ((e.code === 'Enter' || e.code === 'Space') && state === 'TITLE') startGame();
 });
-addEventListener('keyup', e => {
-  keys[e.code] = false;
-  if (e.code === 'KeyX' || e.code === 'KeyF') P.spray = false;
-});
-addEventListener('keydown', e => {
-  if ((e.code === 'KeyX' || e.code === 'KeyF') && !e.repeat) P.spray = true;
-});
+addEventListener('keyup', e => { keys[e.code] = false; });
 
 const stick = { active: false, id: null, x: 0, y: 0 };
 const zone = $('stickZone'), nub = $('nub'), base = $('stickBase');
@@ -1601,7 +1595,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 
 function readPad() {
   const gp = (navigator.getGamepads ? navigator.getGamepads() : [])[0];
-  if (!gp) return { ix: 0, iz: 0 };
+  if (!gp) return { ix: 0, iz: 0, spray: false };
   let ix = 0, iz = 0;
   const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
   if (Math.abs(ax) > 0.22) ix += ax;
@@ -1609,13 +1603,12 @@ function readPad() {
   const a = !!(gp.buttons[0] && gp.buttons[0].pressed);
   if (a && !P.padA) P.jumpQueued = true;
   P.padA = a;
-  if ((gp.buttons[7] && gp.buttons[7].pressed) || (gp.buttons[5] && gp.buttons[5].pressed) || (gp.buttons[2] && gp.buttons[2].pressed)) P.spray = true;
-  else if (!keys.KeyX && !keys.KeyF && !touchSpray) P.spray = false;
+  const spray = !!((gp.buttons[7] && gp.buttons[7].pressed) || (gp.buttons[5] && gp.buttons[5].pressed) || (gp.buttons[2] && gp.buttons[2].pressed));
   if (Math.abs(gp.axes[2] || 0) > 0.2) camYaw -= gp.axes[2] * 2.6 * lastDt;
   const st = !!(gp.buttons[9] && gp.buttons[9].pressed);
   if (st && !P.padStart && state === 'TITLE') startGame();
   P.padStart = st;
-  return { ix, iz };
+  return { ix, iz, spray };
 }
 
 /* ---------- game state ---------- */
@@ -1764,7 +1757,10 @@ function stepHero(dt, mt) {
   if (keys.KeyD || keys.ArrowRight) ix += 1;
   if (stick.active) { ix += stick.x; iz -= stick.y; }
   const pad = readPad(); ix += pad.ix; iz += pad.iz;
-  if (touchSpray || keys.KeyX || keys.KeyF) P.spray = true; else if (!P.spray) P.spray = false;
+  /* spray is computed fresh every frame from live sources — no latching, ever
+     (the old `else if (!P.spray)` branch could never turn it off: the mobile
+      infinite-cheese bug) */
+  P.spray = !!(touchSpray || keys.KeyX || keys.KeyF || pad.spray);
   const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
 
   const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
@@ -1955,7 +1951,12 @@ function loop(now) {
 raf = requestAnimationFrame(loop);
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { cancelAnimationFrame(raf); if (AU.ctx) AU.ctx.suspend(); }
+  if (document.hidden) {
+    cancelAnimationFrame(raf); if (AU.ctx) AU.ctx.suspend();
+    touchSpray = false; P.spray = false;                  // phone locked mid-spray: let go of everything
+    stick.active = false; stick.x = stick.y = 0;
+    for (const k in keys) keys[k] = false;
+  }
   else { last = performance.now(); raf = requestAnimationFrame(loop); if (AU.ctx) AU.ctx.resume(); }
 });
 
