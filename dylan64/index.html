@@ -65,6 +65,19 @@
   #hud .cheesehud { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + clamp(1.7rem, 6.4vw, 2.5rem)); left: 16px; font-size: clamp(.95rem, 3.6vw, 1.35rem); color: #ffc860; }
   #hud .coins { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 16px; font-size: clamp(1rem, 4vw, 1.5rem); color: #ffe9a3; }
   #hud .clock { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + clamp(1.6rem, 6vw, 2.4rem)); right: 16px; font-size: clamp(.8rem, 3vw, 1.05rem); color: #cfe3ff; }
+  #hud .tokens { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + clamp(2.9rem, 10.5vw, 4.2rem)); right: 16px; font-size: clamp(.95rem, 3.6vw, 1.35rem); color: #d9b8ff; display: none; }
+  #btnWish { position: fixed; right: 26px; bottom: calc(330px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #c9a6ff, #7a4fd0 65%); border: 4px solid #3a2266;
+    font-size: 1.3rem; display: none; place-items: center; z-index: 55; box-shadow: 0 4px 0 #3a2266; cursor: pointer; touch-action: none; }
+  #btnWish:active { transform: translateY(3px); box-shadow: none; }
+  #wish { position: fixed; inset: 0; z-index: 89; display: none; place-items: center;
+    background: radial-gradient(ellipse at center, rgba(20,0,50,.4) 30%, rgba(10,0,35,.85) 100%); }
+  #wishText { width: 100%; border-radius: 10px; border: 3px solid #000; background: #fffdf2; color: #1a1a2e;
+    font-family: Arial, sans-serif; font-size: .95rem; padding: 10px; margin-bottom: 10px; resize: none; }
+  #wishSend { font-family: inherit; font-size: 1rem; padding: 11px 26px; border-radius: 999px;
+    border: 3px solid #000; background: #7a4fd0; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #3a2266; margin-bottom: 8px; }
+  #wishSend:active { transform: translateY(3px); box-shadow: none; }
   #hint { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
     font-family: Arial, sans-serif; font-weight: bold; font-size: clamp(.7rem, 2.6vw, .95rem); color: #fff;
     text-shadow: 2px 2px 0 #000; white-space: nowrap; transition: opacity 1s; }
@@ -377,6 +390,7 @@
   <div id="p2badge" class="chunk">🌐 1</div>
   <div id="quest" class="chunk"></div>
   <div class="coins chunk">🪙 <span id="coinCt">0</span></div>
+  <div class="tokens chunk">🎟️ <span id="tokCt">0</span></div>
   <div class="clock" id="clock">0:00</div>
   <div id="toast" class="chunk"></div>
   <div id="hint"></div>
@@ -490,6 +504,18 @@
 <button id="mute">🔊</button>
 <button id="btnRadio">📻</button>
 <div id="btnFF">⚡</div>
+<div id="btnWish">🌠</div>
+
+<div id="wish">
+  <div class="pcard">
+    <div class="ptitle chunk">🌠 THE WISHING WELL</div>
+    <div class="knote">spend <b>1 🎟️</b> to wish for what the island grows next.
+      the island keeper reads every wish — the best ones come TRUE in updates, with your hero's name on them.</div>
+    <textarea id="wishText" maxlength="120" rows="3" placeholder="i wish the island had…"></textarea>
+    <button id="wishSend">SPEND 1 🎟️ & WISH</button>
+    <div class="krow"><button class="wbsm" id="wishClose">save my token</button></div>
+  </div>
+</div>
 
 <div id="win">
   <div class="card">
@@ -1015,6 +1041,197 @@ function stepTutor(dt, mt) {
   }
 }
 
+/* ---------- THE CLIMB: four sky areas that BUILD THEMSELVES as you earn them ----------
+   Fall-Guys-style progression off the pier: jumps → wobbles → the riddle tiles → summit.
+   Locked areas hang in the sky as GHOSTS; touch an area's beacon and the next one
+   solidifies out of thin air (the world is created by what you do). Beacons are
+   checkpoints. First-clears pay 🎟️ TOKENS — spend them at the summit's WISHING WELL. */
+const ghostMat = new THREE.MeshLambertMaterial({ color: 0xbcd8e8, transparent: true, opacity: 0.15 });
+const GAUNT_AREAS = [
+  { key: 'a1', name: 'GREEN STEPS', plats: [
+    [50, 1.2, 12, 3.2, 3.2, 0.6], [54, 2.4, 16, 3, 3, 0.6], [58, 3.6, 12, 3, 3, 0.6],
+    [60, 4.8, 6, 3, 3, 0.6], [58, 6, 0, 3.6, 3.6, 0.6],
+  ], beacon: [58, 6, 0] },
+  { key: 'a2', name: 'THE WOBBLES', plats: [
+    [54, 7.2, -6, 2.6, 2.6, 0.5], [50, 8.4, -10, 2.4, 2.4, 0.5],
+    [46, 8.4, -14, 3, 3, 0.5, 'pad'], [46, 11.8, -20, 2.6, 2.6, 0.5],
+    [42, 12.6, -16, 2.4, 2.4, 0.5], [38, 13.4, -18, 4.2, 4.2, 0.6],
+  ], beacon: [38, 13.4, -18] },
+  { key: 'a3', name: 'THE RIDDLE TILES', plats: [
+    [30, 13.4, -12, 11, 11, 0.8],
+  ], beacon: [30, 13.4, -16.5] },
+  { key: 'a4', name: 'THE SUMMIT', plats: [
+    [24, 14.7, -6, 3, 3, 0.6], [20, 15.7, 0, 3, 3, 0.6], [16, 16.8, 6, 8.5, 8.5, 0.8],
+  ], beacon: [16, 16.8, 3.5] },
+];
+const GAUNT = { areas: [], anim: [], puzzleDone: false, seq: [0, 2, 1], stepIdx: 0, flashClock: 0, tiles: [], lanterns: [], wellPos: [18.5, 16.8, 8] };
+function buildGauntlet() {
+  GAUNT_AREAS.forEach((A, ai) => {
+    const area = { key: A.key, name: A.name, meshes: [], cols: [], solid: false, beaconPos: A.beacon };
+    A.plats.forEach(pl => {
+      const [x, top, z, w, d, h, pad] = pl;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), ghostMat);
+      m.position.set(x, top - h / 2, z);
+      scene.add(m);
+      area.meshes.push(m);
+      area.cols.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, top, pad: pad === 'pad' });
+    });
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 2.2, 8),
+      new THREE.MeshLambertMaterial({ color: 0x8bd5ee, emissive: 0x1a4a5e, transparent: true, opacity: 0.92 }));
+    b.position.set(A.beacon[0], A.beacon[1] + 1.3, A.beacon[2]);
+    scene.add(b);
+    area.beacon = b;
+    GAUNT.areas.push(area);
+  });
+  // the riddle furniture (deck 3): three tiles, three lanterns
+  const TCOLS = [0xd1342f, 0xf5c400, 0x2a5fd0];
+  [[27, -10], [30, -8], [33, -10]].forEach(([tx, tz], i) => {
+    const t = new THREE.Mesh(new THREE.BoxGeometry(2, 0.22, 2), new THREE.MeshLambertMaterial({ color: TCOLS[i] }));
+    t.position.set(tx, 13.55, tz); scene.add(t);
+    GAUNT.tiles.push({ m: t, x: tx, z: tz, i, wasOn: false });
+  });
+  [[27.6, -15.5], [30, -15.9], [32.4, -15.5]].forEach(([lx, lz], i) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.6, 0.18), mat.trunk);
+    post.position.set(lx, 14.2, lz); scene.add(post);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshLambertMaterial({ color: TCOLS[i], emissive: 0x000000 }));
+    lamp.position.set(lx, 15.2, lz); scene.add(lamp);
+    GAUNT.lanterns.push(lamp);
+  });
+  // the wishing well, waiting at the top
+  const wellBase = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 0.9, 10), mat.stone);
+  wellBase.position.set(GAUNT.wellPos[0], GAUNT.wellPos[1] + 0.45, GAUNT.wellPos[2]); scene.add(wellBase);
+  const wellWater = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.1, 10),
+    new THREE.MeshLambertMaterial({ color: 0x7a4fd0, emissive: 0x2a1650 }));
+  wellWater.position.set(GAUNT.wellPos[0], GAUNT.wellPos[1] + 0.92, GAUNT.wellPos[2]); scene.add(wellWater);
+  const wellStar = emojiSprite('🌠'); wellStar.scale.set(1, 1, 1);
+  wellStar.position.set(GAUNT.wellPos[0], GAUNT.wellPos[1] + 2.2, GAUNT.wellPos[2]); scene.add(wellStar);
+  GAUNT.wellStar = wellStar;
+  solidify(0, false);   // area 1 is always there, inviting
+}
+function solidify(ai, animate) {
+  const area = GAUNT.areas[ai];
+  if (!area || area.solid) return;
+  area.solid = true;
+  area.meshes.forEach((m, i) => {
+    if (animate) { m.scale.setScalar(0.05); GAUNT.anim.push({ m, t: -i * 0.14 }); }
+    m.material = ai === 0 || ai === 3 ? mat.grass : mat.stone;
+  });
+  area.cols.forEach(c => colliders.push(c));
+  if (animate) { toast(`✨ ${area.name} BUILT ITSELF — your doing!`, 3200); AU.star(); buzz([40, 30, 80]); }
+}
+function applyGauntProgress() {   // on entering the island: restore where this hero got to
+  if (!hero.gaunt) hero.gaunt = {};
+  GAUNT.areas.forEach((a, ai) => {
+    const unlocked = ai === 0 || hero.gaunt[GAUNT.areas[ai - 1].key];
+    if (unlocked && !a.solid) solidify(ai, false);
+    if (hero.gaunt[a.key]) { a.beacon.material.opacity = 0.35; a.beacon.material.emissive.setHex(0x0a2530); }
+  });
+  GAUNT.puzzleDone = !!hero.gaunt.a3;
+  updateTokens();
+}
+function updateTokens() {
+  $('tokCt').textContent = hero ? (hero.tokens || 0) : 0;
+  document.querySelector('#hud .tokens').style.display = hero && ((hero.tokens || 0) > 0 || Object.keys(hero.gaunt || {}).length) ? 'block' : 'none';
+}
+function grantToken(why) {
+  hero.tokens = (hero.tokens || 0) + 1;
+  saveHero(); updateTokens();
+  toast(`🎟️ TOKEN EARNED — ${why} (spend it at the summit's wishing well)`, 4600);
+  AU.fanfare(); buzz([80, 40, 80, 40, 160]);
+  burst(P.x, P.y + 1.5, P.z, 30, 8);
+}
+function stepGauntlet(dt, mt) {
+  if (state !== 'PLAY' && state !== 'WON') return;
+  if (!hero) return;
+  if (!hero.gaunt) hero.gaunt = {};
+  // materialize animations
+  for (const a of GAUNT.anim) {
+    a.t += dt;
+    if (a.t > 0) {
+      const k = Math.min(1, a.t / 0.5);
+      a.m.scale.setScalar(0.05 + k * 0.95);
+      if (k >= 1 && !a.burst) { a.burst = true; burst(a.m.position.x, a.m.position.y + 0.6, a.m.position.z, 10, 3); }
+    }
+  }
+  GAUNT.anim = GAUNT.anim.filter(a => !a.burst);
+  // beacons: bob, and grant on touch
+  GAUNT.areas.forEach((area, ai) => {
+    area.beacon.rotation.y += dt;
+    if (!area.solid || hero.gaunt[area.key]) return;
+    const [bx, by, bz] = area.beaconPos;
+    if (Math.hypot(P.x - bx, P.z - bz) < 1.7 && Math.abs(P.y - by) < 2.2) {
+      if (area.key === 'a3' && !GAUNT.puzzleDone) { if (((mt * 2) | 0) % 8 === 0) toast('🏮 the lanterns know the order. the tiles are listening.', 2600); return; }
+      hero.gaunt[area.key] = true;
+      area.beacon.material.opacity = 0.35;
+      P.spawn = { x: bx, y: by, z: bz };            // checkpoints, the kind kind
+      grantToken(`${area.name} — first clear!`);
+      if (GAUNT.areas[ai + 1]) solidify(ai + 1, true);
+      else toast('🏔️ THE SUMMIT IS YOURS. the well is right there…', 4200);
+    }
+  });
+  // the riddle: lanterns flash the order, tiles listen
+  const a3open = GAUNT.areas[2].solid && !GAUNT.puzzleDone;
+  if (a3open) {
+    GAUNT.flashClock = (GAUNT.flashClock + dt) % 7;
+    GAUNT.lanterns.forEach((l, i) => {
+      const slot = GAUNT.seq.indexOf(i);
+      const on = GAUNT.flashClock > slot * 1.1 + 1 && GAUNT.flashClock < slot * 1.1 + 1.7;
+      l.material.emissive.setHex(on ? l.material.color.getHex() : 0x000000);
+    });
+    for (const t of GAUNT.tiles) {
+      const on = Math.abs(P.x - t.x) < 1.15 && Math.abs(P.z - t.z) < 1.15 && Math.abs(P.y - 13.4) < 0.8 && P.grounded;
+      if (on && !t.wasOn) {
+        if (GAUNT.seq[GAUNT.stepIdx] === t.i) {
+          GAUNT.stepIdx++; AU.coin(); t.m.position.y = 13.48;
+          if (GAUNT.stepIdx >= 3) {
+            GAUNT.puzzleDone = true;
+            GAUNT.tiles.forEach(tt => tt.m.position.y = 13.55);
+            GAUNT.lanterns.forEach(l => l.material.emissive.setHex(l.material.color.getHex()));
+            toast('🏮 THE TILES AGREE — the beacon is awake!', 3200);
+            AU.harvest();
+          }
+        } else if (GAUNT.stepIdx > 0 || GAUNT.seq[0] !== t.i) {
+          GAUNT.stepIdx = 0; AU.bonk(); buzz(60);
+          GAUNT.tiles.forEach(tt => tt.m.position.y = 13.55);
+          toast('🏮 not that one first — watch the lanterns again', 2200);
+        }
+      }
+      t.wasOn = on;
+    }
+  }
+  // the wishing well
+  const [wx, wy, wz] = GAUNT.wellPos;
+  const nearWell = Math.hypot(P.x - wx, P.z - wz) < 3 && Math.abs(P.y - wy) < 2.5;
+  GAUNT.wellStar.position.y = wy + 2.2 + Math.sin(mt * 1.8) * 0.15;
+  $('btnWish').style.display = nearWell && hero && (hero.tokens || 0) > 0 ? 'grid' : 'none';
+  if (nearWell && hero && !(hero.tokens || 0) && ((mt | 0) % 20 === 0)) { /* gentle, rare */ }
+  // the plaza resets your checkpoint to home
+  if (Math.hypot(P.x, P.z - 8) < 7 && P.spawn.x !== 0) P.spawn = { x: 0, y: 0, z: 8 };
+}
+$('btnWish').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation();
+  if (!hero || (hero.tokens || 0) < 1) return;
+  $('wishText').value = '';
+  $('wish').style.display = 'grid';
+});
+$('wishClose').addEventListener('click', () => $('wish').style.display = 'none');
+$('wishSend').addEventListener('click', () => {
+  const text = $('wishText').value.trim().slice(0, 120);
+  if (!text || !hero || (hero.tokens || 0) < 1) return;
+  hero.tokens--;
+  saveHero(); updateTokens();
+  const msg = { t: 'feedback', kind: 'wish', text, ch: myCh, key: acct ? acct.code : undefined, hero: hero.name || undefined };
+  if (MMO.on) MMO.send(msg);
+  else { try { const w = new WebSocket(worldUrl() + '?lobby=1'); w.onopen = () => { try { w.send(JSON.stringify(msg)); setTimeout(() => w.close(), 800); } catch (e) {} }; } catch (e) {} }
+  $('wish').style.display = 'none';
+  toast('🌠 the island keeper heard your wish. watch the WHAT\'S NEW…', 5200);
+  AU.fanfare(); buzz([60, 60, 60, 60, 200]);
+  let k = 0;
+  const fw = setInterval(() => { burst(GAUNT.wellPos[0], GAUNT.wellPos[1] + 2 + Math.random() * 3, GAUNT.wellPos[2], 16, 6); if (++k > 6) clearInterval(fw); }, 260);
+});
+$('wish').addEventListener('pointerdown', e => e.stopPropagation());
+buildGauntlet();
+
 /* ---------- BUILDING: what you place, stays (Minecraft hands) ---------- */
 const GRID = 1.5;
 const BLOCK_G = new THREE.BoxGeometry(GRID, GRID, GRID);
@@ -1279,8 +1496,14 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v11';
+const GAME_VERSION = 'v12';
 const CHANGELOG = [
+  { v: 'v12', title: 'THE CLIMB & THE WISHING WELL', lines: [
+    '🏔️ THE CLIMB: sky areas off the pier — beat each one and the NEXT builds itself',
+    '🏮 area 3 is a riddle. the lanterns know the order. watch them.',
+    '🎟️ TOKENS for truly impressive things (first-clears, all 10 stars) — only 5 exist',
+    '🌠 the WISHING WELL at the summit: spend a token, wish for ANYTHING — the island keeper reads every one, and the best wishes COME TRUE in updates with your name here',
+  ]},
   { v: 'v11', title: 'THE LANDING & THE WRECKAGE', lines: [
     '🏛️ NEW: the welcome plaza — walk up to the plinths, they explain everything',
     '🪨 NEW: boulders — smash them with anything for coins (they come back)',
@@ -2500,7 +2723,7 @@ function toast(msg, ms = 2200) {
 const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 function respawn(msg) {
-  P.x = P.spawn.x; P.y = 0; P.z = P.spawn.z; P.vx = P.vy = P.vz = 0; P.jumps = 0; P.hurtT = 0;
+  P.x = P.spawn.x; P.y = P.spawn.y || 0; P.z = P.spawn.z; P.vx = P.vy = P.vz = 0; P.jumps = 0; P.hurtT = 0;
   if (msg) { toast(msg); AU.fall(); buzz(80); }
 }
 function startGame() {
@@ -2711,6 +2934,7 @@ function enterIsland() {
   myCh = hero.ch;
   rebuildHero();
   MMO.connect();
+  applyGauntProgress();
   state = 'SWOOP'; swoopT = 0;
   $('hud').style.display = 'block';
   $('mute').style.display = 'grid';
@@ -2732,6 +2956,7 @@ function winGame() {
   won = true;
   AU.fanfare(); buzz([80, 60, 80, 60, 160]);
   addSpark('win10', 'all ten stars in one run — a real finish');
+  if (hero && !(hero.gaunt = hero.gaunt || {}).win10) { hero.gaunt.win10 = true; grantToken('ALL TEN STARS — genuinely impressive'); }
   const best = +(localStorage.getItem('d64_best') || 0);
   if (!best || playT < best) localStorage.setItem('d64_best', playT);
   $('winWho').textContent = MMO.on && puppets.size ? 'YOU DID IT, WITH FRIENDS! 🎉' : `WAY TO GO, ${(hero && hero.name) || 'HERO'}!`;
@@ -2941,6 +3166,7 @@ function spinCollectibles(dt, mt) {
   stepRadio(dt);
   stepSmash(dt);
   stepTutor(dt, mt);
+  stepGauntlet(dt, mt);
   /* the gnome speaks to whoever stands close */
   if ((state === 'PLAY' || state === 'WON') && mt - lastGnomeT > 40) {
     if (Math.hypot(P.x - gnome.position.x, P.z - gnome.position.z) < 5) {
