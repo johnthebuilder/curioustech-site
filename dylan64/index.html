@@ -246,6 +246,15 @@
   #mute { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
     z-index: 56; width: 42px; height: 42px; border-radius: 10px; border: 3px solid #000;
     background: rgba(10, 10, 30, .55); color: #ffd23e; font-size: 1.2rem; display: none; place-items: center; cursor: pointer; }
+  #btnRadio { position: fixed; top: max(10px, env(safe-area-inset-top)); left: calc(50% + 52px);
+    z-index: 56; width: 42px; height: 42px; border-radius: 10px; border: 3px solid #000;
+    background: rgba(10, 10, 30, .55); font-size: 1.2rem; display: none; place-items: center;
+    cursor: pointer; touch-action: none; }
+  #btnFF { position: fixed; right: 26px; bottom: calc(258px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe28a, #c99a12 65%); border: 4px solid #5d4f16;
+    font-size: 1.1rem; font-family: inherit; color: #1a1a2e; display: none; place-items: center; z-index: 55;
+    box-shadow: 0 4px 0 #5d4f16; cursor: pointer; touch-action: none; }
+  #btnFF:active { transform: translateY(3px); }
 
   /* ---------- win ---------- */
   #win { position: fixed; inset: 0; z-index: 70; display: none; place-items: center;
@@ -479,6 +488,8 @@
 
 <div id="wall"><div id="wallText"></div></div>
 <button id="mute">🔊</button>
+<button id="btnRadio">📻</button>
+<div id="btnFF">⚡</div>
 
 <div id="win">
   <div class="card">
@@ -596,25 +607,46 @@ const AU = {
     const seq = [523, 523, 523, 659, 784, 659, 784, 1047];
     seq.forEach((f, i) => setTimeout(() => { this.beep('square', f, null, 0.2, 0.18); this.beep('triangle', f / 2, null, 0.22, 0.14); }, i * 150));
   },
+  /* ---------- ISLAND RADIO: the stations ---------- */
   seqTimer: null, nextBar: 0,
+  station: (() => { try { return parseInt(localStorage.getItem('d64_station') || '0', 10) || 0; } catch (e) { return 0; } })(),
+  STATIONS: [
+    { name: 'KC-64', tag: 'the one that was always on', bpm: 108, lw: 'square', bw: 'triangle', lv: 0.22, bv: 0.3,
+      L: [[3,0,1],[7,2,1],[10,4,1],[7,6,1],[8,8,1],[12,10,1],[10,12,1],[7,14,1],[5,16,1],[8,18,1],[12,20,1],[8,22,1],[10,24,1],[2,26,1],[3,28,3]],
+      B: [[-21,0,2],[-9,2,2],[-14,4,2],[-2,6,2],[-16,8,2],[-4,10,2],[-14,12,2],[-2,14,2],[-19,16,2],[-7,18,2],[-16,20,2],[-4,22,2],[-14,24,2],[-2,26,2],[-9,28,2],[-14,30,2]] },
+    { name: 'CHEESE 101.5', tag: 'smooth. like the good sauce.', bpm: 76, lw: 'sine', bw: 'triangle', lv: 0.3, bv: 0.26,
+      L: [[0,0,3],[3,4,3],[5,8,5],[3,14,2],[0,16,3],[-2,20,5],[0,26,6]],
+      B: [[-24,0,8],[-19,8,8],[-17,16,8],[-19,24,8]] },
+    { name: 'WUMP FM', tag: 'boom boom, but politely', bpm: 132, lw: 'sawtooth', bw: 'square', lv: 0.13, bv: 0.17,
+      L: [[0,0,1],[0,2,1],[7,4,1],[0,6,1],[10,8,1],[7,10,1],[0,12,2],[3,16,1],[3,18,1],[10,20,1],[3,22,1],[12,24,1],[10,26,1],[7,28,2]],
+      B: [[-12,0,1],[-12,2,1],[-12,4,1],[-12,6,1],[-12,8,1],[-12,10,1],[-12,12,1],[-12,14,1],[-14,16,1],[-14,18,1],[-14,20,1],[-14,22,1],[-9,24,1],[-9,26,1],[-9,28,1],[-9,30,1]],
+      D: [[0,0],[8,0],[16,0],[24,0],[4,1],[12,1],[20,1],[28,1]] },
+    { name: 'THE SHIVER', tag: 'spooky hour (all hours)', bpm: 92, lw: 'triangle', bw: 'sine', lv: 0.26, bv: 0.32,
+      L: [[0,0,2],[3,2,2],[7,4,2],[3,6,2],[8,8,2],[7,10,2],[3,12,2],[0,14,2],[-2,16,2],[1,18,2],[5,20,2],[1,22,2],[7,24,4],[3,28,4]],
+      B: [[-24,0,16],[-26,16,16]] },
+    { name: 'RADIO OFF', tag: 'just the island', off: true },
+  ],
+  setStation(i) {
+    const n = this.STATIONS.length;
+    this.station = ((i % n) + n) % n;
+    try { localStorage.setItem('d64_station', String(this.station)); } catch (e) {}
+    if (this.seqTimer) { clearInterval(this.seqTimer); this.seqTimer = null; }
+    if (this.ctx && !this.STATIONS[this.station].off) this.startMusic();
+    return this.STATIONS[this.station];
+  },
   startMusic() {
+    const st = this.STATIONS[this.station];
+    if (st.off) return;
     const F = n => 440 * Math.pow(2, n / 12);
-    const L = [
-      [3,0,1],[7,2,1],[10,4,1],[7,6,1],  [8,8,1],[12,10,1],[10,12,1],[7,14,1],
-      [5,16,1],[8,18,1],[12,20,1],[8,22,1],  [10,24,1],[2,26,1],[3,28,3]
-    ];
-    const B = [
-      [-21,0,2],[-9,2,2],[-14,4,2],[-2,6,2],  [-16,8,2],[-4,10,2],[-14,12,2],[-2,14,2],
-      [-19,16,2],[-7,18,2],[-16,20,2],[-4,22,2],  [-14,24,2],[-2,26,2],[-9,28,2],[-14,30,2]
-    ];
-    const eighth = 60 / 108 / 2, barLen = eighth * 32;
+    const eighth = 60 / st.bpm / 2, barLen = eighth * 32;
     this.nextBar = this.ctx.currentTime + 0.1;
     const schedule = () => {
       if (!this.ctx) return;
       while (this.nextBar < this.ctx.currentTime + 0.6) {
         const t0 = this.nextBar;
-        L.forEach(([s, st, ln]) => this.note('square', F(s), t0 + st * eighth, ln * eighth * 0.9, 0.22));
-        B.forEach(([s, st, ln]) => this.note('triangle', F(s), t0 + st * eighth, ln * eighth * 0.9, 0.3));
+        st.L.forEach(([s, stp, ln]) => this.note(st.lw, F(s), t0 + stp * eighth, ln * eighth * 0.9, st.lv));
+        st.B.forEach(([s, stp, ln]) => this.note(st.bw, F(s), t0 + stp * eighth, ln * eighth * 0.9, st.bv));
+        (st.D || []).forEach(([stp, ty]) => this.note(ty ? 'square' : 'sine', ty ? 4200 : 55, t0 + stp * eighth, ty ? 0.03 : 0.11, ty ? 0.05 : 0.5));
         this.nextBar += barLen;
       }
     };
@@ -777,7 +809,7 @@ function dropLantern(x, y, z) {
 function stepVisuals(dt, mt) {
   applyDayNight();
   heroLight.position.set(P.x, P.y + 2.2, P.z);
-  heroLight.intensity = myCh === 3 ? nightAmt * 1.1 : myCh === 6 ? 0.8 : 0;   // WICK · GLIMMER / EDGE · AURA
+  heroLight.intensity = myCh === 3 ? nightAmt * 1.1 : myCh === 6 ? (ffS.on ? 1.9 : 0.8) : 0;   // WICK · GLIMMER / SPARK · AURA (blazing in FINAL FORM)
   heroLight.color.setHex(myCh === 6 ? 0xffd23e : 0xffe28a);
   for (const l of lanterns) {
     if (l.life <= 0) continue;
@@ -1177,11 +1209,18 @@ const CH_DEFS = [
   { key: 'WICK', emoji: '🔦', zoom: 3, hop: 3, splat: 3, line: 'brings the light, calms the crumbs' },
   { key: 'GLOOP', emoji: '🧀', zoom: 2, hop: 2, splat: 5, line: 'is mostly cheese, honestly' },
   { key: 'SPROUT', emoji: '🌱', zoom: 4, hop: 2, splat: 3, line: 'plants things, then goes and does something else' },
-  { key: 'EDGE', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
+  { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v9.1';
+const GAME_VERSION = 'v10';
 const CHANGELOG = [
+  { v: 'v10', title: 'GOLD & AIRWAVES', lines: [
+    '⚡ SPARK (was EDGE) got a makeover: black spiky hair… until FINAL FORM',
+    '⚡ FINAL FORM: tap the gold button when charged — glowing gold, you can FLY (hold A in the air)',
+    '🌊 stand still + hold 🧀 in FINAL FORM to charge the MEGA WAVE',
+    '📻 ISLAND RADIO: tap 📻 up top — 4 stations + very real commercials',
+    '🐒 GEORGE grew a tail. he is thrilled.',
+  ]},
   { v: 'v9.1', title: 'A VERY SMALL EXPLORER', lines: [
     '🧒 GEORGE toddles around the island now — he has QUESTIONS',
     "he's small. be nice to him. he thinks builders are the best kind of somebody.",
@@ -1326,7 +1365,7 @@ const SOON = [
   ['UNSTICK', 'CALM VOICE', 'DAYBREAK', 'THE LAMP LINE'],
   ['BOUNCE SAUCE', 'NACHO SHIELD', 'THE FONDUE', 'SHARK WHISPERER'],
   ['ZINNIA SPRAY', 'WARM POCKET', 'THE ORCHARD', 'BLOOM BOMB'],
-  ['POWER STANCE', 'THE SLOW WALK', 'CAKE CUTTER', 'FINAL FORM'],
+  ['POWER STANCE', 'THE SLOW WALK', 'CAKE CUTTER', 'ULTRA DRAMA'],
 ];
 function addSpark(flag, why) {
   if (!hero || hero.earned[flag]) return;
@@ -1338,7 +1377,7 @@ function addSpark(flag, why) {
   renderQuest();
 }
 
-function makeChar(shirtHex, capHex, ch = 1, custom = false) {
+function makeChar(shirtHex, capHex, ch = 1, custom = false, goldForm = false) {
   const shirt = new THREE.MeshLambertMaterial({ color: shirtHex });
   const cap = new THREE.MeshLambertMaterial({ color: capHex });
   const group = new THREE.Group();
@@ -1392,7 +1431,9 @@ function makeChar(shirtHex, capHex, ch = 1, custom = false) {
       torso.material = new THREE.MeshLambertMaterial({ color: custom ? shirtHex : 0x16161e });   // the coat
       armL.material = armR.material = torso.material;
       torso.scale.set(1.05, 1.15, 1.05);
-      const hairMat = new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0x8a6b00 });
+      const hairMat = goldForm
+        ? new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0xa87f00 })   // FINAL FORM: gold, glowing
+        : new THREE.MeshLambertMaterial({ color: 0x1a1a22 });                       // base form: black spikes
       [[-0.2, 0.15, -0.15], [0.02, 0.3, 0.05], [0.22, 0.12, -0.1], [-0.05, 0.22, -0.28]].forEach(([hx, hs, hz]) => {
         const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55 + hs, 4), hairMat);
         spike.position.set(hx, 2.35, hz); spike.rotation.z = -hx * 0.9; spike.rotation.x = hz * 0.8;
@@ -1444,7 +1485,7 @@ function myColors() {
 function rebuildHero() {
   destroyChar(P);
   const [c1, c2, cu] = myColors();
-  Object.assign(P, makeChar(c1, c2, myCh, cu));
+  Object.assign(P, makeChar(c1, c2, myCh, cu, myCh === 6 && ffS.on));
   P.group.position.set(P.x, P.y, P.z);
 }
 
@@ -1504,6 +1545,12 @@ const george = new THREE.Group();
   const pR = pL.clone(); pR.position.x = 0.14; george.add(pR);
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.24), mat.pants); legL.position.set(-0.15, 0.2, 0); george.add(legL);
   const legR = legL.clone(); legR.position.x = 0.15; george.add(legR);
+  // the tail (a curious kid with a monkey tail — why not? it curls up behind him)
+  const tailM = new THREE.MeshLambertMaterial({ color: 0x8a5a33 });
+  [[-0.26, 0.4, 0.13], [-0.42, 0.55, 0.12], [-0.5, 0.75, 0.11], [-0.46, 0.96, 0.1], [-0.34, 1.1, 0.09]].forEach(([tz, ty, ts]) => {
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(ts, ts + 0.03, ts + 0.03), tailM);
+    seg.position.set(0, ty, tz); seg.rotation.x = 0.5; george.add(seg);
+  });
   george.position.set(-4, 0, 2);
   scene.add(george);
 }
@@ -1551,6 +1598,113 @@ function stepGeorge(dt, mt) {
       geo.lastLineT = mt;
       toast('🧒 GEORGE: ' + GEORGE_LINES[geo.lineIdx++ % GEORGE_LINES.length], 4800);
     }
+  }
+}
+
+/* ---------- SPARK's FINAL FORM (inspired by the classics — entirely our own) ----------
+   Black spikes by day. Hold the ⚡: gold hair, gold aura, FLIGHT, and — if you stand
+   your ground and charge — the MEGA WAVE. All of it built from existing kind-verbs:
+   the wave paints and splats, nothing new for the server to learn. */
+const ffS = { on: false, charge: 1, t: 0, beamT: 0, orb: null, fired: false };
+function ffToggle() {
+  if (myCh !== 6 || (state !== 'PLAY' && state !== 'WON')) return;
+  if (ffS.on) { ffEnd('you powered down.'); return; }
+  if (ffS.charge < 1) { toast(`⚡ still charging… ${Math.round(ffS.charge * 100)}%`, 1400); return; }
+  ffS.on = true; ffS.t = 45; ffS.charge = 0; ffS.beamT = 0;
+  rebuildHero();
+  burst(P.x, P.y + 1.2, P.z, 44, 9);
+  AU.fanfare(); buzz([60, 40, 60, 40, 140]);
+  toast('⚡ FINAL FORM! hold A in the air to FLY · stand still + hold 🧀 to charge the MEGA WAVE', 4600);
+}
+function ffEnd(why) {
+  ffS.on = false; ffS.beamT = 0;
+  if (ffS.orb) ffS.orb.visible = false;
+  rebuildHero();
+  if (why) toast('⚡ ' + why + ' recharging…', 2200);
+}
+function fireMegaWave() {
+  ffS.beamT = 0; if (ffS.orb) ffS.orb.visible = false;
+  const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
+  for (let k = 1; k <= 12; k++) {
+    const bx = P.x + sy * k * 2.4, bz = P.z + cy * k * 2.4;
+    setTimeout(() => {
+      paintCheese(bx, bz, 2.4, true);
+      burst(bx, 0.8 + Math.random() * 1.4, bz, 18, 7);
+      crumbs.forEach((c, ci) => {
+        if (c.alive && Math.hypot(c.g.position.x - bx, c.g.position.z - bz) < 2.6) {
+          c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
+          if (MMO.on) MMO.send({ t: 'hitcrumb', i: ci });
+          else if (--c.hp <= 0) crumbDie(c, null);
+        }
+      });
+    }, k * 45);
+  }
+  AU.fanfare(); buzz([90, 50, 90, 50, 220]);
+  toast('🌊 MEGA WAVE!!', 2400);
+  addSpark('megawave', 'a fully charged MEGA WAVE — patience pays');
+  ffEnd('that took everything you had.');
+}
+function stepFF(dt, mt) {
+  const b = $('btnFF');
+  const show = myCh === 6 && (state === 'PLAY' || state === 'WON' || state === 'SWOOP');
+  b.style.display = show ? 'grid' : 'none';
+  if (!show) { if (ffS.on) ffEnd(); return; }
+  if (ffS.on) {
+    ffS.t -= dt;
+    b.style.opacity = 1;
+    b.style.boxShadow = '0 0 16px #ffd23e';
+    if (ffS.t <= 0) { ffEnd('the gold ran out.'); return; }
+    const still = Math.abs(P.vx) + Math.abs(P.vz) < 0.8 && P.grounded;
+    if (P.spray && still) {                      // charging the wave
+      ffS.beamT += dt;
+      if (!ffS.orb) { ffS.orb = emojiSprite('✨'); scene.add(ffS.orb); }
+      ffS.orb.visible = true;
+      const s2 = 0.6 + ffS.beamT * 1.5;
+      ffS.orb.scale.set(s2, s2, 1);
+      ffS.orb.position.set(P.x + Math.sin(P.yaw) * 1.1, P.y + 1.3, P.z + Math.cos(P.yaw) * 1.1);
+      if ((ffS.beamT | 0) > ((ffS.beamT - dt) | 0)) buzz(30);
+      if (ffS.beamT >= 2) fireMegaWave();
+    } else { ffS.beamT = 0; if (ffS.orb) ffS.orb.visible = false; }
+  } else {
+    ffS.charge = Math.min(1, ffS.charge + dt / 90);   // full again in 90 s
+    b.style.opacity = 0.35 + ffS.charge * 0.65;
+    b.style.boxShadow = ffS.charge >= 1 ? '0 0 12px #ffd23e' : 'none';
+    b.textContent = ffS.charge >= 1 ? '⚡' : Math.round(ffS.charge * 100) + '%';
+    if (ffS.charge >= 1 && b.textContent !== '⚡') b.textContent = '⚡';
+  }
+  if (ffS.on) b.textContent = '⚡';
+}
+
+/* ---------- ISLAND RADIO: the dial + the commercials ---------- */
+const RADIO_ADS = [
+  "🧀 CRUMB'S GYM: get bonked into shape. first knockback FREE.",
+  '🦈 SHARK SWIM LESSONS: learn from the ones who chase you. enrollment: risky.',
+  '🍄 THE GNOME SCHOOL OF STANDING VERY STILL. classes never move. neither will you.',
+  '🌼 ZINNIA & SONS: we grow while YOU sleep. completely legal.',
+  "🔨 BLOCKS! BLOCKS! BLOCKS! you place 'em. we… that's it. that's the whole business.",
+  "🏝️ visit THE OTHER SIDE OF THE ISLAND. it's like this side, but over there.",
+  '⭐ STAR INSURANCE: they always come back. we literally cannot lose.',
+  '🧹 MOP KING: for when your floor is 40% cheese. no judgment.',
+  "🏮 WICK'S LANTERNS: afraid of the dark? rent a friend who glows.",
+  "🥛 MILK: it's what cheese is before it's brave.",
+  "📻 you're listening to ISLAND RADIO. we don't know how it works either.",
+  '🚚 HONK if you love tiny trucks.',
+];
+let adT = 45 + Math.random() * 30;
+$('btnRadio').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation();
+  const st = AU.setStation(AU.station + 1);
+  toast(`📻 ${st.name} — ${st.tag}`, 2800);
+  AU.coin(); buzz(20);
+  adT = Math.max(adT, 12);          // new station: no instant ad ambush
+});
+function stepRadio(dt) {
+  if (state !== 'PLAY' || AU.muted || AU.STATIONS[AU.station].off) return;
+  adT -= dt;
+  if (adT <= 0) {
+    adT = 55 + Math.random() * 45;
+    toast('📻 ' + RADIO_ADS[(Math.random() * RADIO_ADS.length) | 0], 5600);
+    AU.harvest();
   }
 }
 
@@ -1974,6 +2128,7 @@ addEventListener('keydown', e => {
     if (chips[idx]) { chips.forEach(c => c.classList.remove('sel')); chips[idx].classList.add('sel'); tool = chips[idx].dataset.tool; }
   }
   if (e.code === 'KeyR' && state === 'PLAY') respawn('Back to the start!');
+  if (e.code === 'KeyG') ffToggle();
   if ((e.code === 'Enter' || e.code === 'Space') && state === 'TITLE') startGame();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
@@ -2394,6 +2549,7 @@ function enterIsland() {
   $('hud').style.display = 'block';
   $('mute').style.display = 'grid';
   $('mute').textContent = AU.muted ? '🔇' : '🔊';
+  $('btnRadio').style.display = 'grid';
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
   $('btnBuild').style.display = 'grid';
   $('btnPing').style.display = 'grid';
@@ -2489,6 +2645,11 @@ function stepHero(dt, mt) {
     }
   }
   /* BOP · FLOAT: hold jump at the top to hang */
+  if (myCh === 6 && ffS.on && !P.grounded && (aHeld || keys.Space)) {   // SPARK · FINAL FORM flight
+    P.vy = Math.min(P.vy + 34 * dt, 7);
+    if (Math.random() < 0.25) burst(P.x, P.y - 0.2, P.z, 2, 1.5);
+  }
+  if (myCh === 6 && ffS.on && P.vy < -3.2) P.vy = -3.2;                 // gold glide, never a plummet
   if (myCh === 2 && perk('t1b') && !P.grounded && (aHeld || keys.Space) && P.vy < 1 && (P.floatLeft ?? 1.5) > 0) {
     P.vy = Math.max(P.vy, -0.4); P.floatLeft = (P.floatLeft ?? 1.5) - dt;
   }
@@ -2610,6 +2771,8 @@ function spinCollectibles(dt, mt) {
   gnome.position.y = Math.sin(mt * 1.6) * 0.06;
   gnome.rotation.y = Math.sin(mt * 0.4) * 0.5;
   stepGeorge(dt, mt);
+  stepFF(dt, mt);
+  stepRadio(dt);
   /* the gnome speaks to whoever stands close */
   if ((state === 'PLAY' || state === 'WON') && mt - lastGnomeT > 40) {
     if (Math.hypot(P.x - gnome.position.x, P.z - gnome.position.z) < 5) {
@@ -2693,6 +2856,7 @@ $('wbSwitch').addEventListener('click', () => {
 let treeFromWback = false;
 $('wbTree').addEventListener('click', () => { treeFromWback = true; $('wback').style.display = 'none'; openTree(); });
 $('btnTree').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); treeFromWback = false; openTree(); });
+$('btnFF').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); ffToggle(); });
 $('treeClose').addEventListener('click', () => {
   $('tree').style.display = 'none';
   if (treeFromKeyhome && state === 'PICK') { treeFromKeyhome = false; showKeyHome(); }
