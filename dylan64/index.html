@@ -190,6 +190,40 @@
     text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #6d1815; }
   #pgo:active { transform: translateY(3px); box-shadow: none; }
 
+  /* ---------- family keys (accounts without accounts) ---------- */
+  #keyhome, #keyshow, #keyin, #custom { position: fixed; inset: 0; z-index: 87; display: none; place-items: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,40,.3) 30%, rgba(0,0,30,.78) 100%); }
+  .slotcard { display: block; width: 100%; border: 3px solid #000; border-radius: 12px;
+    background: rgba(255,255,255,.08); color: #fff; padding: 11px 12px; margin: 7px 0; cursor: pointer;
+    font-family: inherit; font-size: .8rem; text-shadow: 1px 1px 0 #000; text-align: left; }
+  .slotcard .se { font-size: 1.5rem; margin-right: 10px; vertical-align: middle; }
+  .slotcard.sel { outline: 3px solid #ffd23e; background: rgba(255, 210, 62, .15); }
+  .slotcard.empty { opacity: .6; border-style: dashed; border-color: #8b9ac2; background: transparent; }
+  #keyBig { font-size: clamp(1.3rem, 7.5vw, 2rem); color: #ffd23e; letter-spacing: .12em;
+    text-shadow: 3px 3px 0 #000; margin: 12px 0; }
+  #keyInput { width: 100%; text-transform: uppercase; font-family: inherit; font-size: 1.1rem; text-align: center;
+    letter-spacing: .1em; border-radius: 10px; border: 3px solid #000; background: #fffdf2; color: #1a1a2e;
+    padding: 12px; margin-bottom: 10px; }
+  .klabel { color: #8b9ac2; font-family: Arial, sans-serif; font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .12em; margin: 8px 0 4px; }
+  .knote { color: #b9c6e8; font-family: Arial, sans-serif; font-size: .82rem; line-height: 1.5; margin: 6px 0 12px; }
+  #khPlay, #custGo, #keyGo, #keyDone { font-family: inherit; font-size: 1.05rem; padding: 12px 34px; border-radius: 999px;
+    border: 3px solid #000; background: #3fae49; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; margin-bottom: 10px; }
+  #khPlay:active, #custGo:active, #keyGo:active, #keyDone:active { transform: translateY(3px); box-shadow: none; }
+  .krow { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .swrow { display: flex; gap: 7px; justify-content: center; margin: 6px 0 2px; flex-wrap: wrap; }
+  .sw { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #000; cursor: pointer; opacity: .75; padding: 0; }
+  .sw.sel { outline: 3px solid #fff; opacity: 1; transform: scale(1.15); }
+  .nmrow { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 6px 0; }
+  .nmstep { font-family: inherit; font-size: .9rem; width: 42px; height: 40px; border-radius: 10px;
+    border: 3px solid #000; background: #4a4a5a; color: #fff; cursor: pointer; box-shadow: 0 3px 0 #222230; }
+  .nmstep:active { transform: translateY(2px); box-shadow: none; }
+  .nmshow { font-family: inherit; color: #ffd23e; font-size: .92rem; min-width: 9ch; text-align: center;
+    text-shadow: 2px 2px 0 #000; }
+  #custPrev { font-size: 2.6rem; margin: 2px 0 4px; }
+  #custName { font-family: inherit; color: #fff; font-size: .95rem; text-shadow: 2px 2px 0 #000; margin-bottom: 6px; }
+
   /* ---------- ping wheel ---------- */
   #btnPing { position: fixed; left: 26px; bottom: calc(180px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
     border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d9c34a, #b89b2a 65%); border: 4px solid #5d4f16;
@@ -281,6 +315,7 @@
   <div id="titleBtns">
     <button class="tbtn" id="btnChlog">📋 WHAT'S NEW</button>
     <button class="tbtn" id="btnFb">📬 TELL US STUFF</button>
+    <button class="tbtn" id="btnKey">🔑 KEY</button>
   </div>
 </div>
 
@@ -293,6 +328,7 @@
     <div id="wbRow">
       <button class="wbsm" id="wbTree">🌳 SKILLS</button>
       <button class="wbsm" id="wbSwitch">🔁 SWITCH HERO</button>
+      <button class="wbsm" id="wbKey">🔑 KEY</button>
     </div>
   </div>
 </div>
@@ -376,6 +412,60 @@
     </div>
     <div id="pline"></div>
     <button id="pgo">THAT'S ME!</button>
+  </div>
+</div>
+
+<div id="keyhome">
+  <div class="pcard">
+    <div class="ptitle chunk">YOUR HEROES</div>
+    <div id="slotList"></div>
+    <button id="khPlay">PLAY!</button>
+    <div class="krow">
+      <button class="wbsm" id="khTree">🌳 SKILLS</button>
+      <button class="wbsm" id="khKey">🔑 MY KEY</button>
+    </div>
+  </div>
+</div>
+
+<div id="keyshow">
+  <div class="pcard">
+    <div class="ptitle chunk">🔑 YOUR FAMILY KEY</div>
+    <div id="keyBig" class="chunk"></div>
+    <div class="knote">write it down! type it on any phone or tablet and your
+      heroes come with you. keep it in the family — anyone with the key can play your heroes.</div>
+    <button id="keyDone">GOT IT!</button>
+    <div class="krow"><button class="wbsm" id="keyForget">🚪 forget key on this device</button></div>
+  </div>
+</div>
+
+<div id="keyin">
+  <div class="pcard">
+    <div class="ptitle chunk">🔑 FAMILY KEY</div>
+    <div class="knote">one key = your heroes on every phone.</div>
+    <input id="keyInput" maxlength="14" autocomplete="off" spellcheck="false" placeholder="TYPE YOUR KEY">
+    <button id="keyGo">OPEN</button>
+    <div class="klabel">no key yet?</div>
+    <div class="krow">
+      <button class="wbsm" id="keyMint">✨ MAKE MY FAMILY KEY</button>
+      <button class="wbsm" id="keyinClose">never mind</button>
+    </div>
+  </div>
+</div>
+
+<div id="custom">
+  <div class="pcard">
+    <div class="ptitle chunk">MAKE THEM YOURS</div>
+    <div id="custPrev"></div>
+    <div id="custName"></div>
+    <div class="klabel">shirt</div>
+    <div class="swrow" id="swrow1"></div>
+    <div class="klabel">hat</div>
+    <div class="swrow" id="swrow2"></div>
+    <div class="klabel">hero name</div>
+    <div class="nmrow"><button class="nmstep" id="adjL">◀</button><span class="nmshow" id="adjShow"></span><button class="nmstep" id="adjR">▶</button></div>
+    <div class="nmrow"><button class="nmstep" id="nounL">◀</button><span class="nmshow" id="nounShow"></span><button class="nmstep" id="nounR">▶</button></div>
+    <div class="nmrow"><button class="wbsm" id="nmRand">🎲 SURPRISE ME</button></div>
+    <button id="custGo">START GROWING!</button>
   </div>
 </div>
 
@@ -1090,8 +1180,14 @@ const CH_DEFS = [
   { key: 'EDGE', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v8';
+const GAME_VERSION = 'v9';
 const CHANGELOG = [
+  { v: 'v9', title: 'THE FAMILY KEY', lines: [
+    '🔑 make a FAMILY KEY — a magic word that carries your heroes to ANY phone or tablet',
+    '👥 THREE hero slots — the whole family can share one key',
+    '🎨 new heroes get a paint job: pick your colors and a hero name',
+    '🏷️ your hero name floats over your head so friends know who you are',
+  ]},
   { v: 'v8', title: 'YOUR HERO GROWS NOW', lines: [
     '🦸 your hero is YOURS — you log in as them and they remember everything',
     '✨ SPARKS! earn them by FINISHING things (first zinnia, all quests, big builds…)',
@@ -1115,8 +1211,89 @@ try { hero = JSON.parse(localStorage.getItem('d64_hero') || 'null'); } catch (e)
 if (!hero && localStorage.getItem('d64_ch') !== null) {   // migrate v7 picks into a hero
   hero = { ch: clamp(parseInt(localStorage.getItem('d64_ch'), 10) || 1, 0, 5), sparks: 0, trees: {}, earned: {}, life: {} };
 }
-function saveHero() { try { localStorage.setItem('d64_hero', JSON.stringify(hero)); } catch (e) {} }
+function saveHero() {
+  try { localStorage.setItem('d64_hero', JSON.stringify(hero)); } catch (e) {}
+  syncHero();   // mirror into the family key, if there is one
+}
 function heroLevel() { return hero ? 1 + Object.keys(hero.trees[hero.ch] || {}).length : 1; }
+
+/* ---------- the family key: heroes that follow you between devices ----------
+   No accounts, no passwords, no PII: the server mints a two-word key (FOXMOON)
+   and that key IS the login. localStorage keeps a cached copy so the menu works
+   offline; the server copy wins on login unless the local hero is "richer". */
+const DEV_ID = (() => {
+  let d = null;
+  try { d = localStorage.getItem('d64_dev'); } catch (e) {}
+  if (!d) {
+    d = [...crypto.getRandomValues(new Uint8Array(10))].map(b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+    try { localStorage.setItem('d64_dev', d); } catch (e) {}
+  }
+  return d;
+})();
+function uaLabel() {
+  const u = navigator.userAgent;
+  const dev = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android'
+    : /Windows/.test(u) ? 'Windows' : /Mac/.test(u) ? 'Mac' : 'Device';
+  const br = /Edg/.test(u) ? 'Edge' : /CriOS|Chrome/.test(u) ? 'Chrome' : /FxiOS|Firefox/.test(u) ? 'Firefox'
+    : /Safari/.test(u) ? 'Safari' : 'Browser';
+  return dev + ' · ' + br;
+}
+let acct = null;
+try { acct = JSON.parse(localStorage.getItem('d64_acct') || 'null'); } catch (e) {}
+let mySlot = 0;
+try { mySlot = clamp(parseInt(localStorage.getItem('d64_slot') || '0', 10) || 0, 0, 2); } catch (e) {}
+function saveAcct() {
+  try { localStorage.setItem('d64_acct', JSON.stringify(acct)); localStorage.setItem('d64_slot', String(mySlot)); } catch (e) {}
+}
+function heroRichness(h) {
+  return !h ? -1 : (h.sparks || 0) + Object.keys(h.earned || {}).length * 2
+    + Object.values(h.trees || {}).reduce((s, t) => s + Object.keys(t || {}).length * 3, 0);
+}
+function lobbyOp(msg, timeout = 7000) {   // one quick trip to the island's front desk
+  return new Promise(resolve => {
+    let done = false, w;
+    const url = worldUrl();
+    if (url.includes('REPLACE-AFTER-DEPLOY')) return resolve(null);
+    try { w = new WebSocket(url + (url.includes('?') ? '&' : '?') + 'lobby=1'); } catch (e) { return resolve(null); }
+    const finish = r => { if (!done) { done = true; resolve(r); setTimeout(() => { try { w.close(); } catch (e) {} }, 120); } };
+    setTimeout(() => finish(null), timeout);
+    w.onopen = () => { try { w.send(JSON.stringify(msg)); } catch (e) {} };
+    w.onerror = () => finish(null);
+    w.onmessage = ev => {
+      let m; try { m = JSON.parse(ev.data); } catch { return; }
+      if (m.t === 'key:ok' || m.t === 'key:no' || m.t === 'saveok') finish(m);
+    };
+  });
+}
+let syncTimer = null;
+function syncHero() {   // debounced push of the active hero to its slot on the key
+  if (!acct || !hero) return;
+  acct.heroes[mySlot] = hero;
+  saveAcct();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(flushHeroSync, 5000);
+}
+function flushHeroSync() {
+  clearTimeout(syncTimer); syncTimer = null;
+  if (!acct || !hero) return;
+  const msg = { t: 'hero:save', code: acct.code, slot: mySlot, dev: DEV_ID, ua: uaLabel(), hero };
+  if (MMO.on) MMO.send(msg); else lobbyOp(msg);
+}
+async function keyLogin(code, silent) {
+  const r = await lobbyOp({ t: 'key:login', code, dev: DEV_ID, ua: uaLabel() });
+  if (r && r.t === 'key:ok') {
+    const local = acct && acct.code === r.code ? acct.heroes : [null, null, null];
+    // per-slot: keep whichever copy has grown more (protects a save that never flushed)
+    const heroes = r.heroes.map((sv, i) => heroRichness(local[i]) > heroRichness(sv) ? local[i] : sv);
+    acct = { code: r.code, heroes };
+    saveAcct();
+    try { localStorage.setItem('d64_key', r.code); } catch (e) {}
+    return true;
+  }
+  if (r && r.t === 'key:no' && !silent) toast("🔑 hmm, that key doesn't open anything", 2600);
+  if (!r && !silent) toast('🔑 the island is not answering — try again soon', 2600);
+  return false;
+}
 let myCh = hero ? clamp(hero.ch, 0, 6) : 1;
 const statF = n => 0.85 + 0.06 * n;   // 1..5 pips → ×0.91..×1.15 (every char totals 9 pips)
 const perk = node => !!(hero && hero.trees[hero.ch] && hero.trees[hero.ch][node]);
@@ -1157,7 +1334,7 @@ function addSpark(flag, why) {
   renderQuest();
 }
 
-function makeChar(shirtHex, capHex, ch = 1) {
+function makeChar(shirtHex, capHex, ch = 1, custom = false) {
   const shirt = new THREE.MeshLambertMaterial({ color: shirtHex });
   const cap = new THREE.MeshLambertMaterial({ color: capHex });
   const group = new THREE.Group();
@@ -1208,7 +1385,7 @@ function makeChar(shirtHex, capHex, ch = 1) {
     }
     case 6: { // EDGE: spiky golden hair, black trench coat, katana (for cake)
       capTop.visible = capBrim.visible = false;
-      torso.material = new THREE.MeshLambertMaterial({ color: 0x16161e });   // the coat
+      torso.material = new THREE.MeshLambertMaterial({ color: custom ? shirtHex : 0x16161e });   // the coat
       armL.material = armR.material = torso.material;
       torso.scale.set(1.05, 1.15, 1.05);
       const hairMat = new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0x8a6b00 });
@@ -1256,18 +1433,38 @@ const P = Object.assign({
   swimming: false, wasSwimming: false, swimToasted: false, lastSquish: 0,
   spray: false, lastGlob: 0, jumpQueued: false, padA: false, padStart: false,
 }, makeChar(0x2a5fd0, 0xd1342f, myCh));
+function myColors() {
+  if (hero && hero.c1) return [parseInt(hero.c1, 16), parseInt(hero.c2 || 'd1342f', 16), true];
+  return [0x2a5fd0, 0xd1342f, false];
+}
 function rebuildHero() {
   destroyChar(P);
-  Object.assign(P, makeChar(0x2a5fd0, 0xd1342f, myCh));
+  const [c1, c2, cu] = myColors();
+  Object.assign(P, makeChar(c1, c2, myCh, cu));
   P.group.position.set(P.x, P.y, P.z);
 }
 
 /* everyone else on the island */
 const puppets = new Map();    // serverId -> puppet
-function addPuppet(id, look, ch = 1) {
+function nameSprite(nm) {     // the floating hero name (curated words only — server-validated)
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 44;
+  const x = cv.getContext('2d');
+  x.font = 'bold 24px "Courier New", monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText(nm, 128, 22);
+  x.fillStyle = '#ffd23e'; x.fillText(nm, 128, 22);
+  const tx = new THREE.CanvasTexture(cv); tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false }));
+  sp.scale.set(3.6, 0.62, 1); sp.position.y = 3.15;
+  return sp;
+}
+function addPuppet(id, look, ch = 1, cust) {
   if (puppets.has(id)) return;
+  const custom = !!(cust && cust.c1);
+  const c1 = custom ? parseInt(cust.c1, 16) : look[0];
+  const c2 = cust && cust.c2 ? parseInt(cust.c2, 16) : look[1];
   const pu = Object.assign({ id, x: 0, y: 0, z: 8, nx: 0, ny: 0, nz: 8, yaw: Math.PI, nyaw: Math.PI, swimming: false, spray: false },
-    makeChar(look[0], look[1], ch));
+    makeChar(c1, c2, ch, custom));
+  if (cust && cust.nm) pu.group.add(nameSprite(cust.nm));
   puppets.set(id, pu);
   updateCount();
 }
@@ -1586,7 +1783,10 @@ const MMO = {
     if (url.includes('REPLACE-AFTER-DEPLOY')) { this.tried = true; return; }   // no server deployed yet → solo
     this.tried = true;
     let ws;
-    try { ws = new WebSocket(url + (url.includes('?') ? '&' : '?') + 'ch=' + myCh); } catch (e) { return; }
+    let q = 'ch=' + myCh;
+    if (hero && hero.c1) q += '&c1=' + hero.c1 + '&c2=' + (hero.c2 || hero.c1);
+    if (hero && hero.name) q += '&nm=' + encodeURIComponent(hero.name);
+    try { ws = new WebSocket(url + (url.includes('?') ? '&' : '?') + q); } catch (e) { return; }
     this.ws = ws;
     const giveUp = setTimeout(() => { if (!this.on) { try { ws.close(); } catch (e) {} } }, 5000);
     ws.onopen = () => {};
@@ -1595,7 +1795,7 @@ const MMO = {
       if (m.t === 'welcome') {
         clearTimeout(giveUp);
         this.on = true; this.id = m.id;
-        m.players.forEach(([id, look, x, y, z, yaw, ch]) => { addPuppet(id, look, ch ?? 1); const pu = puppets.get(id); pu.x = pu.nx = x; pu.y = pu.ny = y; pu.z = pu.nz = z; pu.yaw = pu.nyaw = yaw; });
+        m.players.forEach(([id, look, x, y, z, yaw, ch, cust]) => { addPuppet(id, look, ch ?? 1, cust); const pu = puppets.get(id); pu.x = pu.nx = x; pu.y = pu.ny = y; pu.z = pu.nz = z; pu.yaw = pu.nyaw = yaw; });
         clearCheese(); paintCellsBulk(m.world.cheese);
         m.world.stars.forEach((taken, i) => stars[i].visible = !taken);
         m.world.coins.forEach((taken, i) => { if (coins[i]) coins[i].visible = !taken; });
@@ -1628,7 +1828,7 @@ const MMO = {
   send(o) { if (this.on && this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(o)); } catch (e) {} } },
   recv(m) {
     switch (m.t) {
-      case 'join': addPuppet(m.id, m.look, m.ch ?? 1); AU.join(); toast('SOMEONE JOINED THE ISLAND! 👋', 2000); break;
+      case 'join': addPuppet(m.id, m.look, m.ch ?? 1, m.cust); AU.join(); toast(m.cust && m.cust.nm ? `${m.cust.nm} JOINED THE ISLAND! 👋` : 'SOMEONE JOINED THE ISLAND! 👋', 2200); break;
       case 'ping': showPing(m.kind, m.x, m.y, m.z); break;
       case 'leave': removePuppet(m.id); AU.leave(); break;
       case 'full': toast('ISLAND IS FULL — SOLO MODE', 2600); break;
@@ -1911,15 +2111,172 @@ function startGame() {
   AU.init();
   state = 'PICK';
   $('title').classList.add('out');
-  if (hero) showWback();                // your hero is waiting
+  if (acct) showKeyHome();              // the family's heroes live on the key
+  else if (hero) showWback();           // one local hero, no key yet
   else { buildPickerUI(); $('pgo').textContent = "THAT'S ME — LET'S GROW!"; $('picker').style.display = 'grid'; }
 }
 function showWback() {
   const c = CH_DEFS[hero.ch];
-  $('wbHero').innerHTML = `${c.emoji}<span class="nm">${c.key}</span>`;
+  $('wbHero').innerHTML = `${c.emoji}<span class="nm">${hero.name || c.key}</span>`;
   $('wbStats').textContent = `LV ${heroLevel()} · ✨ ${hero.sparks || 0} sparks`;
   $('wback').style.display = 'grid';
 }
+
+/* ---------- key home: the family's three hero slots ---------- */
+let khSel = 0, creatingSlot = null, treeFromKeyhome = false;
+function showKeyHome() {
+  khSel = acct.heroes[mySlot] ? mySlot : acct.heroes.findIndex(Boolean);
+  if (khSel < 0) khSel = 0;
+  renderSlots();
+  $('keyhome').style.display = 'grid';
+  keyLogin(acct.code, true).then(ok => {   // quiet refresh from the island
+    if (ok && $('keyhome').style.display === 'grid') renderSlots();
+  });
+}
+function renderSlots() {
+  const el = $('slotList'); el.innerHTML = '';
+  acct.heroes.forEach((h, i) => {
+    const b = document.createElement('button');
+    b.className = 'slotcard' + (i === khSel && h ? ' sel' : '') + (h ? '' : ' empty');
+    if (h) {
+      const c = CH_DEFS[clamp(h.ch, 0, 6)];
+      const lv = 1 + Object.keys((h.trees || {})[h.ch] || {}).length;
+      b.innerHTML = `<span class="se">${c.emoji}</span>${h.name || c.key} — LV ${lv} · ✨${h.sparks || 0}`;
+    } else b.innerHTML = `<span class="se">➕</span>NEW HERO`;
+    b.addEventListener('click', () => {
+      if (h) { khSel = i; renderSlots(); }
+      else { creatingSlot = i; $('keyhome').style.display = 'none'; openCreate(); }
+    });
+    el.appendChild(b);
+  });
+}
+function pickSlot(i) {
+  mySlot = i;
+  hero = acct.heroes[i];
+  myCh = clamp(hero.ch, 0, 6);
+  try { localStorage.setItem('d64_hero', JSON.stringify(hero)); localStorage.setItem('d64_slot', String(i)); } catch (e) {}
+}
+$('khPlay').addEventListener('click', () => {
+  if (!acct.heroes[khSel]) { creatingSlot = khSel; $('keyhome').style.display = 'none'; openCreate(); return; }
+  pickSlot(khSel);
+  $('keyhome').style.display = 'none';
+  enterIsland();
+});
+$('khTree').addEventListener('click', () => {
+  if (!acct.heroes[khSel]) return;
+  pickSlot(khSel);
+  treeFromKeyhome = true;
+  $('keyhome').style.display = 'none';
+  openTree();
+});
+$('khKey').addEventListener('click', () => { $('keyhome').style.display = 'none'; showKeyShow(false); });
+
+/* ---------- make-a-hero: colors + a curated name (never free text) ---------- */
+const SWATCH = ['d1342f', 'e8720f', 'f5c400', '3fae49', '0f9d9d', '2a5fd0', '8a4fd0', 'd14fa0', '6b4a2b', '16161e', 'bcd8e8', 'ffffff'];
+const ADJ = ['BRAVE', 'GOLD', 'TURBO', 'COZY', 'WILD', 'SILLY', 'MEGA', 'LUCKY', 'SUNNY', 'SNEAKY', 'ROYAL', 'FUZZY', 'ZESTY', 'CALM', 'ROWDY', 'SHINY'];
+const NOUN = ['WAFFLE', 'COMET', 'BADGER', 'PICKLE', 'ROCKET', 'ACORN', 'NOODLE', 'TIGER', 'PEBBLE', 'WIZARD', 'MUFFIN', 'FALCON', 'YETI', 'TACO', 'PUDDLE', 'KNIGHT'];
+let custC1 = 5, custC2 = 0, custAdj = 0, custNoun = 0, swatchBuilt = false;
+function openCreate() {
+  buildPickerUI();
+  $('pgo').textContent = 'NEXT: MAKE THEM YOURS ▶';
+  $('picker').style.display = 'grid';
+}
+function buildSwatches() {
+  if (swatchBuilt) return;
+  swatchBuilt = true;
+  [['swrow1', i => { custC1 = i; renderCust(); }], ['swrow2', i => { custC2 = i; renderCust(); }]].forEach(([rowId, onPick]) => {
+    const row = $(rowId);
+    SWATCH.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.className = 'sw'; b.style.background = '#' + c; b.dataset.i = i;
+      b.addEventListener('click', () => onPick(i));
+      row.appendChild(b);
+    });
+  });
+  $('adjL').addEventListener('click', () => { custAdj = (custAdj + ADJ.length - 1) % ADJ.length; renderCust(); });
+  $('adjR').addEventListener('click', () => { custAdj = (custAdj + 1) % ADJ.length; renderCust(); });
+  $('nounL').addEventListener('click', () => { custNoun = (custNoun + NOUN.length - 1) % NOUN.length; renderCust(); });
+  $('nounR').addEventListener('click', () => { custNoun = (custNoun + 1) % NOUN.length; renderCust(); });
+  $('nmRand').addEventListener('click', () => {
+    custAdj = (Math.random() * ADJ.length) | 0; custNoun = (Math.random() * NOUN.length) | 0;
+    custC1 = (Math.random() * SWATCH.length) | 0; custC2 = (Math.random() * SWATCH.length) | 0;
+    renderCust(); AU.coin();
+  });
+  $('custGo').addEventListener('click', confirmCreate);
+}
+function renderCust() {
+  $('custPrev').textContent = CH_DEFS[myCh].emoji;
+  $('adjShow').textContent = ADJ[custAdj];
+  $('nounShow').textContent = NOUN[custNoun];
+  $('custName').textContent = `${ADJ[custAdj]} ${NOUN[custNoun]}`;
+  document.querySelectorAll('#swrow1 .sw').forEach(b => b.classList.toggle('sel', +b.dataset.i === custC1));
+  document.querySelectorAll('#swrow2 .sw').forEach(b => b.classList.toggle('sel', +b.dataset.i === custC2));
+}
+function openCustomize() {
+  buildSwatches();
+  custAdj = (Math.random() * ADJ.length) | 0; custNoun = (Math.random() * NOUN.length) | 0;
+  renderCust();
+  $('custom').style.display = 'grid';
+}
+function confirmCreate() {
+  $('custom').style.display = 'none';
+  hero = { ch: myCh, sparks: 0, trees: {}, earned: {}, life: {},
+    c1: SWATCH[custC1], c2: SWATCH[custC2], name: `${ADJ[custAdj]} ${NOUN[custNoun]}` };
+  mySlot = creatingSlot;
+  creatingSlot = null;
+  acct.heroes[mySlot] = hero;
+  saveHero();          // mirrors into the key + schedules the server push
+  flushHeroSync();     // …but a brand-new hero deserves an immediate save
+  enterIsland();
+}
+
+/* ---------- key screens ---------- */
+function showKeyShow(fresh) {
+  $('keyBig').textContent = acct.code;
+  $('keyDone').textContent = fresh ? 'I WROTE IT DOWN!' : 'GOT IT!';
+  $('keyshow').style.display = 'grid';
+}
+$('keyDone').addEventListener('click', () => {
+  $('keyshow').style.display = 'none';
+  if (state === 'PICK') showKeyHome();
+});
+$('keyForget').addEventListener('click', () => {
+  $('keyshow').style.display = 'none';
+  acct = null;
+  try { localStorage.removeItem('d64_acct'); localStorage.removeItem('d64_key'); } catch (e) {}
+  toast('🔑 key forgotten here — your heroes are safe on the key itself', 3200);
+  if (state === 'PICK') { if (hero) showWback(); else { buildPickerUI(); $('picker').style.display = 'grid'; } }
+});
+function openKeyIn() { $('keyInput').value = ''; $('keyin').style.display = 'grid'; }
+$('keyGo').addEventListener('click', async () => {
+  const code = $('keyInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!code) return;
+  $('keyGo').textContent = '…';
+  const ok = await keyLogin(code, false);
+  $('keyGo').textContent = 'OPEN';
+  if (ok) {
+    $('keyin').style.display = 'none';
+    toast('🔑 WELCOME BACK!', 2000);
+    if (state === 'PICK') showKeyHome();
+  }
+});
+$('keyMint').addEventListener('click', async () => {
+  $('keyMint').textContent = '…making it…';
+  const r = await lobbyOp({ t: 'key:new', dev: DEV_ID, ua: uaLabel(), hero: hero || undefined });
+  $('keyMint').textContent = '✨ MAKE MY FAMILY KEY';
+  if (!r || r.t !== 'key:ok') { toast('🔑 the island is busy — try again in a minute', 2800); return; }
+  acct = { code: r.code, heroes: r.heroes };
+  mySlot = 0;
+  saveAcct();
+  try { localStorage.setItem('d64_key', r.code); } catch (e) {}
+  $('keyin').style.display = 'none';
+  showKeyShow(true);
+  AU.fanfare();
+});
+$('keyinClose').addEventListener('click', () => {
+  $('keyin').style.display = 'none';
+  if (state === 'PICK') { if (acct) showKeyHome(); else if (hero) showWback(); else { buildPickerUI(); $('picker').style.display = 'grid'; } }
+});
 let pickerBuilt = false;
 function buildPickerUI() {
   if (pickerBuilt) { selectCh(myCh); return; }
@@ -1946,6 +2303,7 @@ function selectCh(i) {
 }
 function confirmPick() {
   $('picker').style.display = 'none';
+  if (creatingSlot !== null) { openCustomize(); return; }   // keyed flow: colors + name next
   if (!hero) hero = { ch: myCh, sparks: 0, trees: {}, earned: {}, life: {} };
   hero.ch = myCh;
   saveHero();
@@ -1978,7 +2336,7 @@ function winGame() {
   addSpark('win10', 'all ten stars in one run — a real finish');
   const best = +(localStorage.getItem('d64_best') || 0);
   if (!best || playT < best) localStorage.setItem('d64_best', playT);
-  $('winWho').textContent = MMO.on && puppets.size ? 'YOU DID IT, WITH FRIENDS! 🎉' : 'WAY TO GO, DYLAN!';
+  $('winWho').textContent = MMO.on && puppets.size ? 'YOU DID IT, WITH FRIENDS! 🎉' : `WAY TO GO, ${(hero && hero.name) || 'HERO'}!`;
   $('winTime').textContent = `TIME ${fmtT(playT)}` + (best ? ` · BEST ${fmtT(Math.min(best, playT))}` : '');
   $('winCheese').textContent = `ISLAND CHEESED: ${Math.round(cheeseCells / (CG * CG) * 100)}%`;
   $('win').style.display = 'grid';
@@ -2240,6 +2598,7 @@ document.addEventListener('visibilitychange', () => {
     touchSpray = false; P.spray = false;                  // phone locked mid-spray: let go of everything
     stick.active = false; stick.x = stick.y = 0;
     for (const k in keys) keys[k] = false;
+    if (syncTimer) flushHeroSync();                       // don't lose a spark to a pocketed phone
   }
   else { last = performance.now(); raf = requestAnimationFrame(loop); if (AU.ctx) AU.ctx.resume(); }
 });
@@ -2259,8 +2618,20 @@ $('wbTree').addEventListener('click', () => { treeFromWback = true; $('wback').s
 $('btnTree').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); treeFromWback = false; openTree(); });
 $('treeClose').addEventListener('click', () => {
   $('tree').style.display = 'none';
-  if (treeFromWback && state === 'PICK') showWback();
+  if (treeFromKeyhome && state === 'PICK') { treeFromKeyhome = false; showKeyHome(); }
+  else if (treeFromWback && state === 'PICK') showWback();
 });
+$('wbKey').addEventListener('click', () => {
+  $('wback').style.display = 'none';
+  if (acct) showKeyShow(false); else openKeyIn();
+});
+$('btnKey').addEventListener('click', e => {
+  e.stopPropagation();
+  if (acct) showKeyShow(false); else openKeyIn();
+});
+$('btnKey').addEventListener('pointerdown', e => e.stopPropagation());
+$('keyin').addEventListener('pointerdown', e => e.stopPropagation());
+$('keyshow').addEventListener('pointerdown', e => e.stopPropagation());
 function openTree() {
   const t = TREES[hero.ch], c = CH_DEFS[hero.ch];
   const picks = hero.trees[hero.ch] || {};
@@ -2323,7 +2694,7 @@ $('fbClose').addEventListener('click', () => $('fb').style.display = 'none');
 $('fbSend').addEventListener('click', () => {
   const text = $('fbText').value.trim().slice(0, 240);
   if (!text) return;
-  const msg = { t: 'feedback', kind: fbKind, text, ch: myCh };
+  const msg = { t: 'feedback', kind: fbKind, text, ch: myCh, key: acct ? acct.code : undefined };
   if (MMO.on) MMO.send(msg);
   else {   // from the title screen, before joining: one quick trip to the mailbox
     try {
