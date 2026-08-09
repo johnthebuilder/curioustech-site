@@ -116,6 +116,40 @@
     text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; }
   #wgo:active { transform: translateY(3px); box-shadow: none; }
 
+  /* ---------- character picker ---------- */
+  #picker { position: fixed; inset: 0; z-index: 85; display: none; place-items: center;
+    background: radial-gradient(ellipse at center, rgba(0,0,40,.3) 30%, rgba(0,0,30,.75) 100%); }
+  .pcard { background: rgba(8, 8, 34, .93); border: 4px solid #ffd23e; border-radius: 18px;
+    padding: 22px 26px; width: min(92vw, 420px); box-shadow: 0 0 60px rgba(255, 210, 62, .3); text-align: center; }
+  .ptitle { font-size: clamp(1.1rem, 5vw, 1.5rem); margin-bottom: 14px; }
+  #pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  #pgrid .pchip { border: 3px solid #000; border-radius: 12px; background: rgba(255,255,255,.08);
+    color: #fff; padding: 8px 4px; cursor: pointer; font-family: inherit; font-size: .75rem;
+    text-shadow: 1px 1px 0 #000; opacity: .75; }
+  #pgrid .pchip .pe { font-size: 1.5rem; display: block; }
+  #pgrid .pchip.sel { opacity: 1; outline: 3px solid #ffd23e; background: rgba(255, 210, 62, .15); transform: scale(1.05); }
+  #pstats { font-family: "Courier New", monospace; color: #ffd23e; font-size: 1rem; text-align: left;
+    width: fit-content; margin: 0 auto 8px; text-shadow: 1px 1px 0 #000; letter-spacing: .05em; }
+  #pline { color: #b9c6e8; font-family: Arial, sans-serif; font-style: italic; font-size: .85rem;
+    min-height: 2.4em; margin-bottom: 10px; }
+  #pgo { font-family: inherit; font-size: 1.05rem; padding: 12px 30px; border-radius: 999px;
+    border: 3px solid #000; background: #d1342f; color: #fff; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #6d1815; }
+  #pgo:active { transform: translateY(3px); box-shadow: none; }
+
+  /* ---------- ping wheel ---------- */
+  #btnPing { position: fixed; left: 26px; bottom: calc(180px + env(safe-area-inset-bottom)); width: 56px; height: 56px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d9c34a, #b89b2a 65%); border: 4px solid #5d4f16;
+    font-size: 1.4rem; display: none; place-items: center; z-index: 55; box-shadow: 0 4px 0 #5d4f16; cursor: pointer; }
+  #btnPing:active { transform: translateY(3px); box-shadow: none; }
+  #pingWheel { position: fixed; left: 20px; bottom: calc(246px + env(safe-area-inset-bottom)); display: none;
+    grid-template-columns: repeat(3, 1fr); gap: 7px; z-index: 56;
+    background: rgba(10, 10, 30, .6); border: 3px solid #000; border-radius: 16px; padding: 9px; }
+  #pingWheel .pw { width: 46px; height: 46px; border-radius: 12px; border: 3px solid #000;
+    background: rgba(255,255,255,.12); display: grid; place-items: center; font-size: 1.3rem; cursor: pointer; }
+  #pingWheel .pw.em { background: rgba(120, 180, 255, .15); }
+  #pingWheel .pw:active { transform: scale(.92); }
+
   /* ---------- fourth wall ---------- */
   #wall { position: fixed; inset: 0; z-index: 120; background: #000; display: none; place-items: center; }
   #wallText { font-family: "Courier New", monospace; color: #8be89b; font-size: clamp(1rem, 3.6vw, 1.5rem);
@@ -231,6 +265,27 @@
     <button id="wgo">LET'S GO!</button>
   </div>
 </div>
+<div id="picker">
+  <div class="pcard">
+    <div class="ptitle chunk">WHO ARE YOU TODAY?</div>
+    <div id="pgrid"></div>
+    <div id="pstats">
+      <div class="pbar">ZOOM&nbsp; <span id="pbZoom"></span></div>
+      <div class="pbar">HOP&nbsp;&nbsp; <span id="pbHop"></span></div>
+      <div class="pbar">SPLAT <span id="pbSplat"></span></div>
+    </div>
+    <div id="pline"></div>
+    <button id="pgo">THAT'S ME!</button>
+  </div>
+</div>
+
+<div id="btnPing">👆</div>
+<div id="pingWheel">
+  <div class="pw" data-k="hi">👋</div><div class="pw" data-k="here">❗</div><div class="pw" data-k="build">🔨</div>
+  <div class="pw" data-k="blast">🧀</div><div class="pw" data-k="light">✨</div><div class="pw" data-k="nice">👍</div>
+  <div class="pw em" data-k="wave">🙋</div><div class="pw em" data-k="dance">🕺</div><div class="pw em" data-k="sit">🧘</div><div class="pw em" data-k="point">👉</div>
+</div>
+
 <div id="wall"><div id="wallText"></div></div>
 <button id="mute">🔊</button>
 
@@ -329,6 +384,14 @@ const AU = {
   breakB() { this.beep('sawtooth', 160, 55, 0.14, 0.18); },
   plant() { this.beep('triangle', 520, 780, 0.1, 0.12); },
   mop() { this.beep('triangle', 300, 520, 0.12, 0.12); },
+  ping(kind) {
+    if (kind === 'here') this.beep('square', 500, 950, 0.18, 0.14);
+    else if (kind === 'build') this.place();
+    else if (kind === 'blast') this.cheese();
+    else if (kind === 'light') { this.beep('triangle', 1200, null, 0.1, 0.1); setTimeout(() => this.beep('triangle', 1600, null, 0.14, 0.1), 90); }
+    else if (kind === 'nice') this.harvest();
+    else { this.beep('square', 587, null, 0.08, 0.12); setTimeout(() => this.beep('square', 784, null, 0.12, 0.12), 90); }
+  },
   harvest() { [659, 880, 1175].forEach((f, i) => setTimeout(() => this.beep('square', f, null, 0.12, 0.14), i * 70)); },
   leave() { [784, 659, 523].forEach((f, i) => setTimeout(() => this.beep('square', f, null, 0.1, 0.1), i * 70)); },
   shark() { this.beep('square', 110, null, 0.28, 0.2); setTimeout(() => this.beep('square', 98, null, 0.34, 0.22), 320); },
@@ -756,6 +819,54 @@ const GNOME_LINES = [
 ];
 let gnomeIdx = (Math.random() * GNOME_LINES.length) | 0, lastGnomeT = 0;
 
+/* ---------- the Ping Wheel: the whole social vocabulary, forever ---------- */
+const PING_DEFS = { hi: '👋', here: '❗', build: '🔨', blast: '🧀', light: '✨', nice: '👍', wave: '🙋', dance: '🕺', sit: '🧘', point: '👉' };
+const pingPool = [];
+function emojiSprite(emoji) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const x = cv.getContext('2d');
+  x.font = '48px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(emoji, 32, 34);
+  const t = new THREE.CanvasTexture(cv); t.magFilter = THREE.NearestFilter;
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+}
+function showPing(kind, x, y, z) {
+  const emoji = PING_DEFS[kind];
+  if (!emoji) return;
+  let m = pingPool.find(p => p.life <= 0);
+  if (!m) {
+    if (pingPool.length >= 8) return;
+    m = { sprite: null, life: 0, baseY: 0 };
+    pingPool.push(m);
+  }
+  if (m.sprite) { scene.remove(m.sprite); }
+  m.sprite = emojiSprite(emoji);
+  m.sprite.scale.set(2.2, 2.2, 1);
+  m.baseY = y + 3.2;
+  m.sprite.position.set(x, m.baseY, z);
+  scene.add(m.sprite);
+  m.life = kind === 'here' ? 6 : 4.5;
+  AU.ping(kind);
+  if (kind === 'nice') burst(x, y + 2, z, 16, 4);
+}
+function stepPings(dt, mt) {
+  for (const m of pingPool) {
+    if (m.life <= 0 || !m.sprite) continue;
+    m.life -= dt;
+    m.sprite.position.y = m.baseY + Math.sin(mt * 4) * 0.25;
+    m.sprite.material.opacity = clamp(m.life, 0, 1);
+    if (m.life <= 0) { scene.remove(m.sprite); m.sprite = null; }
+  }
+}
+function sendPing(kind) {
+  const isEmote = ['wave', 'dance', 'sit', 'point'].includes(kind);
+  const px = isEmote ? P.x : P.x + Math.sin(P.yaw) * 3.5;
+  const pz = isEmote ? P.z : P.z + Math.cos(P.yaw) * 3.5;
+  showPing(kind, px, P.y, pz);
+  MMO.send({ t: 'ping', kind, x: +px.toFixed(1), y: +P.y.toFixed(1), z: +pz.toFixed(1) });
+  $('pingWheel').style.display = 'none';
+}
+
 let wallDone = false;
 function wallBreak() {
   if (wallDone || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -834,8 +945,22 @@ function removeDcoin(id) {
   if (m) { scene.remove(m); dcoins.delete(id); }
 }
 
-/* ---------- characters ---------- */
-function makeChar(shirtHex, capHex) {
+/* ---------- characters: the roster (VISION.md §II) ---------- */
+const CH_DEFS = [
+  { key: 'PLONK', emoji: '🔨', zoom: 2, hop: 3, splat: 4, line: 'builds fast, thinks slow, never falls off anything' },
+  { key: 'ZIP', emoji: '💨', zoom: 5, hop: 3, splat: 1, line: 'already over there' },
+  { key: 'BOP', emoji: '🦘', zoom: 2, hop: 5, splat: 2, line: 'has never once used stairs' },
+  { key: 'WICK', emoji: '🔦', zoom: 3, hop: 3, splat: 3, line: 'brings the light, calms the crumbs' },
+  { key: 'GLOOP', emoji: '🧀', zoom: 2, hop: 2, splat: 5, line: 'is mostly cheese, honestly' },
+  { key: 'SPROUT', emoji: '🌱', zoom: 4, hop: 2, splat: 3, line: 'plants things, then goes and does something else' },
+];
+let myCh = clamp(parseInt(localStorage.getItem('d64_ch') ?? '1', 10) || 1, 0, 5);
+const statF = n => 0.85 + 0.06 * n;   // 1..5 pips → ×0.91..×1.15 (every char totals 9 pips)
+const zoomF = () => statF(CH_DEFS[myCh].zoom);
+const hopF = () => statF(CH_DEFS[myCh].hop);
+const splatF = () => statF(CH_DEFS[myCh].splat);
+
+function makeChar(shirtHex, capHex, ch = 1) {
   const shirt = new THREE.MeshLambertMaterial({ color: shirtHex });
   const cap = new THREE.MeshLambertMaterial({ color: capHex });
   const group = new THREE.Group();
@@ -851,6 +976,49 @@ function makeChar(shirtHex, capHex) {
   const legR = legL.clone(); legR.position.x = 0.24; group.add(legL, legR);
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.72, 0.34), shirt); armL.position.set(-0.6, 1.1, 0);
   const armR = armL.clone(); armR.position.x = 0.6; group.add(armL, armR);
+  /* silhouette: the character decides the shape, the server decides the colours */
+  switch (ch) {
+    case 0:   // PLONK: stocky + hard hat
+      torso.scale.set(1.28, 0.95, 1.28);
+      capTop.geometry = new THREE.BoxGeometry(0.95, 0.22, 0.95);
+      capBrim.geometry = new THREE.BoxGeometry(1.15, 0.08, 1.15); capBrim.position.set(0, 2.13, 0);
+      break;
+    case 1:   // ZIP: slim + the classic backwards cap
+      torso.scale.set(0.82, 1, 0.82);
+      break;
+    case 2: { // BOP: long springy legs + ears
+      legL.scale.y = legR.scale.y = 1.45; legL.position.y = legR.position.y = 0.48;
+      torso.position.y = 1.25; head.position.y = 2.05; capTop.position.y = 2.45; capBrim.position.y = 2.34;
+      eyeL.position.y = eyeR.position.y = 2.1; pupL.position.y = pupR.position.y = 2.09;
+      const earL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.14), cap); earL.position.set(-0.22, 2.8, 0); group.add(earL);
+      const earR = earL.clone(); earR.position.x = 0.22; group.add(earR);
+      break;
+    }
+    case 3: { // WICK: pointed hood + a little lantern
+      capTop.visible = capBrim.visible = false;
+      const hood = new THREE.Mesh(new THREE.ConeGeometry(0.52, 0.95, 6), cap); hood.position.y = 2.55; group.add(hood);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.26, 0.2),
+        new THREE.MeshLambertMaterial({ color: 0xffe28a, emissive: 0x8a6b00 }));
+      lamp.position.set(0.55, 0.75, 0.2); group.add(lamp);
+      break;
+    }
+    case 4: { // GLOOP: round + a cheese wedge for a hat
+      head.scale.setScalar(1.22); torso.scale.set(1.15, 0.9, 1.15);
+      capTop.visible = capBrim.visible = false;
+      const wedge = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.55, 4), mat.gold);
+      wedge.position.y = 2.5; wedge.rotation.z = 0.35; group.add(wedge);
+      break;
+    }
+    case 5: { // SPROUT: a seedling on the head
+      torso.scale.set(0.9, 0.95, 0.9);
+      capTop.visible = capBrim.visible = false;
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 5), mat.leaf); stem.position.y = 2.4; group.add(stem);
+      const leaf1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.16), mat.leaf2); leaf1.position.set(0.16, 2.58, 0); leaf1.rotation.z = 0.5; group.add(leaf1);
+      const leaf2 = leaf1.clone(); leaf2.position.x = -0.16; leaf2.rotation.z = -0.5; group.add(leaf2);
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.14, 0.78), cap); band.position.y = 2.16; group.add(band);
+      break;
+    }
+  }
   scene.add(group);
   const blob = new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
   blob.rotation.x = -Math.PI / 2; scene.add(blob);
@@ -868,14 +1036,19 @@ const P = Object.assign({
   yaw: Math.PI, r: 0.45, hurtT: 0,
   swimming: false, wasSwimming: false, swimToasted: false, lastSquish: 0,
   spray: false, lastGlob: 0, jumpQueued: false, padA: false, padStart: false,
-}, makeChar(0x2a5fd0, 0xd1342f));
+}, makeChar(0x2a5fd0, 0xd1342f, myCh));
+function rebuildHero() {
+  destroyChar(P);
+  Object.assign(P, makeChar(0x2a5fd0, 0xd1342f, myCh));
+  P.group.position.set(P.x, P.y, P.z);
+}
 
 /* everyone else on the island */
 const puppets = new Map();    // serverId -> puppet
-function addPuppet(id, look) {
+function addPuppet(id, look, ch = 1) {
   if (puppets.has(id)) return;
   const pu = Object.assign({ id, x: 0, y: 0, z: 8, nx: 0, ny: 0, nz: 8, yaw: Math.PI, nyaw: Math.PI, swimming: false, spray: false },
-    makeChar(look[0], look[1]));
+    makeChar(look[0], look[1], ch));
   puppets.set(id, pu);
   updateCount();
 }
@@ -1126,7 +1299,7 @@ function stepCheese(dt) {
     const gy = groundYAt(g.x, g.z, g.y);
     if (g.vy < 0 && gy > -900 && g.y <= gy + 0.08) {
       if (!g.remote && gy === 0 && Math.abs(g.x) <= 45 && Math.abs(g.z) <= 45) {
-        paintCheese(g.x, g.z, 1.8 + Math.random() * 0.7, true);
+        paintCheese(g.x, g.z, (1.8 + Math.random() * 0.7) * splatF(), true);
       } else {
         for (const s of splats) {
           if (s.life > 0) continue;
@@ -1186,7 +1359,7 @@ const MMO = {
     if (url.includes('REPLACE-AFTER-DEPLOY')) { this.tried = true; return; }   // no server deployed yet → solo
     this.tried = true;
     let ws;
-    try { ws = new WebSocket(url); } catch (e) { return; }
+    try { ws = new WebSocket(url + (url.includes('?') ? '&' : '?') + 'ch=' + myCh); } catch (e) { return; }
     this.ws = ws;
     const giveUp = setTimeout(() => { if (!this.on) { try { ws.close(); } catch (e) {} } }, 5000);
     ws.onopen = () => {};
@@ -1195,7 +1368,7 @@ const MMO = {
       if (m.t === 'welcome') {
         clearTimeout(giveUp);
         this.on = true; this.id = m.id;
-        m.players.forEach(([id, look, x, y, z, yaw]) => { addPuppet(id, look); const pu = puppets.get(id); pu.x = pu.nx = x; pu.y = pu.ny = y; pu.z = pu.nz = z; pu.yaw = pu.nyaw = yaw; });
+        m.players.forEach(([id, look, x, y, z, yaw, ch]) => { addPuppet(id, look, ch ?? 1); const pu = puppets.get(id); pu.x = pu.nx = x; pu.y = pu.ny = y; pu.z = pu.nz = z; pu.yaw = pu.nyaw = yaw; });
         clearCheese(); paintCellsBulk(m.world.cheese);
         m.world.stars.forEach((taken, i) => stars[i].visible = !taken);
         m.world.coins.forEach((taken, i) => { if (coins[i]) coins[i].visible = !taken; });
@@ -1228,7 +1401,8 @@ const MMO = {
   send(o) { if (this.on) { try { this.ws.send(JSON.stringify(o)); } catch (e) {} } },
   recv(m) {
     switch (m.t) {
-      case 'join': addPuppet(m.id, m.look); AU.join(); toast('SOMEONE JOINED THE ISLAND! 👋', 2000); break;
+      case 'join': addPuppet(m.id, m.look, m.ch ?? 1); AU.join(); toast('SOMEONE JOINED THE ISLAND! 👋', 2000); break;
+      case 'ping': showPing(m.kind, m.x, m.y, m.z); break;
       case 'leave': removePuppet(m.id); AU.leave(); break;
       case 'full': toast('ISLAND IS FULL — SOLO MODE', 2600); break;
       case 'players':
@@ -1490,14 +1664,47 @@ function respawn(msg) {
 function startGame() {
   if (state !== 'TITLE') return;
   AU.init();
+  state = 'PICK';                       // WHO ARE YOU TODAY?
+  $('title').classList.add('out');
+  buildPickerUI();
+  $('picker').style.display = 'grid';
+}
+let pickerBuilt = false;
+function buildPickerUI() {
+  if (pickerBuilt) { selectCh(myCh); return; }
+  pickerBuilt = true;
+  const grid = $('pgrid');
+  CH_DEFS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'pchip'; b.dataset.i = i;
+    b.innerHTML = `<span class="pe">${c.emoji}</span>${c.key}`;
+    b.addEventListener('click', () => selectCh(i));
+    grid.appendChild(b);
+  });
+  $('pgo').addEventListener('click', confirmPick);
+  selectCh(myCh);
+}
+function selectCh(i) {
+  myCh = i;
+  document.querySelectorAll('#pgrid .pchip').forEach(b => b.classList.toggle('sel', +b.dataset.i === i));
+  const c = CH_DEFS[i], pips = n => '█'.repeat(n) + '░'.repeat(5 - n);
+  $('pbZoom').textContent = pips(c.zoom);
+  $('pbHop').textContent = pips(c.hop);
+  $('pbSplat').textContent = pips(c.splat);
+  $('pline').textContent = `"${c.line}"`;
+}
+function confirmPick() {
+  $('picker').style.display = 'none';
+  try { localStorage.setItem('d64_ch', myCh); } catch (e) {}
+  rebuildHero();
   MMO.connect();
   state = 'SWOOP'; swoopT = 0;
-  $('title').classList.add('out');
   $('hud').style.display = 'block';
   $('mute').style.display = 'grid';
   $('mute').textContent = AU.muted ? '🔇' : '🔊';
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
   $('btnBuild').style.display = 'grid';
+  $('btnPing').style.display = 'grid';
   renderQuest();
   if (!localStorage.getItem('d64_welcomed'))
     setTimeout(() => { if (state === 'PLAY' || state === 'SWOOP') $('welcome').style.display = 'grid'; }, 1900);
@@ -1566,15 +1773,15 @@ function stepHero(dt, mt) {
   if (P.swimming && !P.wasSwimming && !P.swimToasted) { P.swimToasted = true; toast('CHEESE SWIM! WHOOSH! 🧀🏊', 2200); }
   P.wasSwimming = P.swimming;
   if (P.hurtT > 0) P.hurtT -= dt;
-  const SP = 9.5 * (P.swimming ? 1.65 : 1), ctl = P.grounded ? 1 : 0.55;
+  const SP = 9.5 * zoomF() * (P.swimming ? 1.65 : 1), ctl = P.grounded ? 1 : 0.55;
   const tvx = (fx * iz + rx * ix) * SP, tvz = (fz * iz + rz * ix) * SP;
   P.vx = lerp(P.vx, tvx, clamp(12 * dt * ctl, 0, 1));
   P.vz = lerp(P.vz, tvz, clamp(12 * dt * ctl, 0, 1));
 
   if (P.jumpQueued) {
     P.jumpQueued = false;
-    if (P.grounded) { P.vy = 10; P.grounded = false; P.jumps = 1; AU.jump(); }
-    else if (P.jumps === 1) { P.vy = 10; P.jumps = 2; AU.djump(); burst(P.x, P.y + 0.2, P.z, 8, 3); }
+    if (P.grounded) { P.vy = 10 * hopF(); P.grounded = false; P.jumps = 1; AU.jump(); }
+    else if (P.jumps === 1) { P.vy = 10 * hopF(); P.jumps = 2; AU.djump(); burst(P.x, P.y + 0.2, P.z, 8, 3); }
   }
   P.vy -= 24 * dt;
   const prevY = P.y;
@@ -1704,7 +1911,7 @@ const camPos = new THREE.Vector3(0, 20, 46);
 const camTmp = new THREE.Vector3();
 function stepCam(dt) {
   let tx, ty, tz, lx, ly, lz;
-  if (state === 'TITLE' || state === 'BOOT') {
+  if (state === 'TITLE' || state === 'BOOT' || state === 'PICK') {
     camYaw += dt * 0.12;
     tx = Math.sin(camYaw) * 42; ty = 20; tz = Math.cos(camYaw) * 42;
     lx = 0; ly = 0; lz = 0;
@@ -1714,9 +1921,10 @@ function stepCam(dt) {
     lx = P.x; ly = P.y + 1.6; lz = P.z;
     if (state === 'SWOOP') { swoopT += dt; if (swoopT > 1.4) state = 'PLAY'; }
   }
-  const k = state === 'SWOOP' ? clamp(2.2 * dt, 0, 1) : (state === 'TITLE' || state === 'BOOT' ? 1 : clamp(7 * dt, 0, 1));
+  const orbiting = state === 'TITLE' || state === 'BOOT' || state === 'PICK';
+  const k = state === 'SWOOP' ? clamp(2.2 * dt, 0, 1) : (orbiting ? 1 : clamp(7 * dt, 0, 1));
   camTmp.set(tx, ty, tz);
-  if (state === 'TITLE' || state === 'BOOT') camPos.copy(camTmp); else camPos.lerp(camTmp, k);
+  if (orbiting) camPos.copy(camTmp); else camPos.lerp(camTmp, k);
   camPos.y = Math.max(camPos.y, 0.8);
   camera.position.copy(camPos);
   camera.lookAt(lx, ly, lz);
@@ -1739,6 +1947,7 @@ function loop(now) {
   }
   stepCheese(dt);
   stepParts(dt);
+  stepPings(dt, mt);
   stepVisuals(dt, mt);
   stepCam(dt);
   renderer.render(scene, camera);
@@ -1753,6 +1962,17 @@ document.addEventListener('visibilitychange', () => {
 $('wgo').addEventListener('click', () => {
   $('welcome').style.display = 'none';
   try { localStorage.setItem('d64_welcomed', '1'); } catch (e) {}
+});
+$('btnPing').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation();
+  const w = $('pingWheel');
+  w.style.display = w.style.display === 'grid' ? 'none' : 'grid';
+});
+document.querySelectorAll('#pingWheel .pw').forEach(b => {
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); sendPing(b.dataset.k); });
+});
+addEventListener('keydown', e => {
+  if (e.code === 'Enter' && state === 'PICK') confirmPick();
 });
 
 /* ---------- boot ---------- */
