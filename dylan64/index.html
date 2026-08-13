@@ -86,24 +86,24 @@
 
   /* ---------- touch controls ---------- */
   #stickZone { position: fixed; left: 0; bottom: 0; width: 46vw; height: 46vh; z-index: 55; display: none; }
-  #stickBase { position: absolute; left: 34px; bottom: calc(34px + env(safe-area-inset-bottom)); width: 124px; height: 124px;
+  #stickBase { position: absolute; left: 34px; bottom: calc(62px + env(safe-area-inset-bottom)); width: 124px; height: 124px;
     border-radius: 50%; border: 4px solid rgba(255,255,255,.55); background: rgba(0,0,20,.25); }
   #nub { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #9a9a9a, #4c4c52 70%); border: 3px solid #222;
     transform: translate(-50%, -50%); }
-  #btnA { position: fixed; right: 26px; bottom: calc(60px + env(safe-area-inset-bottom)); width: 92px; height: 92px;
+  #btnA { position: fixed; right: 26px; bottom: calc(84px + env(safe-area-inset-bottom)); width: 92px; height: 92px;
     border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4f83e8, #2a5fd0 65%); border: 4px solid #12275c;
     color: #fff; font-size: 2.4rem; display: none; place-items: center; z-index: 55;
     text-shadow: 2px 2px 0 rgba(0,0,0,.5); box-shadow: 0 5px 0 #12275c; }
   #btnA:active { transform: translateY(3px); box-shadow: 0 2px 0 #12275c; }
-  #btnB { position: fixed; right: 136px; bottom: calc(44px + env(safe-area-inset-bottom)); width: 64px; height: 64px;
+  #btnB { position: fixed; right: 136px; bottom: calc(120px + env(safe-area-inset-bottom)); width: 64px; height: 64px;
     border-radius: 50%; background: radial-gradient(circle at 35% 30%, #57c463, #3fae49 65%); border: 4px solid #1c5a24;
     color: #fff; font-size: 1.5rem; display: none; place-items: center; z-index: 55;
     text-shadow: 2px 2px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #1c5a24; }
   #btnB:active { transform: translateY(3px); box-shadow: 0 1px 0 #1c5a24; }
 
   /* ---------- build mode ---------- */
-  #btnBuild { position: fixed; right: 26px; bottom: calc(170px + env(safe-area-inset-bottom)); width: 64px; height: 64px;
+  #btnBuild { position: fixed; right: 26px; bottom: calc(190px + env(safe-area-inset-bottom)); width: 64px; height: 64px;
     border-radius: 50%; background: radial-gradient(circle at 35% 30%, #b98a4e, #9a6b3f 65%); border: 4px solid #5d3f22;
     color: #fff; font-size: 1.5rem; display: none; place-items: center; z-index: 55;
     text-shadow: 2px 2px 0 rgba(0,0,0,.5); box-shadow: 0 4px 0 #5d3f22; }
@@ -310,14 +310,53 @@
   #p2badge { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + clamp(3.2rem, 12vw, 4.6rem));
     left: 16px; font-size: clamp(.8rem, 3vw, 1.1rem); color: #8be89b; display: none; }
 
+  /* ---------- 🌀 THE TOWER: the 2D world behind the portal ---------- */
+  #tower { position: fixed; inset: 0; width: 100vw; height: 100vh; display: none; z-index: 44;
+    image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+
+  /* ---------- ⚔️ the spell bar ---------- */
+  #spells { position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(max(6px, env(safe-area-inset-bottom)) + 2px); display: none; gap: 8px; z-index: 56; }
+  #spells .sp { position: relative; width: 50px; height: 50px; border-radius: 13px;
+    border: 3px solid #101024; background: linear-gradient(#3a4a86, #232a52);
+    display: grid; place-items: center; font-size: 1.5rem; cursor: pointer; touch-action: none;
+    box-shadow: 0 4px 0 #101024; overflow: hidden; }
+  #spells .sp:active { transform: translateY(3px); box-shadow: none; }
+  #spells .sp.strike { background: linear-gradient(#c98a2e, #8a5a18); border-color: #3a2408; box-shadow: 0 4px 0 #3a2408; }
+  #spells .sp .key { position: absolute; top: 1px; left: 4px; font-size: .58rem; color: #ffd23e;
+    font-family: Arial, sans-serif; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+  #spells .sp .sweep { position: absolute; inset: 0; background: rgba(4, 6, 20, .74);
+    transform-origin: 50% 100%; transform: scaleY(0); pointer-events: none; }
+  #spells .sp .cdn { position: absolute; inset: 0; display: grid; place-items: center;
+    font-family: Arial, sans-serif; font-weight: bold; font-size: .95rem; color: #fff;
+    text-shadow: 2px 2px 0 #000; pointer-events: none; opacity: 0; }
+  #spells .sp.ready { animation: spready .5s ease-out; }
+  @keyframes spready { 0% { box-shadow: 0 4px 0 #101024, 0 0 0 0 rgba(255,210,62,.9); } 100% { box-shadow: 0 4px 0 #101024, 0 0 0 14px rgba(255,210,62,0); } }
+
+  /* ---------- ☰ the pocket menu (v13: eight floating buttons became one) ---------- */
+  #btnMenu { position: fixed; right: 20px; top: calc(max(12px, env(safe-area-inset-top)) + 74px);
+    width: 46px; height: 46px; border-radius: 12px; border: 3px solid #101024;
+    background: rgba(16, 18, 46, .82); color: #ffd23e; font-family: inherit; font-size: 1.15rem;
+    display: none; place-items: center; z-index: 57; cursor: pointer; touch-action: none; }
+  #menu { position: fixed; right: 20px; top: calc(max(12px, env(safe-area-inset-top)) + 126px);
+    width: 190px; background: rgba(12, 14, 38, .95); border: 3px solid #000; border-radius: 14px;
+    padding: 8px; display: none; z-index: 57; }
+  #menu button { display: block; width: 100%; font-family: inherit; font-size: .82rem; color: #fff;
+    background: #2a3160; border: 2px solid #000; border-radius: 9px; padding: 9px 8px; margin-bottom: 6px;
+    text-align: left; cursor: pointer; text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
+  #menu button:last-child { margin-bottom: 0; }
+  #menu button:active { transform: translateY(2px); }
+
   @media (prefers-reduced-motion: reduce) {
     #title .big span, #start { animation: none; }
+    #spells .sp.ready { animation: none; }
   }
 </style>
 </head>
 <body>
 
 <canvas id="gl"></canvas>
+<canvas id="tower"></canvas>
 <div id="crt"></div>
 
 <div id="boot">
@@ -410,6 +449,23 @@
   <div class="chip" data-tool="lamp" style="background:#d9a12b;display:none">🏮</div>
   <div class="chip" data-tool="mop" style="background:#4a90d9">🧹</div>
   <div class="chip" data-tool="del" style="background:#c0392b">💥</div>
+</div>
+
+<div id="spells">
+  <div class="sp" data-slot="0"><span class="key">1</span><span class="em">✳️</span><span class="sweep"></span><span class="cdn"></span></div>
+  <div class="sp" data-slot="1"><span class="key">2</span><span class="em">✳️</span><span class="sweep"></span><span class="cdn"></span></div>
+  <div class="sp" data-slot="2"><span class="key">3</span><span class="em">✳️</span><span class="sweep"></span><span class="cdn"></span></div>
+  <div class="sp strike" data-slot="3"><span class="key">4</span><span class="em">🌮</span><span class="sweep"></span><span class="cdn"></span></div>
+</div>
+
+<div id="btnMenu">☰</div>
+<div id="menu">
+  <button id="mnTree">📖 SPELLBOOK &amp; SKILLS</button>
+  <button id="mnRadio">📻 ISLAND RADIO</button>
+  <button id="mnMute">🔊 SOUND ON</button>
+  <button id="mnWish" style="display:none">🌠 THE WISHING WELL</button>
+  <button id="mnChlog">📋 WHAT'S NEW</button>
+  <button id="mnFb">📬 TELL US STUFF</button>
 </div>
 
 <div id="welcome">
@@ -650,6 +706,21 @@ const AU = {
     { name: 'THE SHIVER', tag: 'spooky hour (all hours)', bpm: 92, lw: 'triangle', bw: 'sine', lv: 0.26, bv: 0.32,
       L: [[0,0,2],[3,2,2],[7,4,2],[3,6,2],[8,8,2],[7,10,2],[3,12,2],[0,14,2],[-2,16,2],[1,18,2],[5,20,2],[1,22,2],[7,24,4],[3,28,4]],
       B: [[-24,0,16],[-26,16,16]] },
+    /* Two stations written for John's two requests (8/12). The tracks he sent are
+       copyrighted recordings and this game ships as one offline file with no external
+       audio — so these are ORIGINAL tunes written in those two moods, not those songs:
+       one slow underwater drift, one boss-door panic. THE TOWER auto-tunes to DEEP END. */
+    { name: 'THE DEEP', tag: 'underwater. no rush down here.', bpm: 60, lw: 'sine', bw: 'triangle', lv: 0.26, bv: 0.3,
+      L: [[-5,0,6],[-2,6,4],[0,10,6],[3,16,4],[0,20,4],[-2,24,4],[-9,28,4]],
+      B: [[-29,0,16],[-31,16,16]] },
+    { name: 'DEEP END', tag: 'something big noticed you', bpm: 152, lw: 'sawtooth', bw: 'square', lv: 0.12, bv: 0.16,
+      L: [[0,0,1],[3,1,1],[7,2,1],[12,3,1],[7,4,1],[3,5,1],[0,6,1],[3,7,1],
+          [-1,8,1],[2,9,1],[6,10,1],[11,11,1],[6,12,1],[2,13,1],[-1,14,1],[2,15,1],
+          [1,16,1],[5,17,1],[8,18,1],[13,19,1],[8,20,1],[5,21,1],[1,22,1],[5,23,1],
+          [3,24,1],[7,25,1],[10,26,1],[15,27,2],[12,29,3]],
+      B: [[-24,0,2],[-24,2,2],[-24,4,2],[-24,6,2],[-25,8,2],[-25,10,2],[-25,12,2],[-25,14,2],
+          [-23,16,2],[-23,18,2],[-23,20,2],[-23,22,2],[-21,24,2],[-21,26,2],[-19,28,4]],
+      D: [[0,0],[4,0],[8,0],[12,0],[16,0],[20,0],[24,0],[28,0],[2,1],[6,1],[10,1],[14,1],[18,1],[22,1],[26,1],[30,1]] },
     { name: 'RADIO OFF', tag: 'just the island', off: true },
   ],
   setStation(i) {
@@ -772,7 +843,7 @@ const DAY_KEYS = [
 const _cA = new THREE.Color(), _cB = new THREE.Color();
 let nightAmt = 0;
 function applyDayNight() {
-  const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+  const d = new Date(), h = (typeof buffs !== 'undefined' && buffs.day > 0) ? 12 : d.getHours() + d.getMinutes() / 60;   // WICK · DAYBREAK
   let i = 0; while (i < DAY_KEYS.length - 2 && DAY_KEYS[i + 1][0] <= h) i++;
   const a = DAY_KEYS[i], b = DAY_KEYS[i + 1];
   const t = clamp((h - a[0]) / Math.max(0.01, b[0] - a[0]), 0, 1);
@@ -935,8 +1006,8 @@ const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 3.4, 6), mat.
 pole.position.set(0, 6.4, -32); scene.add(pole);
 const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1), mat.red);
 flag.position.set(0.85, 7.4, -32); scene.add(flag);
-box(-36, 2, -36, 6, 6, 2, mat.stone);
-box(28, 2.4, 28, 3.4, 3.4, 2.4, mat.trunk);
+/* (two orphan blocks at (-36,-36) and (28,28) removed in v13's cleanup — they
+   were landmarks for nothing, and "clear and clean" starts with deleting things) */
 const padMesh = box(0, 0.35, 22, 4, 4, 0.35, mat.pad);
 colliders[colliders.length - 1].pad = true;
 box(0, 6, 32, 8, 8, 2, mat.grass); box(12, 9, 39, 7, 7, 2, mat.grass);
@@ -956,34 +1027,57 @@ const treeAt = (x, z, s = 1) => {
   lf2.position.set(x + 0.8 * s, 5.3 * s, z - 0.4 * s); scene.add(lf2);
   worldTrees.push({ x, z, s, tr, lf, lf2, shakeT: 0, leafK: 1, regrowT: 0 });
 };
-[[-34, 8], [-28, 14, 1.2], [-10, -12], [8, -8, 0.9], [15, 12, 1.3], [34, -8], [38, 14, 0.8], [-8, 36, 1.1], [-20, -32, 0.9], [12, -28], [33, -30, 1.2], [-38, -8, 0.8]].forEach(a => treeAt(a[0], a[1], a[2] || 1));
+/* v13 CLEANUP — the island reads as PLACES now, not confetti.
+   Two rules everything below obeys:
+     · KEEP-OUT: nothing within 11m of the landing plaza (0,8)
+     · THE MAIN STREET: the corridor from the plaza gateway north to the flag
+       mound stays empty, so you can SEE where you're going from spawn.
+   Trees come in three named groves plus two solo landmarks — no lone trees
+   standing in the middle of nowhere. */
+const clearOf = (x, z) =>
+  Math.hypot(x, z - 8) > 11 &&                                  // the plaza
+  !(Math.abs(x) < 5.5 && z < 3 && z > -34) &&                   // the main street
+  !(Math.abs(x - 44) < 12 && Math.abs(z) < 6);                  // the pier to THE CLIMB
+[/* west grove, behind the house */ [-32, -8, 1.1], [-35, -14, 0.9], [-28, -3, 1],
+ /* north-east grove, behind the steps */ [30, -28, 1.2], [35, -23, 0.9], [26, -33, 1],
+ /* south grove, past the bounce pad */ [-18, 34, 1.1], [-12, 38, 0.85], [16, 33, 1.15],
+ /* two solos that frame the walk east to the pier */ [36, 14, 1.3], [30, 20, 0.9],
+].forEach(a => treeAt(a[0], a[1], a[2] || 1));
 /* (the old decorative pillar row at z=14 is gone — it cluttered the landing) */
-/* meadow dressing: grass tufts + wildflowers — all mowable by attacks, all grow back */
+/* meadow dressing: grass tufts + wildflowers — all mowable by attacks, all grow back.
+   v13: planted in BEDS instead of sprayed at random. Same toys, a tenth of the noise. */
 const mowables = [];
 const tuftG = new THREE.ConeGeometry(0.14, 0.75, 4);
-for (let i = 0; i < 70; i++) {
-  const x = (Math.random() - 0.5) * 84, z = (Math.random() - 0.5) * 84;
-  if (Math.hypot(x, z - 8) < 9.5) continue;   // keep the landing plaza clean
-  const t = new THREE.Mesh(tuftG, Math.random() < 0.5 ? mat.leaf : mat.leaf2);
-  t.position.set(x, 0.35, z); t.rotation.y = Math.random() * 3;
-  const sc = 0.7 + Math.random() * 0.9;
-  t.scale.setScalar(sc); scene.add(t);
-  mowables.push({ x, z, meshes: [t], scale: sc, mowT: 0 });
-}
+const rj = r => (Math.random() - 0.5) * r * 2;
+const MEADOW_BEDS = [[-30, -6], [-34, 17], [-15, 33], [19, 29], [32, -31], [25, 13], [-24, -33], [13, -23]];
+MEADOW_BEDS.forEach(([bx, bz]) => {
+  for (let i = 0; i < 4; i++) {
+    const x = bx + rj(3.4), z = bz + rj(3.4);
+    if (!clearOf(x, z)) continue;
+    const t = new THREE.Mesh(tuftG, Math.random() < 0.5 ? mat.leaf : mat.leaf2);
+    t.position.set(x, 0.35, z); t.rotation.y = Math.random() * 3;
+    const sc = 0.7 + Math.random() * 0.9;
+    t.scale.setScalar(sc); scene.add(t);
+    mowables.push({ x, z, meshes: [t], scale: sc, mowT: 0 });
+  }
+});
 const flowerCols = [0xe86fb2, 0xffd23e, 0xf2ede2, 0x8bb6f2];
-for (let i = 0; i < 26; i++) {
-  const x = (Math.random() - 0.5) * 80, z = (Math.random() - 0.5) * 80;
-  if (Math.hypot(x, z - 8) < 9.5) continue;   // not on the plaza either
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.55, 4), mat.leaf);
-  stem.position.set(x, 0.27, z); scene.add(stem);
-  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.14, 0), new THREE.MeshLambertMaterial({ color: flowerCols[i % 4] }));
-  head.position.set(x, 0.62, z); scene.add(head);
-  mowables.push({ x, z, meshes: [stem, head], scale: 1, mowT: 0 });
-}
+[[-27, 20], [21, -14], [-11, -27], [34, 4]].forEach(([bx, bz], b) => {
+  for (let i = 0; i < 3; i++) {
+    const x = bx + rj(1.9), z = bz + rj(1.9);
+    if (!clearOf(x, z)) continue;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.55, 4), mat.leaf);
+    stem.position.set(x, 0.27, z); scene.add(stem);
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.14, 0), new THREE.MeshLambertMaterial({ color: flowerCols[(b + i) % 4] }));
+    head.position.set(x, 0.62, z); scene.add(head);
+    mowables.push({ x, z, meshes: [stem, head], scale: 1, mowT: 0 });
+  }
+});
 
-/* boulders: three hits from anything — or one MEGA WAVE — and they pop into coins */
+/* boulders: three hits from anything — or one MEGA WAVE — and they pop into coins.
+   v13: seven scattered → five placed, one per region, none in a walking line */
 const smashables = [];
-[[14, -18], [-18, 22], [30, 8], [-8, -22], [22, 36], [-32, -14], [38, -22]].forEach(([x, z]) => {
+[[16, -26], [-20, 24], [31, 2], [-31, 6], [9, -16]].forEach(([x, z]) => {
   const g = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 0), mat.stone);
   g.position.set(x, 0.75, z); g.scale.y = 0.8; g.rotation.y = Math.random() * 3;
   scene.add(g);
@@ -1015,6 +1109,49 @@ const pavers = new THREE.MeshLambertMaterial({ map: checker('#cfc8b8', '#bdb5a4'
   const wsign = nameSprite('WELCOME TO THE ISLAND');
   wsign.scale.set(9.5, 1.6, 1); wsign.position.set(0, 7.3, 0); scene.add(wsign);
 }
+/* ---------- 🌀 THE TOWER DOOR: the portal, standing just off the plaza ----------
+   Placed where you can see it the second you land, on the clean west approach.
+   Walk into the shimmer and the island hands you to the 2D world (stepTower). */
+const PORTAL = { x: -13, z: 8, coolT: 0, disc: null, ring: null, motes: [], toasted: false };
+{
+  const px = PORTAL.x, pz = PORTAL.z;
+  box(px, 4.6, pz - 2.1, 1.0, 1.0, 4.6, mat.stone);            // the two posts
+  box(px, 4.6, pz + 2.1, 1.0, 1.0, 4.6, mat.stone);
+  box(px, 5.6, pz, 1.0, 5.2, 1.0, mat.stone, false);           // the lintel
+  const disc = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.2),
+    new THREE.MeshBasicMaterial({ color: 0x8a4fd0, transparent: true, opacity: 0.68, side: THREE.DoubleSide, depthWrite: false }));
+  disc.position.set(px, 2.3, pz); disc.rotation.y = Math.PI / 2;
+  scene.add(disc); PORTAL.disc = disc;
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.16, 6, 20),
+    new THREE.MeshLambertMaterial({ color: 0xc9a6ff, emissive: 0x3a1f6e }));
+  ring.position.set(px, 2.3, pz); ring.rotation.y = Math.PI / 2;
+  scene.add(ring); PORTAL.ring = ring;
+  for (let i = 0; i < 7; i++) {                                 // motes that orbit the door
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.13),
+      new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffd23e : 0xc9a6ff }));
+    scene.add(m); PORTAL.motes.push({ m, a: i / 7 * Math.PI * 2, r: 1.5 + Math.random() * 0.6, sp: 0.7 + Math.random() * 0.8 });
+  }
+  const em = emojiSprite('🌀'); em.scale.set(1.5, 1.5, 1); em.position.set(px, 6.9, pz); scene.add(em);
+  const lb = nameSprite('THE TOWER'); lb.scale.set(4.4, 0.72, 1); lb.position.set(px, 6.05, pz); scene.add(lb);
+  PORTAL.em = em;
+}
+function stepPortal(dt, mt) {
+  if (PORTAL.coolT > 0) PORTAL.coolT -= dt;
+  PORTAL.disc.material.opacity = 0.55 + Math.sin(mt * 2.6) * 0.16;
+  PORTAL.disc.scale.set(1 + Math.sin(mt * 1.7) * 0.05, 1 + Math.sin(mt * 2.2) * 0.05, 1);
+  PORTAL.ring.rotation.x = mt * 1.1;
+  PORTAL.em.position.y = 6.9 + Math.sin(mt * 2) * 0.14;
+  for (const o of PORTAL.motes) {
+    o.a += o.sp * dt;
+    o.m.position.set(PORTAL.x + Math.sin(o.a) * 0.25, 2.3 + Math.sin(o.a) * o.r, PORTAL.z + Math.cos(o.a) * o.r);
+  }
+  if (state !== 'PLAY' && state !== 'WON') return;
+  const d = Math.hypot(P.x - PORTAL.x, P.z - PORTAL.z);
+  if (d < 5.5 && !PORTAL.toasted) { PORTAL.toasted = true; toast('🌀 THE TOWER DOOR — walk in. it is a whole other world up there.', 4200); }
+  if (d > 9) PORTAL.toasted = false;
+  if (PORTAL.coolT <= 0 && d < 1.9 && P.y < 3.6) enterTower();
+}
+
 /* the teaching plinths: walk up to one and it tells you what it's for */
 const TUTOR_SPOTS = [];
 [['⭐', 'STARS', '⭐ stars are EVERYWHERE — and they always come back. grab 10 for a surprise.', -0.85],
@@ -1496,8 +1633,22 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v12';
+const GAME_VERSION = 'v13';
 const CHANGELOG = [
+  { v: 'v13', title: '🌀 THE TOWER · ⚔️ SPELLS · 🧹 A TIDIER ISLAND', lines: [
+    '🌀 THE TOWER: a PORTAL stands next to the landing. walk in — it is a whole other world, and it is 2D.',
+    '🧗 up there, RUNNING FAST is everything: the faster you go the higher you jump. bounce off the walls to keep your speed.',
+    '🔥 skip 2+ floors in one jump and a COMBO starts. chain them. the words get bigger.',
+    '🧀 the nacho tide rises behind you — when it catches you it just carries you home, with coins.',
+    '⚔️ SPELLS! every hero has THREE of their own, on a real action bar. tap them, or press 1 · 2 · 3.',
+    '⌨️ cheese is now E on a keyboard (X and F still work).',
+    '🌳 the SKILL TREE grew all the way up: tier 2 (3 ✨) and tier 3 (5 ✨) are REAL now, for all seven heroes — every node upgrades one of your spells.',
+    '⚡ SPARK got a proper glow-up: taller spikes, a real trench coat with tails that fly when you run, and an actual katana.',
+    '🧹 the island got tidied — clear sightlines, props grouped into places, and all the little buttons moved into one ☰ menu.',
+    '🌠 WISH GRANTED — DYLAN wished for a TORTILLA CHIP AIRSTRIKE. it is spell 4 🌮, it costs 25 🪙, and it is exactly what it sounds like. thank you Dylan.',
+    '⌨️ also fixed because of that wish: you can type SPACES in the wish box now. sorry about that.',
+    '📻 two new radio stations: THE DEEP (underwater) and DEEP END (boss music, plays automatically in the tower).',
+  ]},
   { v: 'v12', title: 'THE CLIMB & THE WISHING WELL', lines: [
     '🏔️ THE CLIMB: sky areas off the pier — beat each one and the NEXT builds itself',
     '🏮 area 3 is a riddle. the lanterns know the order. watch them.',
@@ -1647,22 +1798,32 @@ const buildReach = () => myCh === 0 ? (perk('t1b') ? 20 : 14) : 10;             
    (integrator remaps vs VISION, documented: ZIP T1 = SLIDE BURST + POCKETS;
     WICK T1b = BRIGHT PINGS; SPROUT T1b = HARVEST HANDS — client-side honest set) */
 const TREES = [
-  { name: 'HANDS', root: ['STEADY HANDS', 'build reach 14m'], t1a: ['DOUBLE PLONK', 'one tap places two blocks, stacked'], t1b: ['LONG ARM', 'build reach 20m'] },
-  { name: 'LEGS', root: ['QUICKFOOT', '+15% run speed'], t1a: ['SLIDE BURST', 'jumping at full sprint slings you forward'], t1b: ['POCKETS', 'coins near you fly into your pockets'] },
-  { name: 'SPRING', root: ['BOUNCY', 'big landings bounce you instead of stopping you'], t1a: ['TRIPLE HOP', 'a third jump'], t1b: ['FLOAT', 'hold jump at the top to hang in the air'] },
-  { name: 'LIGHT', root: ['GLIMMER', 'you glow at night'], t1a: ['LANTERN THROW', 'stick a light where you tap (🏮 in the build bar)'], t1b: ['BRIGHT PINGS', 'your pings are huge and last 12s'] },
-  { name: 'SPLAT', root: ['THICK SAUCE', 'globs paint 30% wider'], t1a: ['TRIPLE EYE', 'a third glob fires straight up — cheese rain'], t1b: ['MEGA GLOB', 'every 4th glob while spraying is a monster'] },
-  { name: 'GROW', root: ['GREEN THUMB', 'tap a sprout to see how long till it blooms'], t1a: ['BROADCAST', 'plant a 2×2 patch of seeds in one tap'], t1b: ['HARVEST HANDS', 'zinnias pay 12 🪙 instead of 8'] },
-  { name: 'STYLE', root: ['AURA', 'you glow gold. always. even at noon.'], t1a: ['AFTERIMAGE', 'your double jump erupts in golden light'], t1b: ['MAXIMUM DRAMA', 'your pings are enormous and last 12s'] },
+  { name: 'HANDS', root: ['STEADY HANDS', 'build reach 14m'], t1a: ['DOUBLE PLONK', 'one tap places two blocks, stacked'], t1b: ['LONG ARM', 'build reach 20m'],
+    t2a: ['THE ARCH', '🧱 BULWARK builds 5 wide and 2 tall'], t2b: ['QUICK HANDS', 'every one of your spells cools down 30% faster'],
+    t3: ['EARTHSHAKER', '💥 GROUND POUND nearly doubles its reach and smashes blocks and boulders'] },
+  { name: 'LEGS', root: ['QUICKFOOT', '+15% run speed'], t1a: ['SLIDE BURST', 'jumping at full sprint slings you forward'], t1b: ['POCKETS', 'coins near you fly into your pockets'],
+    t2a: ['BLINK STEP', '⚡ DASH cools down in half the time'], t2b: ['WALL KISS', '⚡ DASH goes straight THROUGH whatever is in the way'],
+    t3: ['THE LONG LOOK', '👟 SPRINT lasts 10s — and every loose coin on the island flies to you the whole time'] },
+  { name: 'SPRING', root: ['BOUNCY', 'big landings bounce you instead of stopping you'], t1a: ['TRIPLE HOP', 'a third jump'], t1b: ['FLOAT', 'hold jump at the top to hang in the air'],
+    t2a: ['BUTT STOMP', '🌊 SHOCKWAVE reaches further and smashes blocks and boulders'], t2b: ['PAD MAKER', '🛏️ TRAMPOLINES last two minutes and you can have three out at once'],
+    t3: ['THE CANNONBALL', '🚀 SUPER HOP launches you way higher — and you land with a free SHOCKWAVE'] },
+  { name: 'LIGHT', root: ['GLIMMER', 'you glow at night'], t1a: ['LANTERN THROW', 'stick a light where you tap (🏮 in the build bar)'], t1b: ['BRIGHT PINGS', 'your pings are huge and last 12s'],
+    t2a: ['THE LAMP LINE', '🏮 LANTERN throws three of them in a row'], t2b: ['CALM VOICE', '☀️ DAYBREAK sits every crumb down for 20 seconds'],
+    t3: ['DAWNBRINGER', '☀️ DAYBREAK regrows the whole island — grass, leaves, boulders — and pays you 5 🪙'] },
+  { name: 'SPLAT', root: ['THICK SAUCE', 'globs paint 30% wider'], t1a: ['TRIPLE EYE', 'a third glob fires straight up — cheese rain'], t1b: ['MEGA GLOB', 'every 4th glob while spraying is a monster'],
+    t2a: ['BOUNCE SAUCE', 'jumping while you swim launches you 50% higher'], t2b: ['NACHO SHIELD', 'crumbs bounce off you — no knockback, no dropped coins, ever'],
+    t3: ['THE FONDUE', '🫧 FONDUE paints the ground as you run. you leave a river behind you.'] },
+  { name: 'GROW', root: ['GREEN THUMB', 'tap a sprout to see how long till it blooms'], t1a: ['BROADCAST', 'plant a 2×2 patch of seeds in one tap'], t1b: ['HARVEST HANDS', 'zinnias pay 12 🪙 instead of 8'],
+    t2a: ['THE ORCHARD', '🌿 SEED SPRAY plants a 5×5 patch instead of 3×3'], t2b: ['ZINNIA SPRAY', '🌻 BLOOM BURST plants four real seeds while it works'],
+    t3: ['BLOOM BOMB', '🌻 BLOOM BURST pays you 3 🪙 for every single thing it brings back to life'] },
+  { name: 'STYLE', root: ['AURA', 'you glow gold. always. even at noon.'], t1a: ['AFTERIMAGE', 'your double jump erupts in golden light'], t1b: ['MAXIMUM DRAMA', 'your pings are enormous and last 12s'],
+    t2a: ['CAKE CUTTER', '⭐ BOLT cuts clean through up to three crumbs'], t2b: ['POWER STANCE', '⚡ FINAL FORM lasts twice as long'],
+    t3: ['ULTRA DRAMA', '🌊 MEGA WAVE charges in ONE second, and FINAL FORM cools twice as fast'] },
 ];
-const SOON = [
-  ['CHEESE MASON', 'SOFT LANDING', 'THE ARCH', 'UNDO BREATH'],
-  ['PING BLOOM', 'WALL KISS', 'BLINK STEP', 'THE LONG LOOK'],
-  ['BUTT STOMP', 'PAD MAKER', 'SKY WALK', 'THE CANNONBALL'],
-  ['UNSTICK', 'CALM VOICE', 'DAYBREAK', 'THE LAMP LINE'],
-  ['BOUNCE SAUCE', 'NACHO SHIELD', 'THE FONDUE', 'SHARK WHISPERER'],
-  ['ZINNIA SPRAY', 'WARM POCKET', 'THE ORCHARD', 'BLOOM BOMB'],
-  ['POWER STANCE', 'THE SLOW WALK', 'CAKE CUTTER', 'ULTRA DRAMA'],
+const TIERS = [
+  { keys: ['t1a', 't1b'], cost: 2, label: 'tier 1 — pick ONE · 2 ✨', needs: null },
+  { keys: ['t2a', 't2b'], cost: 3, label: 'tier 2 — pick ONE · 3 ✨', needs: 't1' },
+  { keys: ['t3'], cost: 5, label: 'tier 3 — the capstone · 5 ✨', needs: 't2' },
 ];
 function addSpark(flag, why) {
   if (!hero || hero.earned[flag]) return;
@@ -1723,29 +1884,70 @@ function makeChar(shirtHex, capHex, ch = 1, custom = false, goldForm = false) {
       wedge.position.y = 2.5; wedge.rotation.z = 0.35; group.add(wedge);
       break;
     }
-    case 6: { // EDGE: spiky golden hair, black trench coat, katana (for cake)
+    case 6: { // SPARK: the full v13 glow-up — tall spiked hair, a real trench coat, a real katana
       capTop.visible = capBrim.visible = false;
-      torso.material = new THREE.MeshLambertMaterial({ color: custom ? shirtHex : 0x16161e });   // the coat
-      armL.material = armR.material = torso.material;
-      torso.scale.set(1.05, 1.15, 1.05);
+      const coatMat = new THREE.MeshLambertMaterial({ color: custom ? shirtHex : 0x101016 });
+      torso.material = coatMat; armL.material = armR.material = coatMat;
+      torso.scale.set(1.08, 1.22, 1.06);
+      torso.position.y = 1.08;
+      /* ---- the coat: popped collar, lapels, open front, two tails that swing ---- */
+      const collar = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.2, 0.72), coatMat);
+      collar.position.y = 1.52; group.add(collar);
+      const pop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.36, 0.11), coatMat);
+      pop.position.set(0, 1.68, -0.31); pop.rotation.x = -0.38; group.add(pop);
+      [-1, 1].forEach(s => {
+        const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.66, 0.1), coatMat);
+        lapel.position.set(s * 0.25, 1.14, 0.29); lapel.rotation.z = s * 0.2; group.add(lapel);
+        const front = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.72, 0.12), coatMat);
+        front.position.set(s * 0.42, 0.72, 0.2); front.rotation.z = s * 0.1; group.add(front);
+      });
+      const beltM = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.14, 0.62), new THREE.MeshLambertMaterial({ color: 0x2a2a34 }));
+      beltM.position.y = 0.72; group.add(beltM);
+      const tailG = new THREE.BoxGeometry(0.42, 1.0, 0.13);
+      tailG.translate(0, -0.5, 0);                       // pivot at the waist, so it can swing
+      const coatL = new THREE.Mesh(tailG, coatMat);
+      coatL.position.set(-0.24, 0.8, -0.33); group.add(coatL);
+      const coatR = new THREE.Mesh(tailG, coatMat);
+      coatR.position.set(0.24, 0.8, -0.33); group.add(coatR);
+      /* ---- the hair: seven spikes swept back, gold and glowing in FINAL FORM ---- */
       const hairMat = goldForm
-        ? new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0xa87f00 })   // FINAL FORM: gold, glowing
-        : new THREE.MeshLambertMaterial({ color: 0x1a1a22 });                       // base form: black spikes
-      [[-0.2, 0.15, -0.15], [0.02, 0.3, 0.05], [0.22, 0.12, -0.1], [-0.05, 0.22, -0.28]].forEach(([hx, hs, hz]) => {
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55 + hs, 4), hairMat);
-        spike.position.set(hx, 2.35, hz); spike.rotation.z = -hx * 0.9; spike.rotation.x = hz * 0.8;
+        ? new THREE.MeshLambertMaterial({ color: 0xffd23e, emissive: 0xc09000 })
+        : new THREE.MeshLambertMaterial({ color: 0x17171f });
+      [[-0.29, -0.05, 0.66, 0.82, 0.12], [-0.15, -0.24, 0.86, 0.36, 0.6], [0, -0.03, 1.02, 0, 0.18],
+       [0.15, -0.24, 0.86, -0.36, 0.6], [0.29, -0.05, 0.66, -0.82, 0.12],
+       [-0.19, 0.26, 0.52, 0.46, -0.55], [0.19, 0.26, 0.52, -0.46, -0.55]].forEach(([hx, hz, len, rz, rx]) => {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.13, len, 4), hairMat);
+        spike.position.set(hx, 2.2 + len * 0.42, hz);
+        spike.rotation.z = rz; spike.rotation.x = rx;
         group.add(spike);
       });
-      const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.6, 0.1), torso.material);
-      tailL.position.set(-0.22, 0.45, -0.32); tailL.rotation.x = 0.25; group.add(tailL);
-      const tailR = tailL.clone(); tailR.position.x = 0.22; group.add(tailR);
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.35, 0.14),
-        new THREE.MeshLambertMaterial({ color: 0xc8ccd8 }));
-      blade.position.set(0.12, 1.35, -0.42); blade.rotation.z = 0.5; group.add(blade);
-      const hilt = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.16),
-        new THREE.MeshLambertMaterial({ color: 0x6b2530 }));
-      hilt.position.set(0.46, 1.95, -0.42); hilt.rotation.z = 0.5; group.add(hilt);
-      break;
+      /* ---- the katana: saya, gold fittings, tsuba, wrapped tsuka, pommel ---- */
+      const kat = new THREE.Group();
+      const sayaMat = new THREE.MeshLambertMaterial({ color: 0x14141c });
+      const goldMat = new THREE.MeshLambertMaterial({ color: 0xd9a12b, emissive: goldForm ? 0x6a4d00 : 0x000000 });
+      const saya = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.28, 0.1), sayaMat);
+      saya.position.y = -0.66; kat.add(saya);
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.035, 1.28, 0.11),
+        new THREE.MeshLambertMaterial({ color: goldForm ? 0xfff0a8 : 0x9aa4b8, emissive: goldForm ? 0x7a5c00 : 0x000000 }));
+      edge.position.set(0.06, -0.66, 0); kat.add(edge);                       // the blade's spine catching light
+      const koi = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.08, 0.13), goldMat); koi.position.y = -0.05; kat.add(koi);
+      const kojiri = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.12), goldMat); kojiri.position.y = -1.3; kat.add(kojiri);
+      const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.05, 8), goldMat);
+      tsuba.position.y = 0.06; kat.add(tsuba);
+      const tsuka = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.46, 0.14),
+        new THREE.MeshLambertMaterial({ color: 0x241a1c })); tsuka.position.y = 0.32; kat.add(tsuka);
+      for (let i = 0; i < 4; i++) {                                            // the ito wrap
+        const wrap = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.05, 0.165), new THREE.MeshLambertMaterial({ color: 0x8a1f2a }));
+        wrap.position.y = 0.15 + i * 0.115; wrap.rotation.y = 0.5; kat.add(wrap);
+      }
+      const kashira = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.16), goldMat);
+      kashira.position.y = 0.57; kat.add(kashira);
+      kat.position.set(0.06, 1.5, -0.44); kat.rotation.z = -0.6; kat.rotation.x = -0.1;
+      group.add(kat);
+      scene.add(group);
+      const blob6 = new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
+      blob6.rotation.x = -Math.PI / 2; scene.add(blob6);
+      return { group, legL, legR, armL, armR, blob: blob6, coatL, coatR };
     }
     case 5: { // SPROUT: a seedling on the head
       torso.scale.set(0.9, 0.95, 0.9);
@@ -1907,7 +2109,7 @@ function ffToggle() {
   if (myCh !== 6 || (state !== 'PLAY' && state !== 'WON')) return;
   if (ffS.on) { ffEnd('you powered down.'); return; }
   if (ffS.charge < 1) { toast(`⚡ still charging… ${Math.round(ffS.charge * 100)}%`, 1400); return; }
-  ffS.on = true; ffS.t = 45; ffS.charge = 0; ffS.beamT = 0;
+  ffS.on = true; ffS.t = perk('t2b') ? 90 : 45; ffS.charge = 0; ffS.beamT = 0;   // SPARK T2b · POWER STANCE
   rebuildHero();
   burst(P.x, P.y + 1.2, P.z, 44, 9);
   AU.fanfare(); buzz([60, 40, 60, 40, 140]);
@@ -1945,13 +2147,11 @@ function fireMegaWave() {
 }
 function stepFF(dt, mt) {
   const b = $('btnFF');
+  b.style.display = 'none';        // v13: FINAL FORM is spell 3 on the bar now
   const show = myCh === 6 && (state === 'PLAY' || state === 'WON' || state === 'SWOOP');
-  b.style.display = show ? 'grid' : 'none';
   if (!show) { if (ffS.on) ffEnd(); return; }
   if (ffS.on) {
     ffS.t -= dt;
-    b.style.opacity = 1;
-    b.style.boxShadow = '0 0 16px #ffd23e';
     if (ffS.t <= 0) { ffEnd('the gold ran out.'); return; }
     const still = Math.abs(P.vx) + Math.abs(P.vz) < 0.8 && P.grounded;
     if (P.spray && still) {                      // charging the wave
@@ -1962,7 +2162,7 @@ function stepFF(dt, mt) {
       ffS.orb.scale.set(s2, s2, 1);
       ffS.orb.position.set(P.x + Math.sin(P.yaw) * 1.1, P.y + 1.3, P.z + Math.cos(P.yaw) * 1.1);
       if ((ffS.beamT | 0) > ((ffS.beamT - dt) | 0)) buzz(30);
-      if (ffS.beamT >= 2) fireMegaWave();
+      if (ffS.beamT >= (perk('t3') ? 1 : 2)) fireMegaWave();       // SPARK T3 · ULTRA DRAMA
     } else { ffS.beamT = 0; if (ffS.orb) ffS.orb.visible = false; }
   } else {
     ffS.charge = Math.min(1, ffS.charge + dt / 90);   // full again in 90 s
@@ -2120,6 +2320,11 @@ function crumbDie(c, drops) {
   toast('CRUMB CHEESED! +3 COINS', 1800);
 }
 function hurtPlayer(dxp, dzp, msg) {
+  if (myCh === 4 && perk('t2b')) {                      // GLOOP T2b · NACHO SHIELD — it just bounces off
+    P.hurtT = 0.4; burst(P.x, P.y + 1, P.z, 12, 4);
+    AU.squish(); buzz(20); toast('🫧 NACHO SHIELD — nope', 1200);
+    return;
+  }
   const d = Math.hypot(dxp, dzp) || 1;
   P.vx = -dxp / d * 12; P.vz = -dzp / d * 12; P.vy = 6.5; P.grounded = false;
   P.hurtT = 1.5;
@@ -2136,7 +2341,8 @@ function stepCrumbs(dt, mt) {
     if (!MMO.on) {                                        // solo: local AI (classic island)
       const dxp = P.x - c.g.position.x, dzp = P.z - c.g.position.z, dp = Math.hypot(dxp, dzp);
       let sp = 2.2;
-      if (dp < 9 && P.y < 3) { c.tx = P.x; c.tz = P.z; sp = 4.3; }
+      if (buffs.calm > 0) { sp = 0.6; }                    // WICK T2b · CALM VOICE — they sit down
+      else if (dp < 9 && P.y < 3) { c.tx = P.x; c.tz = P.z; sp = 4.3; }
       else if ((c.retarget -= dt) <= 0) {
         c.retarget = 2 + Math.random() * 2;
         const a = Math.random() * 7;
@@ -2505,12 +2711,17 @@ const MMO = {
 /* ---------- input (one hero per phone — the island has the rest) ---------- */
 const keys = {};
 let camYaw = Math.PI, touchSpray = false, lastDt = 0.016;
+const typing = e => {                       // Dylan found this: the game was eating the spacebar,
+  const t = e.target;                       // so wishes came out asoneword. text boxes get the keys now.
+  return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+};
 addEventListener('keydown', e => {
-  if (e.repeat) return;
+  if (e.repeat || typing(e)) return;
   keys[e.code] = true;
   if (e.code === 'Space' || e.code === 'KeyZ') { P.jumpQueued = true; e.preventDefault(); }
   if (e.code === 'KeyM') AU.toggleMute();
   if (e.code === 'KeyB' && state === 'PLAY') setBuild(!buildMode);
+  if (/^Digit[1-4]$/.test(e.code) && !buildMode && (state === 'PLAY' || state === 'WON')) castSpell(+e.code.slice(5) - 1);
   if (/^Digit[1-7]$/.test(e.code) && buildMode) {
     const chips = document.querySelectorAll('#palette .chip');
     const idx = +e.code.slice(5) - 1;
@@ -2568,6 +2779,7 @@ function setBuild(on) {
   buildMode = on;
   $('btnBuild').classList.toggle('on', on);
   $('palette').style.display = on ? 'flex' : 'none';
+  $('spells').style.display = (!on && (state === 'PLAY' || state === 'WON')) ? 'flex' : 'none';   // one bar at a time
   if (on) toast('🔨 BUILD MODE — tap the ground to place, 💥 to remove, 🌱 to plant', 2600);
 }
 $('btnBuild').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); setBuild(!buildMode); });
@@ -2937,14 +3149,17 @@ function enterIsland() {
   applyGauntProgress();
   state = 'SWOOP'; swoopT = 0;
   $('hud').style.display = 'block';
-  $('mute').style.display = 'grid';
-  $('mute').textContent = AU.muted ? '🔇' : '🔊';
-  $('btnRadio').style.display = 'grid';
+  /* v13 CLEANUP: mute · radio · skills · wish · what's-new · feedback all moved
+     into the ☰ pocket menu. The thumb zone now holds only what you PLAY with. */
+  $('mute').style.display = 'none';
+  $('btnRadio').style.display = 'none';
+  $('btnTree').style.display = 'none';
+  $('btnMenu').style.display = 'grid';
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
   $('btnBuild').style.display = 'grid';
   $('btnPing').style.display = 'grid';
-  $('btnTree').style.display = 'grid';
   refreshLampChip();
+  refreshSpellBar();
   renderQuest();
   if (!localStorage.getItem('d64_welcomed'))
     setTimeout(() => { if (state === 'PLAY' || state === 'SWOOP') $('welcome').style.display = 'grid'; }, 1900);
@@ -3009,16 +3224,16 @@ function stepHero(dt, mt) {
   /* spray is computed fresh every frame from live sources — no latching, ever
      (the old `else if (!P.spray)` branch could never turn it off: the mobile
       infinite-cheese bug) */
-  P.spray = !!(touchSpray || keys.KeyX || keys.KeyF || pad.spray);
+  P.spray = !!(touchSpray || keys.KeyE || keys.KeyX || keys.KeyF || pad.spray);   // v13: E is cheese
   const il = Math.hypot(ix, iz); if (il > 1) { ix /= il; iz /= il; }
 
   const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
   const rx = -fz, rz = fx;
-  P.swimming = P.grounded && P.y <= 0.05 && isCheesed(P.x, P.z);
+  P.swimming = P.grounded && ((P.y <= 0.05 && isCheesed(P.x, P.z)) || buffs.fondue > 0);   // GLOOP · FONDUE
   if (P.swimming && !P.wasSwimming && !P.swimToasted) { P.swimToasted = true; toast('CHEESE SWIM! WHOOSH! 🧀🏊', 2200); }
   P.wasSwimming = P.swimming;
   if (P.hurtT > 0) P.hurtT -= dt;
-  const SP = 9.5 * zoomF() * (P.swimming ? 1.65 : 1), ctl = P.grounded ? 1 : 0.55;
+  const SP = 9.5 * zoomF() * (P.swimming ? 1.65 : 1) * spellSpeedMul(), ctl = P.grounded ? 1 : 0.55;
   const tvx = (fx * iz + rx * ix) * SP, tvz = (fz * iz + rz * ix) * SP;
   P.vx = lerp(P.vx, tvx, clamp(12 * dt * ctl, 0, 1));
   P.vz = lerp(P.vz, tvz, clamp(12 * dt * ctl, 0, 1));
@@ -3027,7 +3242,8 @@ function stepHero(dt, mt) {
     P.jumpQueued = false;
     const maxAir = (myCh === 2 && perk('t1a')) ? 3 : 2;               // BOP · TRIPLE HOP
     if (P.grounded) {
-      P.vy = 10 * hopF(); P.grounded = false; P.jumps = 1; AU.jump();
+      const sauce = (myCh === 4 && perk('t2a') && P.swimming) ? 1.5 : 1;                              // GLOOP T2a · BOUNCE SAUCE
+      P.vy = 10 * hopF() * sauce; P.grounded = false; P.jumps = 1; AU.jump();
       if (myCh === 1 && perk('t1a') && Math.hypot(P.vx, P.vz) > 8) { P.vx *= 1.35; P.vz *= 1.35; }   // ZIP · SLIDE BURST
     }
     else if (P.jumps < maxAir) {
@@ -3060,6 +3276,7 @@ function stepHero(dt, mt) {
       P.y = c.top; P.vy = 0;
       if (!P.groundedPrev && prevY - P.y > 0.4) AU.land();
       if (myCh === 2 && !P.groundedPrev && (P.peakY ?? P.y) - P.y > 4) { P.vy = 4.5; AU.bounce(); }   // BOP root · BOUNCY
+      if (P.cannonball && !P.groundedPrev) { P.cannonball = false; doShockwave(); }                   // BOP T3 · THE CANNONBALL
       P.peakY = P.y;
       P.grounded = true; P.jumps = 0;
       if (c.moving) P.onMov = true;
@@ -3087,6 +3304,12 @@ function stepHero(dt, mt) {
   const swing = Math.sin(mt * 11) * clamp(sp / 9.5, 0, 1) * 0.7;
   P.legL.rotation.x = swing; P.legR.rotation.x = -swing;
   P.armL.rotation.x = -swing; P.armR.rotation.x = swing;
+  if (P.coatL) {                                  // SPARK's coat tails catch the wind
+    const flap = clamp(sp / 9.5, 0, 1) * 0.55 + (P.grounded ? 0 : 0.5);
+    P.coatL.rotation.x = flap + Math.sin(mt * 9) * 0.16;
+    P.coatR.rotation.x = flap + Math.sin(mt * 9 + 0.7) * 0.16;
+    P.coatL.rotation.z = -Math.sin(mt * 6) * 0.08; P.coatR.rotation.z = Math.sin(mt * 6) * 0.08;
+  }
   P.group.position.y += P.grounded ? Math.abs(Math.sin(mt * 11)) * clamp(sp / 9.5, 0, 1) * 0.06 : 0;
   if (!P.grounded) { P.legL.rotation.x = 0.5; P.legR.rotation.x = -0.3; P.armL.rotation.x = -2.6; P.armR.rotation.x = -2.6; }
   P.legL.visible = P.legR.visible = !P.swimming;
@@ -3112,7 +3335,7 @@ function stepHero(dt, mt) {
     const dx = s.position.x - P.x, dy = s.position.y - (P.y + 1), dz = s.position.z - P.z;
     if (dx * dx + dy * dy + dz * dz < 1.9) collectStarIdx(i, true);
   }
-  const coinR = (myCh === 1 && perk('t1b')) ? 16 : 1.2;               // ZIP · POCKETS
+  const coinR = buffs.magnet > 0 ? 900 : (myCh === 1 && perk('t1b')) ? 16 : 1.2;   // ZIP · POCKETS / THE LONG LOOK
   for (let i = 0; i < coins.length; i++) {
     const c = coins[i];
     if (!c.visible) continue;
@@ -3143,6 +3366,10 @@ function stepPuppets(dt, mt) {
     const swing = moving ? Math.sin(mt * 11 + pu.id) * 0.7 : 0;
     pu.legL.rotation.x = swing; pu.legR.rotation.x = -swing;
     pu.armL.rotation.x = -swing; pu.armR.rotation.x = swing;
+    if (pu.coatL) {
+      const flap = (moving ? 0.5 : 0.12) + Math.sin(mt * 9 + pu.id) * 0.14;
+      pu.coatL.rotation.x = flap; pu.coatR.rotation.x = flap;
+    }
     pu.legL.visible = pu.legR.visible = !pu.swimming;
     if (pu.swimming) { pu.group.position.y -= 0.5; pu.group.rotation.x = 0.18; }
     else pu.group.rotation.x = 0;
@@ -3166,7 +3393,9 @@ function spinCollectibles(dt, mt) {
   stepRadio(dt);
   stepSmash(dt);
   stepTutor(dt, mt);
+  stepPortal(dt, mt);
   stepGauntlet(dt, mt);
+  stepSpells(dt, mt);
   /* the gnome speaks to whoever stands close */
   if ((state === 'PLAY' || state === 'WON') && mt - lastGnomeT > 40) {
     if (Math.hypot(P.x - gnome.position.x, P.z - gnome.position.z) < 5) {
@@ -3206,6 +3435,806 @@ function stepCam(dt) {
   }
 }
 
+/* ================== ⚔️ THE SPELLBOOK — seven heroes, seven ways to play ==================
+   WoW-shaped: a real action bar, real cooldowns, a signature three-spell kit per hero,
+   and a skill tree that upgrades those exact spells (the tree and the bar are ONE system).
+   Built only out of this island's kind verbs — build, paint, grow, light, bounce, cheese.
+   Nothing here damages another player, nothing has a health bar, and the only price of
+   any spell is TIME. Cheese moved to E on the keyboard; 1/2/3 cast. */
+const buffs = { sprint: 0, fondue: 0, day: 0, calm: 0, magnet: 0 };
+const cdT = [0, 0, 0, 0];
+const tempCols = [];                     // trampolines, beacons — things that expire
+const fwdX = () => Math.sin(P.yaw), fwdZ = () => Math.cos(P.yaw);
+const cdMul = () => (myCh === 0 && perk('t2b')) ? 0.7 : 1;          // PLONK · QUICK HANDS
+const onIsland = (x, z) => Math.abs(x) < 44 && Math.abs(z) < 44;
+function spellSpeedMul() { return buffs.sprint > 0 ? 1.7 : 1; }
+function bKey(x, y, z) { return `${Math.round(x / GRID)},${Math.max(0, Math.round(y / GRID))},${Math.round(z / GRID)}`; }
+function placeSpellBlock(x, y, z, ty) {
+  if (!onIsland(x, z)) return false;
+  const k = bKey(x, y, z);
+  const [bx, by, bz] = k.split(',').map(Number);
+  if (Math.abs(bx) > 29 || Math.abs(bz) > 29 || by > 7) return false;
+  if (blocks.has(k)) return false;
+  if (MMO.on) MMO.send({ t: 'block', k, ty }); else addBlock(k, ty, true);
+  return true;
+}
+function tempCollider(mesh, col, secs) {
+  scene.add(mesh); colliders.push(col);
+  tempCols.push({ mesh, col, t: secs });
+}
+function popCrumbsIn(x, z, r, max) {
+  let n = 0;
+  for (let ci = 0; ci < crumbs.length && n < (max || 99); ci++) {
+    const c = crumbs[ci];
+    if (!c.alive) continue;
+    if (Math.hypot(c.g.position.x - x, c.g.position.z - z) > r) continue;
+    c.hitT = 0.3; n++;
+    if (hero) { hero.life.splats = (hero.life.splats || 0) + 1; saveHero(); }
+    questBump('splat');
+    if (MMO.on) MMO.send({ t: 'hitcrumb', i: ci });
+    else if (--c.hp <= 0) crumbDie(c, null);
+    paintCheese(c.g.position.x, c.g.position.z, 1.5, MMO.on);
+  }
+  if (n) AU.hitCrumb();
+  return n;
+}
+function regrowAround(x, z, r, pay) {
+  let n = 0;
+  for (const m of mowables) if (m.mowT > 0 && Math.hypot(m.x - x, m.z - z) < r) { m.mowT = 0; m.meshes.forEach(me => me.scale.setScalar(m.scale)); n++; }
+  for (const t of worldTrees) if (t.leafK < 1 && Math.hypot(t.x - x, t.z - z) < r) { t.leafK = 1; t.regrowT = 0; t.lf.scale.setScalar(1); t.lf2.scale.setScalar(1); n++; }
+  for (const s of smashables) if (s.respawnT > 0 && Math.hypot(s.x - x, s.z - z) < r) { s.respawnT = 0.01; n++; }
+  if (n && pay) { coinCount += n * pay; $('coinCt').textContent = coinCount; AU.coin(); }
+  return n;
+}
+const SPELLS = [
+  /* ---- 0 · PLONK 🔨 — the builder: makes ground where there wasn't any ---- */
+  [
+    { k: 'pillar', name: 'PILLAR', em: '🏗️', cd: 8, tip: 'a tower of blocks under your boots — and up you go',
+      go() {
+        const by = Math.max(0, Math.round(P.y / GRID));
+        let made = 0;
+        for (let i = 0; i < 3; i++) if (placeSpellBlock(P.x, (by + i) * GRID, P.z, 0)) made++;
+        P.y = (by + 3) * GRID; P.vy = 7; P.grounded = false; P.jumps = 1;
+        burst(P.x, P.y, P.z, 16, 4); AU.place(); buzz(30);
+        toast(made ? '🏗️ PILLAR!' : '🏗️ PILLAR — no room, but up you go anyway', 1400);
+      } },
+    { k: 'bulwark', name: 'BULWARK', em: '🧱', cd: 12, tip: 'a wall of stone across your path',
+      go() {
+        const arch = perk('t2a'), wide = arch ? 5 : 3, tall = arch ? 2 : 1;
+        const fx = fwdX(), fz = fwdZ(), rx = -fz, rz = fx;
+        let made = 0;
+        for (let i = -(wide - 1) / 2; i <= (wide - 1) / 2; i++)
+          for (let h = 0; h < tall; h++)
+            if (placeSpellBlock(P.x + fx * 3 + rx * i * GRID, P.y + h * GRID, P.z + fz * 3 + rz * i * GRID, 1)) made++;
+        AU.place(); buzz(25); burst(P.x + fx * 3, P.y + 1, P.z + fz * 3, 14, 3);
+        toast(`🧱 BULWARK — ${made} block${made === 1 ? '' : 's'}${arch ? ' (THE ARCH)' : ''}`, 1600);
+      } },
+    { k: 'pound', name: 'GROUND POUND', em: '💥', cd: 10, tip: 'the whole island feels this one',
+      go() {
+        const quake = perk('t3'), r = quake ? 11 : 6;
+        P.vy = P.grounded ? 0 : -26;
+        smashAt(P.x, P.z, r, 3, quake);
+        camShakeT = quake ? 1.1 : 0.55;
+        burst(P.x, P.y + 0.3, P.z, quake ? 46 : 22, 7);
+        AU.bonk(); buzz([70, 40, 90]);
+        toast(quake ? '💥 EARTHSHAKER!!' : '💥 GROUND POUND!', 1500);
+      } },
+  ],
+  /* ---- 1 · ZIP 💨 — the runner: everything is about being already over there ---- */
+  [
+    { k: 'dash', name: 'DASH', em: '⚡', cd: 4, tip: 'a straight line, extremely fast',
+      go() {
+        const fx = fwdX(), fz = fwdZ();
+        if (perk('t2b')) {                                     // WALL KISS · straight through
+          P.x = clamp(P.x + fx * 7, -43, 43); P.z = clamp(P.z + fz * 7, -43, 43);
+          toast('⚡ WALL KISS — right through it', 1300);
+        } else { P.vx += fx * 26; P.vz += fz * 26; toast('⚡ DASH!', 1000); }
+        for (let i = 1; i <= 5; i++) burst(P.x - fx * i, P.y + 0.9, P.z - fz * i, 4, 1.5);
+        AU.djump(); buzz(20);
+      } },
+    { k: 'whirl', name: 'WHIRL', em: '🌀', cd: 12, tip: 'spin: every loose coin comes to you',
+      go() {
+        let got = 0;
+        for (let i = 0; i < coins.length; i++) {
+          const c = coins[i];
+          if (c.visible && Math.hypot(c.position.x - P.x, c.position.z - P.z) < 20) { collectCoinIdx(i, true); got++; }
+        }
+        dcoins.forEach((m, id) => {
+          if (Math.hypot(m.position.x - P.x, m.position.z - P.z) > 20) return;
+          removeDcoin(id); coinCount++; got++;
+          if (MMO.on && id > 0) MMO.send({ t: 'dcoin', id });
+        });
+        $('coinCt').textContent = coinCount;
+        smashAt(P.x, P.z, 6, 2, false);
+        for (let a = 0; a < 12; a++) burst(P.x + Math.sin(a) * 3, P.y + 0.7, P.z + Math.cos(a) * 3, 4, 3);
+        AU.coin(); buzz(25); camShakeT = 0.3;
+        toast(`🌀 WHIRL! +${got} 🪙 pulled in`, 1700);
+      } },
+    { k: 'sprint', name: 'SPRINT', em: '👟', cd: 18, tip: 'six seconds of absolutely gone',
+      go() {
+        const long = perk('t3');
+        buffs.sprint = long ? 10 : 6;
+        if (long) buffs.magnet = buffs.sprint;
+        burst(P.x, P.y + 0.6, P.z, 20, 5); AU.bounce(); buzz([40, 30, 40]);
+        toast(long ? '👟 THE LONG LOOK — 10s of gone, and coins follow' : '👟 SPRINT!', 2000);
+      } },
+  ],
+  /* ---- 2 · BOP 🦘 — the springer: never once used stairs ---- */
+  [
+    { k: 'superhop', name: 'SUPER HOP', em: '🚀', cd: 6, tip: 'straight up. way up.',
+      go() {
+        const cannon = perk('t3');
+        P.vy = (cannon ? 30 : 21) * hopF(); P.grounded = false; P.jumps = 1;
+        if (cannon) P.cannonball = true;
+        burst(P.x, P.y, P.z, 22, 5); AU.bounce(); buzz(40);
+        toast(cannon ? '🚀 THE CANNONBALL — brace for landing' : '🚀 SUPER HOP!', 1400);
+      } },
+    { k: 'shock', name: 'SHOCKWAVE', em: '🌊', cd: 10, tip: 'a ring of THUMP in every direction',
+      go() { doShockwave(); } },
+    { k: 'tramp', name: 'TRAMPOLINE', em: '🛏️', cd: 20, tip: 'leave a bounce pad behind you',
+      go() {
+        const pro = perk('t2b'), life = pro ? 120 : 30, cap = pro ? 3 : 1;
+        while (tempCols.filter(t => t.pad).length >= cap) {
+          const old = tempCols.find(t => t.pad); if (!old) break; old.t = 0.001;
+          const i = tempCols.indexOf(old); tempCols.splice(i, 1); scene.remove(old.mesh);
+          const ci = colliders.indexOf(old.col); if (ci >= 0) colliders.splice(ci, 1);
+        }
+        const m = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.4, 3.4), mat.pad);
+        m.position.set(P.x, 0.2, P.z);
+        const col = { minX: P.x - 1.7, maxX: P.x + 1.7, minZ: P.z - 1.7, maxZ: P.z + 1.7, top: 0.4, bottom: 0, pad: true };
+        tempCollider(m, col, life);
+        tempCols[tempCols.length - 1].pad = true;
+        AU.place(); buzz(25);
+        toast(`🛏️ TRAMPOLINE — ${life}s of BOING`, 1800);
+      } },
+  ],
+  /* ---- 3 · WICK 🔦 — the lamplighter: brings the light, calms the crumbs ---- */
+  [
+    { k: 'lantern', name: 'LANTERN', em: '🏮', cd: 5, tip: 'throw a light that sticks',
+      go() {
+        const line = perk('t2a'), n = line ? 3 : 1, fx = fwdX(), fz = fwdZ();
+        for (let i = 1; i <= n; i++) dropLantern(P.x + fx * 3 * i, P.y + 1.4, P.z + fz * 3 * i);
+        AU.ping('light'); buzz(15);
+        toast(line ? '🏮 THE LAMP LINE' : '🏮 LANTERN', 1300);
+      } },
+    { k: 'daybreak', name: 'DAYBREAK', em: '☀️', cd: 25, tip: 'ten seconds of noon, whenever you want it',
+      go() {
+        buffs.day = 10; applyDayNight();
+        if (perk('t2b')) { buffs.calm = 20; toast('☀️ DAYBREAK — the crumbs sat down (CALM VOICE)', 2600); }
+        else toast('☀️ DAYBREAK!', 1800);
+        if (perk('t3')) {
+          const n = regrowAround(P.x, P.z, 60, 0);
+          coinCount += 5; $('coinCt').textContent = coinCount;
+          toast(`☀️ DAWNBRINGER — ${n} things came back to life · +5 🪙`, 3200);
+        }
+        for (let a = 0; a < 10; a++) burst(P.x + Math.sin(a) * 4, 1.4, P.z + Math.cos(a) * 4, 6, 4);
+        AU.fanfare(); buzz([50, 40, 80]);
+      } },
+    { k: 'beacon', name: 'BEACON', em: '✨', cd: 15, tip: 'a pillar of light everyone can see',
+      go() {
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 16, 8),
+          new THREE.MeshBasicMaterial({ color: 0xfff0b0, transparent: true, opacity: 0.42, depthWrite: false }));
+        m.position.set(P.x, 8, P.z);
+        tempCollider(m, { minX: P.x - 0.1, maxX: P.x - 0.09, minZ: P.z, maxZ: P.z + 0.01, top: -99 }, 20);
+        dropLantern(P.x, 1.2, P.z);
+        showPing('light', P.x, 2.4, P.z);
+        if (MMO.on) MMO.send({ t: 'ping', kind: 'light', x: +P.x.toFixed(1), y: 2.4, z: +P.z.toFixed(1) });
+        AU.ping('light'); buzz(20);
+        toast('✨ BEACON — meet me here', 1800);
+      } },
+  ],
+  /* ---- 4 · GLOOP 🧀 — is mostly cheese, honestly ---- */
+  [
+    { k: 'rain', name: 'CHEESE RAIN', em: '🌧️', cd: 10, tip: 'fourteen globs into the sky. look up.',
+      go() {
+        for (let i = 0; i < 14; i++) {
+          const a = Math.random() * Math.PI * 2, s = Math.random() * 7;
+          spawnGlob(P.x, P.y + 1.4, P.z, Math.sin(a) * s, 16 + Math.random() * 6, Math.cos(a) * s, false);
+        }
+        AU.cheese(); buzz(30);
+        toast('🌧️ CHEESE RAIN!', 1600);
+      } },
+    { k: 'fondue', name: 'FONDUE', em: '🫧', cd: 18, tip: 'swim speed anywhere, cheese or no cheese',
+      go() {
+        buffs.fondue = 8;
+        paintCheese(P.x, P.z, 3.4 * splatF(), MMO.on);
+        AU.squish(); buzz([30, 30, 30]);
+        toast(perk('t3') ? '🫧 THE FONDUE — it follows you now' : '🫧 FONDUE — 8s of swim', 2200);
+      } },
+    { k: 'bomb', name: 'GLOOP BOMB', em: '🧀', cd: 20, tip: 'one enormous splat',
+      go() {
+        const r = 9 * splatF();
+        paintCheese(P.x, P.z, r, MMO.on);
+        const n = popCrumbsIn(P.x, P.z, r);
+        smashAt(P.x, P.z, r * 0.6, 3, false);
+        camShakeT = 0.7;
+        for (let a = 0; a < 16; a++) burst(P.x + Math.sin(a) * r * 0.5, 0.8, P.z + Math.cos(a) * r * 0.5, 6, 5);
+        AU.cheese(); buzz([60, 40, 100]);
+        toast(`🧀 GLOOP BOMB!${n ? ` ${n} crumb${n === 1 ? '' : 's'} caught in it` : ''}`, 2000);
+      } },
+  ],
+  /* ---- 5 · SPROUT 🌱 — plants things, then goes and does something else ---- */
+  [
+    { k: 'seedspray', name: 'SEED SPRAY', em: '🌿', cd: 15, tip: 'a whole patch of seeds in one go',
+      go() {
+        const big = perk('t2a'), half = big ? 2 : 1;
+        const bx = Math.round(P.x / GRID), bz = Math.round(P.z / GRID);
+        let n = 0;
+        for (let dx = -half; dx <= half; dx++) for (let dz = -half; dz <= half; dz++) {
+          const k = `${bx + dx},${bz + dz}`;
+          if (plants.has(k) || blocks.has(`${bx + dx},0,${bz + dz}`)) continue;
+          if (Math.abs(bx + dx) > 29 || Math.abs(bz + dz) > 29) continue;
+          if (MMO.on) MMO.send({ t: 'plant', k }); else plantAt(k, 0);
+          n++;
+        }
+        AU.plant(); buzz(20);
+        toast(`🌿 SEED SPRAY — ${n} seeds${big ? ' (THE ORCHARD)' : ''}. now go do something else.`, 2600);
+      } },
+    { k: 'bloom', name: 'BLOOM BURST', em: '🌻', cd: 12, tip: 'everything mowed nearby comes back at once',
+      go() {
+        const pay = perk('t3') ? 3 : 0;
+        const n = regrowAround(P.x, P.z, 26, pay);
+        if (perk('t2b')) {                                   // ZINNIA SPRAY · real seeds too
+          const bx = Math.round(P.x / GRID), bz = Math.round(P.z / GRID);
+          [[2, 0], [-2, 0], [0, 2], [0, -2]].forEach(([dx, dz]) => {
+            const k = `${bx + dx},${bz + dz}`;
+            if (plants.has(k) || Math.abs(bx + dx) > 29 || Math.abs(bz + dz) > 29) return;
+            if (MMO.on) MMO.send({ t: 'plant', k }); else plantAt(k, 0);
+          });
+        }
+        for (let a = 0; a < 14; a++) burst(P.x + Math.sin(a) * 4, 0.6, P.z + Math.cos(a) * 4, 5, 4);
+        AU.harvest(); buzz([40, 30, 60]);
+        toast(`🌻 BLOOM BURST — ${n} things back${pay ? ` · +${n * pay} 🪙` : ''}`, 2400);
+      } },
+    { k: 'stalk', name: 'BEANSTALK', em: '🌳', cd: 20, tip: 'a leafy stalk, five blocks tall, climb it',
+      go() {
+        const fx = fwdX(), fz = fwdZ();
+        const sx = P.x + fx * 2.2, sz = P.z + fz * 2.2;
+        let made = 0;
+        for (let i = 0; i < 5; i++) if (placeSpellBlock(sx, i * GRID, sz, 3)) made++;
+        burst(sx, 2, sz, 22, 4); AU.plant(); buzz([30, 30, 60]);
+        toast(made ? `🌳 BEANSTALK — ${made} tall. up you go.` : '🌳 something is already growing there', 2000);
+      } },
+  ],
+  /* ---- 6 · SPARK ⚡ — thinks he's in a different game. we let him. ---- */
+  [
+    { k: 'bolt', name: 'BOLT', em: '⭐', cd: 5, tip: 'a line of gold, straight ahead',
+      go() {
+        const fx = fwdX(), fz = fwdZ(), reach = 16, max = perk('t2a') ? 3 : 1;
+        for (let i = 1; i <= 8; i++) burst(P.x + fx * i * 2, P.y + 1.2, P.z + fz * i * 2, 5, 2);
+        let hit = 0;
+        for (let i = 1; i <= 8 && hit < max; i++) {
+          const tx = P.x + fx * (i * 2), tz = P.z + fz * (i * 2);
+          if (Math.hypot(tx - P.x, tz - P.z) > reach) break;
+          hit += popCrumbsIn(tx, tz, 3, max - hit);
+        }
+        smashAt(P.x + fx * 6, P.z + fz * 6, 4, 2, false);
+        AU.star(); buzz(25);
+        toast(hit ? `⭐ BOLT — ${hit} down${max > 1 ? ' (CAKE CUTTER)' : ''}` : '⭐ BOLT!', 1500);
+      } },
+    { k: 'after', name: 'AFTERIMAGE', em: '💨', cd: 8, tip: 'you were there. now you are here.',
+      go() {
+        const fx = fwdX(), fz = fwdZ();
+        P.vx += fx * 24; P.vz += fz * 24; P.vy = Math.max(P.vy, 5);
+        for (let i = 1; i <= 6; i++) burst(P.x - fx * i * 1.4, P.y + 0.9, P.z - fz * i * 1.4, 8, 2);
+        camShakeT = 0.25; AU.djump(); buzz([20, 20, 40]);
+        toast('💨 AFTERIMAGE!', 1200);
+      } },
+    { k: 'final', name: 'FINAL FORM', em: '⚡', cd: 30, tip: 'gold. flight. the wave.',
+      go() { ffToggle(); } },
+  ],
+];
+/* 🌮 THE TORTILLA CHIP AIRSTRIKE — wished for at the wishing well by Dylan (⚡ WICK), granted in v13.
+   Every hero gets it as slot 4. It costs 25 🪙 rather than a cooldown alone — the VISION's
+   coin-priced-toy precedent — so calling one in always means something. Chips fall on CRUMBS,
+   who do what crumbs always do: poof into coins. Nothing here can touch another player. */
+const CHIP_G = new THREE.ConeGeometry(0.34, 0.1, 3);
+const CHIP_M = new THREE.MeshLambertMaterial({ color: 0xe0b25c });
+const chips = [];
+const STRIKE = { k: 'strike', name: 'CHIP STRIKE', em: '🌮', cd: 20, cost: 25,
+  tip: "call in a tortilla chip airstrike — Dylan's wish, granted · 25 🪙",
+  go() {
+    const cx = clamp(P.x + fwdX() * 9, -42, 42), cz = clamp(P.z + fwdZ() * 9, -42, 42);
+    for (let i = 0; i < 26; i++) {
+      const a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * 8;
+      const tx = clamp(cx + Math.cos(a) * rr, -44, 44), tz = clamp(cz + Math.sin(a) * rr, -44, 44);
+      const m = new THREE.Mesh(CHIP_G, CHIP_M);
+      m.position.set(tx, 24 + Math.random() * 12, tz);
+      m.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      scene.add(m);
+      chips.push({ m, x: tx, z: tz, vy: -13 - Math.random() * 7, spin: (Math.random() - 0.5) * 9 });
+    }
+    showPing('blast', cx, 2.4, cz);
+    if (MMO.on) MMO.send({ t: 'ping', kind: 'blast', x: +cx.toFixed(1), y: 2.4, z: +cz.toFixed(1) });
+    camShakeT = 0.4; AU.cheese(); buzz([40, 30, 40, 30, 90]);
+    toast('🌮 CHIP STRIKE INBOUND — take cover, crumbs', 2600);
+  } };
+function stepChips(dt) {
+  for (let i = chips.length - 1; i >= 0; i--) {
+    const c = chips[i];
+    c.vy -= 9 * dt;
+    c.m.position.y += c.vy * dt;
+    c.m.rotation.x += c.spin * dt; c.m.rotation.z += c.spin * 0.55 * dt;
+    const gy = groundYAt(c.x, c.z, c.m.position.y);
+    if (c.m.position.y <= Math.max(gy, 0) + 0.12) {
+      burst(c.x, Math.max(gy, 0) + 0.3, c.z, 7, 3);
+      paintCheese(c.x, c.z, 1.2, false);
+      popCrumbsIn(c.x, c.z, 2.4, 1);
+      scene.remove(c.m); chips.splice(i, 1);
+      if (Math.random() < 0.2) AU.squish();
+    }
+  }
+}
+const kitOf = ch => (SPELLS[ch] || []).concat([STRIKE]);
+function doShockwave() {
+  const stomp = myCh === 2 && perk('t2a');
+  const r = stomp ? 10.5 : 7;
+  smashAt(P.x, P.z, r, 3, stomp);
+  for (const c of crumbs) {
+    if (!c.alive) continue;
+    const dx = c.g.position.x - P.x, dz = c.g.position.z - P.z, d = Math.hypot(dx, dz);
+    if (d > r || d < 0.01) continue;
+    c.tx = clamp(c.g.position.x + dx / d * 9, -44, 44);
+    c.tz = clamp(c.g.position.z + dz / d * 9, -44, 44);
+    c.retarget = 2.5;
+  }
+  camShakeT = stomp ? 0.9 : 0.5;
+  for (let a = 0; a < 14; a++) burst(P.x + Math.sin(a) * r * 0.5, 0.5, P.z + Math.cos(a) * r * 0.5, 5, 5);
+  AU.bonk(); buzz([50, 30, 70]);
+  toast(stomp ? '🌊 BUTT STOMP!' : '🌊 SHOCKWAVE!', 1400);
+}
+function castSpell(slot) {
+  if (state !== 'PLAY' && state !== 'WON') return;
+  const def = kitOf(myCh)[slot];
+  if (!def) return;
+  if (cdT[slot] > 0) { toast(`${def.em} ${def.name} — ${Math.ceil(cdT[slot])}s`, 900); AU.bonk(); return; }
+  if (def.cost) {
+    if (coinCount < def.cost) { toast(`${def.em} ${def.name} costs ${def.cost} 🪙 — you have ${coinCount}`, 2000); AU.bonk(); return; }
+    coinCount -= def.cost; $('coinCt').textContent = coinCount;
+  }
+  def.go();
+  cdT[slot] = def.cd * cdMul() * (def.k === 'final' && perk('t3') ? 0.5 : 1);
+  const el = document.querySelector(`#spells .sp[data-slot="${slot}"]`);
+  if (el) el.classList.remove('ready');
+  if (hero) {
+    hero.life.casts = (hero.life.casts || 0) + 1;
+    if (hero.life.casts === 25) addSpark('cast25', 'twenty-five spells cast — you know your kit');
+    saveHero();
+  }
+}
+function refreshSpellBar() {
+  const kit = kitOf(myCh);
+  document.querySelectorAll('#spells .sp').forEach(el => {
+    const s = +el.dataset.slot, d = kit[s];
+    el.querySelector('.em').textContent = d ? d.em : '·';
+    el.title = d ? `${d.name} — ${d.tip}` : '';
+    el.style.display = d ? 'grid' : 'none';
+  });
+  $('spells').style.display = (state === 'PLAY' || state === 'WON') && !buildMode ? 'flex' : 'none';
+}
+function stepSpells(dt, mt) {
+  for (const kb in buffs) if (buffs[kb] > 0) {
+    buffs[kb] -= dt;
+    if (buffs[kb] <= 0) {
+      buffs[kb] = 0;
+      if (kb === 'day') applyDayNight();
+      if (kb === 'sprint') toast('👟 back to normal speed', 1200);
+    }
+  }
+  stepChips(dt);
+  if (buffs.fondue > 0 && myCh === 4 && perk('t3') && P.grounded && Math.hypot(P.vx, P.vz) > 2 && Math.random() < dt * 8)
+    paintCheese(P.x, P.z, 2 * splatF(), false);
+  for (let i = tempCols.length - 1; i >= 0; i--) {
+    const t = tempCols[i];
+    t.t -= dt;
+    if (t.t <= 0) {
+      scene.remove(t.mesh);
+      const ci = colliders.indexOf(t.col); if (ci >= 0) colliders.splice(ci, 1);
+      tempCols.splice(i, 1);
+    } else if (t.t < 3) t.mesh.visible = Math.floor(t.t * 6) % 2 === 0;
+  }
+  const kit = kitOf(myCh);
+  document.querySelectorAll('#spells .sp').forEach(el => {
+    const s = +el.dataset.slot, d = kit[s];
+    if (!d) return;
+    const full = d.cd * cdMul() * (d.k === 'final' && perk('t3') ? 0.5 : 1);
+    if (cdT[s] > 0) {
+      cdT[s] -= dt;
+      if (cdT[s] <= 0) { cdT[s] = 0; el.classList.add('ready'); AU.beep('square', 880, 1180, 0.07, 0.07); }
+    }
+    el.querySelector('.sweep').style.transform = `scaleY(${clamp(cdT[s] / full, 0, 1)})`;
+    const cdn = el.querySelector('.cdn');
+    cdn.textContent = cdT[s] > 0 ? Math.ceil(cdT[s]) : '';
+    cdn.style.opacity = cdT[s] > 0 ? 1 : 0;
+  });
+}
+document.querySelectorAll('#spells .sp').forEach(el => {
+  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); castSpell(+el.dataset.slot); });
+});
+
+/* ================== 🌀 THE TOWER — the 2D world behind the portal ==================
+   Icy-Tower-shaped, and entirely our own art: MOMENTUM is the whole game. Run to build
+   speed, and the faster you're moving the higher you jump; slam a wall at speed and you
+   BOUNCE off it keeping every bit of that speed. Skip two floors in one jump and a combo
+   starts — chain them and the numbers get silly.
+   The nacho tide rises behind you and eventually carries you back down: that's a RIDE
+   HOME, not a death (VISION rail — no lives, no losing your stuff). Coins you earn up
+   here land in your island wallet. Your best is YOUR best; nobody is ranked against
+   anybody. */
+const TWC = $('tower'), TWX = TWC.getContext('2d');
+const SHAFT = 200, FH = 42, WALLW = 9, RES = 2;
+const COMBO_WORDS = [[18, 'UNBELIEVABLE!'], [13, 'LEGENDARY!'], [9, 'WOW!'], [6, 'AMAZING!'], [4, 'GREAT!'], [2, 'NICE!']];
+/* five skies, one every 25 floors: [top, bottom, wall, platform, platformTop, ink] */
+const TW_SKIES = [
+  { name: 'THE MEADOW', a: '#7db8ff', b: '#cfe8ff', w: '#6b8fb8', p: '#3fae49', t: '#6ddb78', ink: '#123' },
+  { name: 'THE LONG EVENING', a: '#ff9a5c', b: '#ffd9a8', w: '#a06a55', p: '#d1642f', t: '#ff9a5c', ink: '#331' },
+  { name: 'THE NIGHT SHIFT', a: '#121a36', b: '#2a2e5e', w: '#3a3f6e', p: '#5a4fd0', t: '#8a7ff0', ink: '#eef' },
+  { name: 'THE RIBBON SKY', a: '#0f3d3d', b: '#1d8a7a', w: '#2a6a63', p: '#0f9d9d', t: '#5fe8d8', ink: '#012' },
+  { name: 'ABOVE THE WEATHER', a: '#0a0a1e', b: '#1a1040', w: '#2a1a52', p: '#8a4fd0', t: '#c9a6ff', ink: '#fff' },
+];
+const TW = {
+  floors: [], camY: 0, tideY: -140, scale: 1, ox: 0, oy: 0, viewH: 420, W: 0, H: 0,
+  pl: null, run: null, phase: 'INTRO', t: 0, introT: 0, zones: [], dust: [], stars: [],
+  jumpEdge: false, best: 0, bestFloor: 0,
+};
+try { TW.best = +(localStorage.getItem('d64_tower_best') || 0); TW.bestFloor = +(localStorage.getItem('d64_tower_bestfloor') || 0); } catch (e) {}
+
+function twSizeCanvas() {
+  TW.W = TWC.width = Math.max(160, Math.round(innerWidth / RES));
+  TW.H = TWC.height = Math.max(160, Math.round(innerHeight / RES));
+  TW.scale = Math.min(TW.W / SHAFT, TW.H / 420);
+  TW.viewH = TW.H / TW.scale;
+  TW.ox = (TW.W - SHAFT * TW.scale) / 2;
+  TWX.imageSmoothingEnabled = false;
+}
+const twSX = gx => TW.ox + gx * TW.scale;
+const twSY = gy => TW.H - (gy - TW.camY) * TW.scale;
+
+function twFloor(n) {
+  if (n <= 0) return { x: 0, w: SHAFT, n: 0 };
+  let f = TW.floors[n];
+  if (!f) {
+    const w = clamp(80 - n * 0.42, 28, 80) * (0.72 + Math.random() * 0.48);
+    const span = SHAFT - WALLW * 2 - w;
+    f = TW.floors[n] = { x: WALLW + Math.random() * Math.max(4, span), w, n };
+  }
+  return f;
+}
+const twSky = fl => TW_SKIES[Math.min(TW_SKIES.length - 1, Math.floor(fl / 25))];
+
+function twReset() {
+  TW.floors = []; TW.dust = []; TW.zones = [];
+  TW.camY = -6; TW.tideY = -150;
+  TW.pl = { x: SHAFT / 2, y: 0, vx: 0, vy: 0, w: 13, h: 20, grounded: true, face: 1,
+            coyote: 0, buf: 0, fromFloor: 0, floor: 0, sq: 0, run: 0, wall: 0 };
+  TW.run = { floor: 0, best: 0, pts: 0, comboFloors: 0, comboT: 0, comboPts: 0, word: '', wordT: 0,
+             started: false, tideSpeed: 0, bounces: 0, bigCombo: 0, endReason: '' };
+  TW.stars = [];
+  for (let i = 0; i < 60; i++) TW.stars.push({ x: Math.random() * SHAFT, y: Math.random() * 4000, s: Math.random() < 0.3 ? 2 : 1 });
+  TW.phase = 'INTRO'; TW.introT = 0;
+}
+function twDust(x, y, n, col) {
+  for (let i = 0; i < n; i++)
+    TW.dust.push({ x, y, vx: (Math.random() - 0.5) * 90, vy: Math.random() * 70, t: 0.5 + Math.random() * 0.4, col });
+}
+function enterTower() {
+  if (state === 'TOWER') return;
+  twReset(); twSizeCanvas();
+  state = 'TOWER';
+  TWC.style.display = 'block';
+  $('hud').style.display = 'none';
+  $('spells').style.display = 'none';
+  $('palette').style.display = 'none';
+  $('btnMenu').style.display = 'none'; $('menu').style.display = 'none';
+  $('btnBuild').style.display = 'none'; $('btnPing').style.display = 'none';
+  $('btnB').style.display = 'none'; $('pingWheel').style.display = 'none';
+  $('btnWish').style.display = 'none';
+  if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; }
+  setBuild(false);
+  TW.prevStation = AU.station;                       // the tower has its own music
+  const boss = AU.STATIONS.findIndex(s => s.name === 'DEEP END');
+  if (boss >= 0 && !AU.STATIONS[AU.station].off) AU.setStation(boss);
+  AU.join(); buzz([30, 40, 60]);
+}
+function exitTower() {
+  const pay = twPayout();
+  state = 'PLAY';
+  TWC.style.display = 'none';
+  $('hud').style.display = 'block';
+  $('btnMenu').style.display = 'grid';
+  $('btnBuild').style.display = 'grid'; $('btnPing').style.display = 'grid';
+  if (isTouch) { $('btnB').style.display = 'grid'; }
+  refreshSpellBar();
+  if (TW.prevStation !== undefined && AU.station !== TW.prevStation) AU.setStation(TW.prevStation);
+  PORTAL.coolT = 2.5;
+  P.x = PORTAL.x + 3.6; P.z = PORTAL.z; P.y = 0; P.vx = P.vy = P.vz = 0;
+  if (pay > 0) {
+    coinCount += pay; $('coinCt').textContent = coinCount;
+    AU.coin(); toast(`🌀 BACK FROM THE TOWER — floor ${TW.run.best} · +${pay} 🪙`, 3200);
+  } else toast('🌀 BACK ON THE ISLAND — the tower will wait for you', 2600);
+}
+function twPayout() {
+  const r = TW.run; if (!r) return 0;
+  return Math.min(80, Math.floor(r.best / 2) + Math.floor(r.comboPts / 40));
+}
+function twEndRun(reason) {
+  if (TW.phase === 'OVER') return;
+  const r = TW.run;
+  twComboEnd();
+  r.endReason = reason;
+  TW.phase = 'OVER';
+  if (r.pts > TW.best) { TW.best = r.pts; try { localStorage.setItem('d64_tower_best', r.pts); } catch (e) {} }
+  if (r.best > TW.bestFloor) { TW.bestFloor = r.best; try { localStorage.setItem('d64_tower_bestfloor', r.best); } catch (e) {} }
+  if (r.best >= 25) addSpark('tower25', 'floor twenty-five of the tower. that is a CLIMB.');
+  if (r.bigCombo >= 6) addSpark('towercombo', 'a six-floor combo — you understand the tower now');
+  AU.fanfare(); buzz([60, 50, 120]);
+}
+function twComboEnd() {
+  const r = TW.run;
+  if (r.comboFloors >= 2) {
+    const gain = r.comboFloors * r.comboFloors * 5;
+    r.pts += gain; r.comboPts += gain;
+    r.bigCombo = Math.max(r.bigCombo, r.comboFloors);
+  }
+  r.comboFloors = 0; r.comboT = 0;
+}
+
+function stepTower(dt) {
+  TW.t += dt;
+  const p = TW.pl, r = TW.run;
+  /* ---- the intro beat: one breath before the climb ---- */
+  if (TW.phase === 'INTRO') {
+    TW.introT += dt;
+    if (TW.introT > 1.5) TW.phase = 'RUN';
+    return;
+  }
+  if (TW.phase === 'OVER') { TW.dust.forEach(d => { d.t -= dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy -= 300 * dt; }); return; }
+
+  /* ---- input: the same stick and the same A button as the island ---- */
+  let ix = 0;
+  if (keys.KeyA || keys.ArrowLeft) ix -= 1;
+  if (keys.KeyD || keys.ArrowRight) ix += 1;
+  if (stick.active) ix += stick.x;
+  const pad = readPad(); ix += pad.ix;
+  ix = clamp(ix, -1, 1);
+  let jump = false;
+  if (P.jumpQueued) { P.jumpQueued = false; jump = true; }
+  const upHeld = !!(keys.KeyW || keys.ArrowUp);
+  if (upHeld && !TW.jumpEdge) jump = true;
+  TW.jumpEdge = upHeld;
+  if (jump) p.buf = 0.12;
+
+  /* ---- momentum: the entire point of the tower ---- */
+  const ACC = 1150, MAXV = 335, FRIC = 1450, GRAV = 1650;
+  if (ix) p.vx += ix * ACC * dt * (p.grounded ? 1 : 0.55);
+  else if (p.grounded) {
+    const d = Math.sign(p.vx) * FRIC * dt;
+    p.vx = Math.abs(d) > Math.abs(p.vx) ? 0 : p.vx - d;
+  }
+  p.vx = clamp(p.vx, -MAXV, MAXV);
+  if (Math.abs(p.vx) > 12) p.face = Math.sign(p.vx);
+  p.vy -= GRAV * dt;
+  p.buf -= dt; p.coyote -= dt; p.sq = Math.max(0, p.sq - dt * 4); p.wall = Math.max(0, p.wall - dt * 3);
+
+  if (p.buf > 0 && (p.grounded || p.coyote > 0)) {
+    p.buf = 0; p.coyote = 0; p.grounded = false;
+    p.vy = 395 + Math.abs(p.vx) * 1.28;            // speed IS height
+    p.fromFloor = p.floor; p.sq = 1;
+    AU.jump(); twDust(p.x, p.y, 5, '#fff');
+  }
+
+  const prevY = p.y;
+  p.x += p.vx * dt; p.y += p.vy * dt;
+
+  /* ---- the walls: hit one at speed and it throws you back, fast ---- */
+  const hw = p.w / 2;
+  for (const side of [-1, 1]) {
+    const lim = side < 0 ? WALLW + hw : SHAFT - WALLW - hw;
+    if ((side < 0 && p.x < lim) || (side > 0 && p.x > lim)) {
+      p.x = lim;
+      if (Math.abs(p.vx) > 95) {
+        p.vx = -p.vx * 0.88; p.wall = 1; r.bounces++;
+        AU.bounce(); buzz(14); twDust(lim, p.y + p.h * 0.5, 6, '#ffd23e');
+      } else p.vx = 0;
+    }
+  }
+
+  /* ---- one-way floors ---- */
+  p.grounded = false;
+  if (p.vy <= 0) {
+    const lo = Math.max(0, Math.floor((p.y - 30) / FH)), hi = Math.floor((prevY + 4) / FH);
+    for (let n = hi; n >= lo; n--) {
+      const f = twFloor(n), top = n * FH;
+      if (prevY < top - 0.5 || p.y > top) continue;
+      if (p.x + hw < f.x || p.x - hw > f.x + f.w) continue;
+      p.y = top; p.vy = 0; p.grounded = true; p.coyote = 0.09; p.sq = -1;
+      const gained = n - p.fromFloor;
+      if (n !== p.floor || gained > 0) {
+        if (gained >= 2) {
+          r.comboFloors += gained; r.comboT = 2.7;
+          for (const [need, word] of COMBO_WORDS) if (r.comboFloors >= need) { r.word = word; r.wordT = 1.6; break; }
+          AU.star();
+        } else if (r.comboFloors) twComboEnd();
+      }
+      p.floor = n; p.fromFloor = n;
+      if (n > r.best) { r.best = n; r.pts += (n - (r.floor || 0)) * 10; r.floor = n; }
+      if (n > 0) r.started = true;
+      AU.land(); twDust(p.x, p.y, 4, '#fff');
+      break;
+    }
+  }
+  if (!p.grounded) p.floor = Math.max(p.floor, Math.floor(p.y / FH));
+  p.run += Math.abs(p.vx) * dt * 0.05;
+
+  /* ---- the combo clock ---- */
+  if (r.comboT > 0) { r.comboT -= dt; if (r.comboT <= 0) twComboEnd(); }
+  if (r.wordT > 0) r.wordT -= dt;
+
+  /* ---- the camera, and the tide that follows it up ---- */
+  const target = Math.max(TW.camY, p.y - TW.viewH * 0.42);
+  TW.camY += (target - TW.camY) * Math.min(1, dt * 6);
+  if (r.started) {
+    r.tideSpeed = 11 + Math.min(62, r.best * 0.42);   // gentle at the bottom, mean at the top
+    TW.tideY += r.tideSpeed * dt;
+  }
+  TW.tideY = Math.max(TW.tideY, TW.camY - FH * 1.4);
+  if (TW.tideY > TW.camY + TW.viewH * 0.86) TW.camY = TW.tideY - TW.viewH * 0.86;
+  if (p.y + p.h < TW.tideY) twEndRun('THE CHEESE CARRIED YOU HOME');
+
+  TW.dust = TW.dust.filter(d => {
+    d.t -= dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy -= 320 * dt;
+    return d.t > 0;
+  });
+  for (let n = Math.floor(TW.camY / FH); n < Math.floor((TW.camY + TW.viewH) / FH) + 3; n++) twFloor(n);
+}
+
+function twRect(gx, gy, gw, gh, col) {
+  TWX.fillStyle = col;
+  TWX.fillRect(Math.round(twSX(gx)), Math.round(twSY(gy + gh)), Math.max(1, Math.round(gw * TW.scale)), Math.max(1, Math.round(gh * TW.scale)));
+}
+function twText(s, x, y, size, col, align = 'center') {
+  TWX.font = `900 ${size}px "Arial Black", Arial, sans-serif`;
+  TWX.textAlign = align; TWX.textBaseline = 'middle';
+  TWX.lineJoin = 'round'; TWX.lineWidth = Math.max(2, size * 0.26); TWX.strokeStyle = '#000';
+  TWX.strokeText(s, x, y);
+  TWX.fillStyle = col; TWX.fillText(s, x, y);
+}
+function twHero(gx, gy, sq, face, runPhase, airborne) {
+  const [c1, c2] = myColors();
+  const shirt = '#' + c1.toString(16).padStart(6, '0'), cap = '#' + c2.toString(16).padStart(6, '0');
+  const sy = 1 + sq * 0.22, sx = 1 - sq * 0.16;       // squash on land, stretch on jump
+  const w = 13 * sx, h = 20 * sy, x = gx - w / 2;
+  const leg = airborne ? 3 : Math.sin(runPhase) * 4;
+  twRect(x + 1.5, gy, 3.6, 5 + leg * 0.4, '#2b2b3a');        // legs
+  twRect(x + w - 5.1, gy, 3.6, 5 - leg * 0.4, '#2b2b3a');
+  twRect(x, gy + 4.5, w, h * 0.44, shirt);                    // body
+  twRect(x - 1.6, gy + 6 + (airborne ? 3 : leg * 0.5), 2.4, 6, shirt);   // arms
+  twRect(x + w - 0.8, gy + 6 - (airborne ? -3 : leg * 0.5), 2.4, 6, shirt);
+  twRect(x + 1.4, gy + 4.5 + h * 0.44, w - 2.8, h * 0.3, '#f0c9a0');     // head
+  twRect(x + 1.4 + (face > 0 ? w - 6.4 : 2.2), gy + 5.6 + h * 0.44, 2, 2, '#1a1a2a');  // eye
+  twRect(x + 0.6, gy + 4.2 + h * 0.74, w - 1.2, 3.4, cap);              // cap
+  twRect(x + (face > 0 ? w - 2 : -2.6), gy + 4.2 + h * 0.74, 4.6, 2.2, cap);  // brim
+}
+function drawTower() {
+  const W = TW.W, H = TW.H, S = TW.scale, r = TW.run, p = TW.pl;
+  const sky = twSky(r ? r.best : 0), nextSky = twSky((r ? r.best : 0) + 25);
+  const g = TWX.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, sky.a); g.addColorStop(1, sky.b);
+  TWX.fillStyle = g; TWX.fillRect(0, 0, W, H);
+  /* stars/motes drifting past, brighter the higher you get */
+  const starA = clamp((r ? r.best : 0) / 60, 0, 0.9);
+  if (starA > 0.03) {
+    TWX.fillStyle = `rgba(255,255,255,${starA})`;
+    for (const st of TW.stars) {
+      const sy = twSY(st.y % 4000 + Math.floor(TW.camY / 4000) * 4000);
+      if (sy > -4 && sy < H) TWX.fillRect(Math.round(twSX(st.x)), Math.round(sy), st.s, st.s);
+    }
+  }
+  /* the shaft walls — brick courses that scroll, so you feel the speed */
+  TWX.fillStyle = sky.w;
+  TWX.fillRect(0, 0, Math.round(twSX(WALLW)), H);
+  TWX.fillRect(Math.round(twSX(SHAFT - WALLW)), 0, W - Math.round(twSX(SHAFT - WALLW)), H);
+  TWX.fillStyle = 'rgba(0,0,0,.16)';
+  const course = 14;
+  for (let gy = Math.floor(TW.camY / course) * course; gy < TW.camY + TW.viewH; gy += course) {
+    const y = Math.round(twSY(gy));
+    TWX.fillRect(0, y, Math.round(twSX(WALLW)), Math.max(1, Math.round(S)));
+    TWX.fillRect(Math.round(twSX(SHAFT - WALLW)), y, W - Math.round(twSX(SHAFT - WALLW)), Math.max(1, Math.round(S)));
+  }
+  /* floors */
+  const lo = Math.max(0, Math.floor(TW.camY / FH) - 1), hi = Math.floor((TW.camY + TW.viewH) / FH) + 1;
+  for (let n = lo; n <= hi; n++) {
+    const f = twFloor(n), top = n * FH;
+    const band = twSky(n);
+    twRect(f.x, top - 7, f.w, 7, band.p);
+    twRect(f.x, top - 2, f.w, 2, band.t);
+    twRect(f.x, top - 7, f.w, 1.2, 'rgba(0,0,0,.28)');
+    if (n > 0 && n % 5 === 0) twText(String(n), twSX(f.x + f.w / 2), twSY(top - 3.5), Math.max(8, 11 * S), 'rgba(255,255,255,.85)');
+  }
+  /* the nacho tide */
+  const ty = twSY(TW.tideY);
+  if (ty < H + 20) {
+    TWX.fillStyle = '#e8a020';
+    TWX.fillRect(0, Math.round(ty), W, H - Math.round(ty) + 2);
+    TWX.fillStyle = '#ffc860';
+    for (let x = 0; x < W; x += 6) {
+      const bob = Math.sin(TW.t * 3 + x * 0.09) * 2.2 * S;
+      TWX.fillRect(x, Math.round(ty + bob - 2 * S), 6, Math.max(2, 3 * S));
+    }
+  }
+  /* dust + sparks */
+  for (const d of TW.dust) {
+    TWX.fillStyle = d.col;
+    TWX.globalAlpha = clamp(d.t * 2, 0, 1);
+    TWX.fillRect(Math.round(twSX(d.x)), Math.round(twSY(d.y)), Math.max(1, Math.round(2 * S)), Math.max(1, Math.round(2 * S)));
+  }
+  TWX.globalAlpha = 1;
+  /* the hero */
+  if (p) twHero(p.x, p.y, p.sq, p.face, p.run, !p.grounded);
+
+  /* ---------- the on-glass HUD ---------- */
+  const pad = Math.round(10 * S), big = Math.max(13, 17 * S), sm = Math.max(9, 11 * S);
+  twText(`FLOOR ${r ? r.best : 0}`, pad, pad + big * 0.7, big, '#ffd23e', 'left');
+  twText(`${r ? r.pts : 0}`, W - pad, pad + big * 0.7, big, '#fff', 'right');
+  twText(`BEST ${TW.best}`, W - pad, pad + big * 1.9, sm, '#b9c6e8', 'right');
+  twText(sky.name, pad, pad + big * 1.9, sm, '#ffffffcc', 'left');
+  if (r && r.comboFloors >= 2) {
+    const cw = W * 0.42, cx = (W - cw) / 2, cy = pad + big * 2.6;
+    TWX.fillStyle = 'rgba(0,0,0,.45)'; TWX.fillRect(cx - 2, cy - 2, cw + 4, Math.round(7 * S) + 4);
+    TWX.fillStyle = '#ffd23e'; TWX.fillRect(cx, cy, cw * clamp(r.comboT / 2.7, 0, 1), Math.round(7 * S));
+    twText(`COMBO ${r.comboFloors} FLOORS`, W / 2, cy + Math.round(3.5 * S), sm, '#fff');
+  }
+  if (r && r.wordT > 0) {
+    const k = 1 - r.wordT / 1.6;
+    twText(r.word, W / 2, H * 0.32 - k * 20 * S, Math.max(16, 26 * S) * (1 + (1 - k) * 0.25), '#ffd23e');
+  }
+
+  TW.zones = [];
+  if (TW.phase === 'INTRO') {
+    TWX.fillStyle = 'rgba(6,8,26,.72)'; TWX.fillRect(0, 0, W, H);
+    twText('🌀 THE TOWER', W / 2, H * 0.34, Math.max(18, 30 * S), '#ffd23e');
+    twText('RUN FAST — you jump higher the faster you go', W / 2, H * 0.46, Math.max(9, 12 * S), '#fff');
+    twText('BOUNCE OFF THE WALLS to keep your speed', W / 2, H * 0.52, Math.max(9, 12 * S), '#fff');
+    twText('SKIP 2+ FLOORS in one jump = COMBO', W / 2, H * 0.58, Math.max(9, 12 * S), '#fff');
+    twText(isTouch ? 'STICK to run · A to jump' : 'A / D to run · SPACE to jump', W / 2, H * 0.68, Math.max(10, 13 * S), '#8be89b');
+  }
+  if (TW.phase === 'OVER') {
+    TWX.fillStyle = 'rgba(6,8,26,.8)'; TWX.fillRect(0, 0, W, H);
+    const pay = twPayout();
+    twText(r.endReason, W / 2, H * 0.21, Math.max(12, 16 * S), '#ffc860');
+    twText(`FLOOR ${r.best}`, W / 2, H * 0.31, Math.max(20, 32 * S), '#ffd23e');
+    twText(`SCORE ${r.pts}` + (r.pts >= TW.best && r.pts > 0 ? '  ✨NEW BEST!' : ` · BEST ${TW.best}`), W / 2, H * 0.4, Math.max(10, 14 * S), '#fff');
+    twText(`biggest combo ${r.bigCombo} floors · ${r.bounces} wall bounces`, W / 2, H * 0.46, Math.max(8, 11 * S), '#b9c6e8');
+    twText(`🪙 +${pay} COINS FOR YOUR ISLAND`, W / 2, H * 0.54, Math.max(11, 15 * S), '#ffe9a3');
+    const bw = W * 0.56, bh = Math.max(30, 44 * S);
+    const b1y = H * 0.63, b2y = b1y + bh + Math.round(10 * S);
+    TWX.fillStyle = '#2a5fd0'; TWX.fillRect((W - bw) / 2, b1y, bw, bh);
+    TWX.strokeStyle = '#000'; TWX.lineWidth = Math.max(2, 3 * S); TWX.strokeRect((W - bw) / 2, b1y, bw, bh);
+    twText('CLIMB AGAIN', W / 2, b1y + bh / 2, Math.max(11, 15 * S), '#fff');
+    TWX.fillStyle = '#3fae49'; TWX.fillRect((W - bw) / 2, b2y, bw, bh);
+    TWX.strokeRect((W - bw) / 2, b2y, bw, bh);
+    twText('🏝️ BACK TO THE ISLAND', W / 2, b2y + bh / 2, Math.max(10, 13 * S), '#fff');
+    TW.zones = [
+      { x: (W - bw) / 2, y: b1y, w: bw, h: bh, go: () => { twReset(); TW.phase = 'RUN'; } },
+      { x: (W - bw) / 2, y: b2y, w: bw, h: bh, go: () => exitTower() },
+    ];
+  }
+}
+addEventListener('resize', () => { if (state === 'TOWER') twSizeCanvas(); });
+TWC.addEventListener('pointerdown', e => {
+  if (state !== 'TOWER') return;
+  e.preventDefault();
+  const bx = e.clientX / RES, by = e.clientY / RES;
+  for (const z of TW.zones) if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  if (TW.phase === 'INTRO') TW.phase = 'RUN';
+  else if (TW.phase === 'RUN' && !isTouch) P.jumpQueued = true;
+});
+addEventListener('keydown', e => {
+  if (state !== 'TOWER') return;
+  if (e.code === 'Escape') exitTower();
+  if (e.code === 'Enter' && TW.phase === 'OVER') { twReset(); TW.phase = 'RUN'; }
+});
+
 /* ---------- main loop ---------- */
 let last = performance.now(), raf = null;
 function loop(now) {
@@ -3213,6 +4242,7 @@ function loop(now) {
   const dt = clamp((now - last) / 1000, 0.001, 0.05);
   lastDt = dt; last = now;
   const mt = now / 1000;
+  if (state === 'TOWER') { stepTower(dt); drawTower(); return; }   // the 2D world runs alone
   if (state === 'PLAY' || state === 'WON' || state === 'SWOOP') {
     stepWorld(dt, mt);
     stepHero(dt, mt);
@@ -3254,6 +4284,28 @@ $('wbSwitch').addEventListener('click', () => {
 let treeFromWback = false;
 $('wbTree').addEventListener('click', () => { treeFromWback = true; $('wback').style.display = 'none'; openTree(); });
 $('btnTree').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); treeFromWback = false; openTree(); });
+/* ---------- ☰ the pocket menu: everything you don't need in your thumbs ---------- */
+function toggleMenu(on) {
+  const m = $('menu');
+  const show = on === undefined ? m.style.display !== 'block' : on;
+  m.style.display = show ? 'block' : 'none';
+  if (show) {
+    $('mnMute').textContent = AU.muted ? '🔇 SOUND OFF' : '🔊 SOUND ON';
+    $('mnWish').style.display = hero && (hero.tokens || 0) > 0 ? 'block' : 'none';
+  }
+}
+$('btnMenu').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); toggleMenu(); });
+$('menu').addEventListener('pointerdown', e => e.stopPropagation());
+$('mnTree').addEventListener('click', () => { toggleMenu(false); treeFromWback = false; openTree(); });
+$('mnRadio').addEventListener('click', () => {
+  const st = AU.setStation(AU.station + 1);
+  toast(`📻 ${st.name} — ${st.tag}`, 2800);
+  AU.coin(); buzz(20); adT = Math.max(adT, 12);
+});
+$('mnMute').addEventListener('click', () => { AU.toggleMute(); $('mnMute').textContent = AU.muted ? '🔇 SOUND OFF' : '🔊 SOUND ON'; });
+$('mnWish').addEventListener('click', () => { toggleMenu(false); $('wish').style.display = 'grid'; });
+$('mnChlog').addEventListener('click', () => { toggleMenu(false); showChlog(); });
+$('mnFb').addEventListener('click', () => { toggleMenu(false); $('fb').style.display = 'grid'; });
 $('btnFF').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); ffToggle(); });
 $('treeClose').addEventListener('click', () => {
   $('tree').style.display = 'none';
@@ -3272,33 +4324,43 @@ $('btnKey').addEventListener('pointerdown', e => e.stopPropagation());
 $('keyin').addEventListener('pointerdown', e => e.stopPropagation());
 $('keyshow').addEventListener('pointerdown', e => e.stopPropagation());
 function openTree() {
-  const t = TREES[hero.ch], c = CH_DEFS[hero.ch];
-  const picks = hero.trees[hero.ch] || {};
-  const picked = picks.t1a ? 't1a' : picks.t1b ? 't1b' : null;
-  $('treeHead').textContent = `${c.emoji} ${c.key} — "${t.name}" · ✨ ${hero.sparks}`;
+  const ch = hero.ch, t = TREES[ch], c = CH_DEFS[ch];
+  const picks = hero.trees[ch] = hero.trees[ch] || {};
+  const has = k => !!picks[k];
+  const tierDone = pre => pre === 't1' ? (has('t1a') || has('t1b')) : pre === 't2' ? (has('t2a') || has('t2b')) : true;
+  $('treeHead').textContent = `${c.emoji} ${c.key} — "${t.name}" · LV ${heroLevel()} · ✨ ${hero.sparks || 0}`;
   const node = (cls, name, desc, extra = '') =>
     `<div class="tnode ${cls}" ${extra}><b>${name}</b>${desc}</div>`;
-  let html = `<div class="tlabel">root — yours from the start</div>`;
-  html += node('lit', t.root[0], t.root[1]);
-  html += `<div class="tlabel">tier 1 — pick ONE · costs 2 ✨</div><div class="trow">`;
-  for (const k of ['t1a', 't1b']) {
-    const [nm, ds] = t[k];
-    if (picked === k) html += node('lit', nm + ' ✓', ds);
-    else if (picked) html += node('dim', nm, ds);
-    else if ((hero.sparks || 0) >= 2) html += node('pickable', nm, ds, `data-pick="${k}"`);
-    else html += node('dim', nm, ds + ' · need 2 ✨');
-  }
-  html += `</div><div class="tlabel">tier 2 & 3 — growing in the next update 🌱</div><div class="trow">`;
-  SOON[hero.ch].forEach(nm => { html += node('dim', nm, 'soon'); });
-  html += `</div>`;
+  /* the spellbook lives at the top of the same panel — the tree upgrades THESE */
+  let html = `<div class="tlabel">your spells — 1 · 2 · 3 (or tap the bar)</div>`;
+  kitOf(ch).forEach((s, i) => {
+    html += node('lit', `${s.em} ${s.name}  ·  ${Math.round(s.cd * cdMul())}s`, s.tip);
+  });
+  html += `<div class="tlabel">root — yours from the start</div>` + node('lit', t.root[0], t.root[1]);
+  TIERS.forEach(tier => {
+    const open = tier.needs === null || tierDone(tier.needs);
+    const taken = tier.keys.some(has);
+    html += `<div class="tlabel">${tier.label}</div><div class="${tier.keys.length > 1 ? 'trow' : ''}">`;
+    for (const k of tier.keys) {
+      const [nm, ds] = t[k];
+      if (has(k)) html += node('lit', nm + ' ✓', ds);
+      else if (taken) html += node('dim', nm, ds);
+      else if (!open) html += node('dim', nm, ds + ' · finish the tier above first');
+      else if ((hero.sparks || 0) >= tier.cost) html += node('pickable', nm, ds, `data-pick="${k}" data-cost="${tier.cost}"`);
+      else html += node('dim', nm, ds + ` · need ${tier.cost} ✨`);
+    }
+    html += `</div>`;
+  });
   $('treeBody').innerHTML = html;
   $('treeBody').querySelectorAll('[data-pick]').forEach(el => el.addEventListener('click', () => {
-    hero.sparks -= 2;
-    hero.trees[hero.ch] = { [el.dataset.pick]: true };
+    const k = el.dataset.pick, cost = +el.dataset.cost;
+    if ((hero.sparks || 0) < cost) return;
+    hero.sparks -= cost;
+    hero.trees[ch] = Object.assign({}, hero.trees[ch], { [k]: true });   // picks ADD UP now
     saveHero();
     AU.fanfare(); buzz([60, 40, 100]);
-    toast(`🌳 ${TREES[hero.ch][el.dataset.pick][0]} IS YOURS!`, 2600);
-    refreshLampChip(); renderQuest();
+    toast(`🌳 ${TREES[ch][k][0]} IS YOURS!`, 2600);
+    refreshLampChip(); renderQuest(); refreshSpellBar();
     openTree();
   }));
   $('tree').style.display = 'grid';
