@@ -1141,6 +1141,173 @@ const pavers = new THREE.MeshLambertMaterial({ map: checker('#cfc8b8', '#bdb5a4'
   const wsign = nameSprite('WELCOME TO THE ISLAND');
   wsign.scale.set(9.5, 1.6, 1); wsign.position.set(0, 7.3, 0); scene.add(wsign);
 }
+/* ================== 🌶️ THE JALAPEÑO, ON THE ISLAND ==================
+   John: "oh i wanted the boss to be on the island. its cool in the tower too."
+   So the same fight, in 3D, out in the east meadow — and as an EVENT, not scenery:
+   all that stands there when nobody is fighting is one small pepper stand. Walk up,
+   wake it, and it rises out of the ground. The beats rhyme with the tower version so
+   the two read as the same creature: SEEDS to pop (each one loads a chip), GROUND FIRE
+   you must not stand in, and the 🌮 airstrike Dylan wished for as the only thing that
+   actually hurts it. Every hero can fight it — seeds die to any attack in the game.
+   Nothing here can hurt a kid: fire and seeds shove you, they never take your coins.
+   Client-side event, zero server change. */
+const IB = { on: false, hp: 3, charge: 0, seeds: [], fires: [], t: 0, spawnT: 0, fireT: 0,
+             hitT: 0, riseT: 0, cool: 0, group: null, body: null, stem: null, eyes: [], warned: false };
+const IB_POS = [30, -6], IB_ARENA = 15, IB_NEED = 5;
+{
+  const [bx, bz] = IB_POS;
+  // the stand: the only thing that stays when the fight is over
+  box(bx, 1.1, bz, 1.6, 1.6, 1.1, mat.stone);
+  const em = emojiSprite('🌶️'); em.scale.set(1.3, 1.3, 1); em.position.set(bx, 2.4, bz); scene.add(em);
+  const lb = nameSprite('WAKE THE JALAPEÑO'); lb.scale.set(6.4, 0.8, 1); lb.position.set(bx, 3.3, bz); scene.add(lb);
+  IB.stand = em; IB.standLabel = lb;
+  // the pepper itself, built once and parked underground until it is wanted
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2f8f3a });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.15, 8.4, 10), bodyMat);
+  body.position.y = 4.2; g.add(body);
+  const tipM = new THREE.Mesh(new THREE.ConeGeometry(1.15, 1.8, 10), bodyMat);
+  tipM.position.y = -0.9; tipM.rotation.x = Math.PI; g.add(tipM);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(2.1, 10, 6), bodyMat);
+  cap.position.y = 8.4; cap.scale.y = 0.6; g.add(cap);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.5, 1.7, 6), new THREE.MeshLambertMaterial({ color: 0x2a6b22 }));
+  stem.position.y = 9.6; g.add(stem);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 0.5, 8), new THREE.MeshLambertMaterial({ color: 0x3f8a2e }));
+  collar.position.y = 8.9; g.add(collar);
+  [-1, 1].forEach(s => {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.94, 0.2), eyeMat);
+    w.position.set(s * 0.86, 6.5, 1.95); g.add(w);
+    const pu = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.16), pupilMat);
+    pu.position.set(s * 0.86, 6.4, 2.08); g.add(pu);
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 0.2), new THREE.MeshLambertMaterial({ color: 0x1f5c1a }));
+    brow.position.set(s * 0.86, 7.15, 2.0); brow.rotation.z = -s * 0.34; g.add(brow);
+    IB.eyes.push(pu);
+  });
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 0.2), new THREE.MeshLambertMaterial({ color: 0x5a1010 }));
+  mouth.position.set(0, 5.2, 1.98); g.add(mouth);
+  g.position.set(bx, -12, bz); g.visible = false;
+  scene.add(g);
+  IB.group = g; IB.body = body; IB.bodyMat = bodyMat; IB.mouth = mouth;
+}
+function ibWake() {
+  if (IB.on || IB.cool > 0) return;
+  IB.on = true; IB.hp = 3; IB.charge = 0; IB.riseT = 2; IB.seeds = []; IB.fires = [];
+  IB.spawnT = 2.6; IB.fireT = 5; IB.hitT = 0;
+  IB.group.visible = true; IB.group.position.y = -12;
+  IB.bodyMat.color.setHex(0x2f8f3a);
+  camShakeT = 1; AU.shark(); buzz([90, 60, 90, 60, 160]);
+  toast('🌶️ THE JALAPEÑO WAKES UP — pop its seeds to load your 🌮, then hit it', 5200);
+}
+function ibBump(x, z, why) {              // a shove, never a wound: no coins, no respawn
+  const dx = P.x - x, dz = P.z - z, d = Math.hypot(dx, dz) || 1;
+  P.vx = dx / d * 13; P.vz = dz / d * 13; P.vy = 7; P.grounded = false; P.hurtT = 0.7;
+  burst(P.x, P.y + 1, P.z, 14, 4); camShakeT = 0.35;
+  AU.bonk(); buzz(45);
+  if (why) toast(why, 1600);
+}
+function ibSpawnSeed() {
+  const a = Math.random() * Math.PI * 2;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.5, 6, 5), new THREE.MeshLambertMaterial({ color: 0xe8d8a0 }));
+  m.scale.set(1, 0.8, 1.3);
+  const sx = IB_POS[0] + Math.cos(a) * 3.4, sz = IB_POS[1] + Math.sin(a) * 3.4;
+  m.position.set(sx, 0.5, sz); scene.add(m);
+  IB.seeds.push({ m, x: sx, z: sz, vy: 6, hop: 0, hp: 1 });
+}
+function ibFireAt(x, z) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.12, 12),
+    new THREE.MeshBasicMaterial({ color: 0xff8a20, transparent: true, opacity: 0.6, depthWrite: false }));
+  m.position.set(x, 0.14, z); scene.add(m);
+  IB.fires.push({ m, x, z, t: 4.5 });
+}
+/* seeds die to ANY attack in the game — popCrumbsIn is what every spell, glob and
+   sword swing already funnels through, so hooking here makes all seven heroes work */
+function popSeedsIn(x, z, r) {
+  let n = 0;
+  for (let i = IB.seeds.length - 1; i >= 0; i--) {
+    const s = IB.seeds[i];
+    if (Math.hypot(s.x - x, s.z - z) > r) continue;
+    scene.remove(s.m); IB.seeds.splice(i, 1); n++;
+    burst(s.x, 0.8, s.z, 12, 4);
+    IB.charge = Math.min(IB_NEED, IB.charge + 1);
+    AU.hitCrumb(); buzz(18);
+    if (IB.charge >= IB_NEED) toast('🌮 CHIPS LOADED — hit it with the AIRSTRIKE (spell 4, free right now)', 3600);
+  }
+  return n;
+}
+function ibStrike() {
+  IB.hp--; IB.charge = 0; IB.hitT = 1.2;
+  IB.bodyMat.color.setHex(IB.hp >= 3 ? 0x2f8f3a : IB.hp === 2 ? 0x86a327 : 0xc2542a);
+  camShakeT = 1.1;
+  for (let i = 0; i < 40; i++) burst(IB_POS[0] + (Math.random() - 0.5) * 6, 2 + Math.random() * 7, IB_POS[1] + (Math.random() - 0.5) * 6, 3, 6);
+  AU.poof(); buzz([70, 40, 70, 40, 140]);
+  if (IB.hp <= 0) {
+    IB.on = false; IB.cool = 180;
+    IB.group.visible = false; IB.group.position.y = -12;    // back into the ground it goes
+    IB.seeds.forEach(s => scene.remove(s.m)); IB.seeds = [];
+    IB.fires.forEach(f => scene.remove(f.m)); IB.fires = [];
+    coinCount += 50; $('coinCt').textContent = coinCount;
+    for (let k = 0; k < 10; k++) spawnDcoin(localDcoinSeq--, IB_POS[0] + (Math.random() - 0.5) * 9, IB_POS[1] + (Math.random() - 0.5) * 9);
+    addSpark('islandboss', 'you put the island jalapeño back in the ground');
+    AU.fanfare(); buzz([80, 60, 80, 60, 180]);
+    toast('🌶️ THE JALAPEÑO IS DONE. +50 🪙 — it will be back in a few minutes.', 5000);
+  } else toast(`🌮 DIRECT HIT! ${IB.hp} to go`, 2400);
+}
+function stepIslandBoss(dt, mt) {
+  if (IB.cool > 0) IB.cool -= dt;
+  IB.stand.position.y = 2.4 + Math.sin(mt * 2) * 0.14;
+  IB.standLabel.visible = !IB.on && IB.cool <= 0;
+  if (state !== 'PLAY' && state !== 'WON') return;
+  if (!IB.on) {
+    if (IB.cool <= 0 && Math.hypot(P.x - IB_POS[0], P.z - IB_POS[1]) < 3) ibWake();
+    return;
+  }
+  IB.t += dt;
+  if (IB.riseT > 0) {                                   // it climbs out of the ground
+    IB.riseT -= dt;
+    IB.group.position.y = -12 + (1 - Math.max(0, IB.riseT) / 2) * 12;
+    return;
+  }
+  IB.group.position.y = Math.sin(mt * 1.6) * 0.18;
+  IB.group.rotation.y = Math.atan2(P.x - IB_POS[0], P.z - IB_POS[1]);
+  if (IB.hitT > 0) { IB.hitT -= dt; IB.group.position.x = IB_POS[0] + (Math.random() - 0.5) * 0.5 * IB.hitT; }
+  else IB.group.position.x = IB_POS[0];
+  /* it throws seeds */
+  if ((IB.spawnT -= dt) <= 0 && IB.seeds.length < 7) {
+    IB.spawnT = IB.hp >= 3 ? 2.8 : IB.hp === 2 ? 2.2 : 1.7;
+    ibSpawnSeed();
+  }
+  for (const s of IB.seeds) {
+    s.vy -= 20 * dt;
+    s.m.position.y += s.vy * dt;
+    if (s.m.position.y <= 0.5) { s.m.position.y = 0.5; s.vy = 7.5; }
+    const dx = P.x - s.x, dz = P.z - s.z, d = Math.hypot(dx, dz) || 1;
+    s.x += dx / d * 3.4 * dt; s.z += dz / d * 3.4 * dt;
+    s.m.position.x = s.x; s.m.position.z = s.z;
+    s.m.rotation.y += dt * 3;
+    if (d < 1.2 && P.hurtT <= 0) ibBump(s.x, s.z, '🌶️ a seed got you — no harm done');
+  }
+  /* it sets the ground on fire */
+  if ((IB.fireT -= dt) <= 0) {
+    IB.fireT = IB.hp >= 3 ? 5 : IB.hp === 2 ? 4 : 3;
+    for (let i = 0; i < (IB.hp >= 3 ? 2 : 3); i++) {
+      const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * (IB_ARENA - 5);
+      ibFireAt(IB_POS[0] + Math.cos(a) * r, IB_POS[1] + Math.sin(a) * r);
+    }
+    AU.beep('sawtooth', 220, 90, 0.3, 0.14);
+  }
+  for (let i = IB.fires.length - 1; i >= 0; i--) {
+    const f = IB.fires[i];
+    f.t -= dt;
+    f.m.material.opacity = 0.28 + Math.sin(mt * 12 + i) * 0.14 + Math.min(0.3, f.t * 0.1);
+    f.m.scale.setScalar(1 + Math.sin(mt * 8 + i) * 0.05);
+    if (f.t <= 0) { scene.remove(f.m); IB.fires.splice(i, 1); continue; }
+    if (f.t < 4 && P.y < 1.4 && P.hurtT <= 0 && Math.hypot(P.x - f.x, P.z - f.z) < 2.3)
+      ibBump(f.x, f.z, '🔥 HOT! HOT! HOT!');
+  }
+  if (!IB.warned && Math.hypot(P.x - IB_POS[0], P.z - IB_POS[1]) > IB_ARENA + 6) {
+    IB.warned = true; toast('🌶️ it is still awake back there…', 2400);
+  }
+}
 /* ---------- 🌀 THE TOWER DOOR: the portal, standing just off the plaza ----------
    Placed where you can see it the second you land, on the clean west approach.
    Walk into the shimmer and the island hands you to the 2D world (stepTower). */
@@ -1665,8 +1832,19 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v13.3';
+const GAME_VERSION = 'v14';
 const CHANGELOG = [
+  { v: 'v14', title: '🕹️ A GAME INSIDE THE GAME · 🌶️ THE ISLAND JALAPEÑO', lines: [
+    '🕹️ THE MAZE — there is a DOOR in the tower now (floor 12, and every 25 after). Walk into it.',
+    '🧀 it is a whole other game: eat every cheese dot while four CRUMBS hunt you through the maze.',
+    '⚪ grab a CHEESE WHEEL and it flips — for a few seconds THEY run from YOU, and each one you catch is worth double the last (200, 400, 800, 1600).',
+    '🦸 and it is YOU down there — your own hero, your own colours, chomping.',
+    '🍞 three loaves = three tries. a crumb catching you costs one and puts you back, and that is all it costs. your score, your dots and your coins all stay.',
+    '🏰 come back out and the tower gives you EIGHT FLOORS of clear air, plus everything you scored.',
+    '🌶️ THE JALAPEÑO IS ON THE ISLAND TOO — find the pepper stand out east and wake it up.',
+    '🌮 same fight, real world: pop its SEEDS to load your chips (any attack works, even plain cheese), stay off the burning ground, then hit it with the AIRSTRIKE — free while it is loaded. Three hits.',
+    '🪙 beat it for 50 coins and a pile of dropped ones. it comes back in a few minutes.',
+  ]},
   { v: 'v13.3', title: '⚔️ THE KATANA COMES OUT', lines: [
     '⚔️ SPARK can DRAW HIS SWORD — spell 2 pulls the katana off his back, press it again to SLASH.',
     '⚡ in FINAL FORM the blade goes gold and cuts through blocks and boulders.',
@@ -2247,6 +2425,7 @@ function stepFF(dt, mt) {
 /* ---------- SMASH: attacks leave a mark on the world (and it all grows back) ---------- */
 let camShakeT = 0;
 function smashAt(x, z, r, power, canBreak) {
+  if (IB.on && IB.seeds.length) popSeedsIn(x, z, r);   // every hero's attacks funnel through here
   // trees: shake; a big hit knocks the leaves loose (they grow back)
   for (const t of worldTrees) {
     const d = Math.hypot(t.x - x, t.z - z);
@@ -2591,6 +2770,7 @@ function stepCheese(dt) {
           g.life = 0; break;
         }
       }
+      if (g.life > 0 && IB.seeds.length && popSeedsIn(g.x, g.z, 1.5)) g.life = 0;   // globs pop seeds too
       if (g.life <= 0) { pos[i * 3 + 1] = 9999; return; }
       for (let si = 0; si < sharks.length; si++) {
         const s = sharks[si];
@@ -3472,6 +3652,7 @@ function spinCollectibles(dt, mt) {
   stepSmash(dt);
   stepTutor(dt, mt);
   stepPortal(dt, mt);
+  stepIslandBoss(dt, mt);
   stepGauntlet(dt, mt);
   stepSpells(dt, mt);
   /* the gnome speaks to whoever stands close */
@@ -3541,7 +3722,7 @@ function tempCollider(mesh, col, secs) {
   tempCols.push({ mesh, col, t: secs });
 }
 function popCrumbsIn(x, z, r, max) {
-  let n = 0;
+  let n = popSeedsIn(x, z, r);        // the jalapeño's seeds die to everything a crumb does
   for (let ci = 0; ci < crumbs.length && n < (max || 99); ci++) {
     const c = crumbs[ci];
     if (!c.alive) continue;
@@ -3956,11 +4137,13 @@ function castSpell(slot) {
   const def = kitOf(myCh)[slot];
   if (!def) return;
   if (cdT[slot] > 0) { toast(`${def.em} ${def.name} — ${Math.ceil(cdT[slot])}s`, 900); AU.bonk(); return; }
-  if (def.cost) {
+  const freeStrike = def.k === 'strike' && IB.on && IB.charge >= IB_NEED;   // the boss loads it for you
+  if (def.cost && !freeStrike) {
     if (coinCount < def.cost) { toast(`${def.em} ${def.name} costs ${def.cost} 🪙 — you have ${coinCount}`, 2000); AU.bonk(); return; }
     coinCount -= def.cost; $('coinCt').textContent = coinCount;
   }
   def.go();
+  if (freeStrike && Math.hypot(P.x - IB_POS[0], P.z - IB_POS[1]) < IB_ARENA) ibStrike();
   cdT[slot] = def.cd * cdMul() * (def.k === 'final' && perk('t3') ? 0.5 : 1);
   const el = document.querySelector(`#spells .sp[data-slot="${slot}"]`);
   if (el) el.classList.remove('ready');
@@ -4075,7 +4258,7 @@ function twFloor(n) {
 const twSky = fl => TW_SKIES[Math.min(TW_SKIES.length - 1, Math.floor(fl / 25))];
 
 function twReset() {
-  TW.floors = []; TW.dust = []; TW.zones = [];
+  TW.floors = []; TW.dust = []; TW.zones = []; TW.mazeCool = 0;
   TW.camY = -6; TW.tideY = -150;
   TW.pl = { x: SHAFT / 2, y: 0, vx: 0, vy: 0, w: 13, h: 20, grounded: true, face: 1,
             coyote: 0, buf: 0, fromFloor: 0, floor: 0, sq: 0, run: 0, wall: 0 };
@@ -4128,7 +4311,7 @@ function exitTower() {
 }
 function twPayout() {
   const r = TW.run; if (!r) return 0;
-  return Math.min(80, Math.floor(r.best / 2) + Math.floor(r.comboPts / 40));
+  return Math.min(140, Math.floor(r.best / 2) + Math.floor(r.comboPts / 40) + (r.mazeCoins || 0));
 }
 function twEndRun(reason) {
   if (TW.phase === 'OVER') return;
@@ -4254,8 +4437,10 @@ function stepBoss(dt) {
   /* at the head, fully charged → chips away */
   if (b.charge >= CHARGE_NEED && p.grounded && p.floor >= BOSS_TOP - 1) bossStrike();
 }
+const mzDoorFloor = n => n > 0 && n % 25 === 12;      // floors 12, 37, 62… a door every 25
 function stepTower(dt) {
   TW.t += dt;
+  if (TW.mazeCool > 0) TW.mazeCool -= dt;
   const p = TW.pl, r = TW.run;
   /* ---- the intro beat: one breath before the climb ---- */
   if (TW.phase === 'INTRO') {
@@ -4338,6 +4523,11 @@ function stepTower(dt) {
         } else if (r.comboFloors) twComboEnd();
       }
       p.floor = n; p.fromFloor = n;
+      /* 🕹️ THE MAZE DOOR — stand on it and the tower hands you to the other game */
+      if (mzDoorFloor(n) && (TW.mazeCool || 0) <= 0) {
+        const dx = f.x + f.w / 2;
+        if (Math.abs(p.x - dx) < 9) { enterMaze(); return; }
+      }
       if (n > r.best) { r.best = n; r.pts += (n - (r.floor || 0)) * 10; r.floor = n; }
       if (n > 0) r.started = true;
       AU.land(); twDust(p.x, p.y, 4, '#fff');
@@ -4523,6 +4713,17 @@ function drawTower() {
     twRect(f.x, top - 2, f.w, 2, band.t);
     twRect(f.x, top - 7, f.w, 1.2, 'rgba(0,0,0,.28)');
     if (n > 0 && n % 5 === 0) twText(String(n), twSX(f.x + f.w / 2), twSY(top - 3.5), Math.max(8, 11 * S), 'rgba(255,255,255,.85)');
+    if (mzDoorFloor(n)) {                       // the maze door, standing on its floor
+      const dx = f.x + f.w / 2, k = 0.5 + Math.sin(TW.t * 3) * 0.12;
+      twRect(dx - 8, top, 2.6, 17, '#c9a6ff');
+      twRect(dx + 5.4, top, 2.6, 17, '#c9a6ff');
+      twRect(dx - 8, top + 15, 16, 3, '#c9a6ff');
+      TWX.globalAlpha = k;
+      twRect(dx - 5.4, top, 10.8, 15, '#8a4fd0');
+      TWX.globalAlpha = 1;
+      twText('🕹️', twSX(dx), twSY(top + 7), Math.max(9, 12 * S), '#fff');
+      twText('BONUS', twSX(dx), twSY(top + 21), Math.max(7, 8 * S), '#c9a6ff');
+    }
   }
   drawBossFront();
   /* the nacho tide */
@@ -4610,6 +4811,401 @@ addEventListener('keydown', e => {
   if (e.code === 'Enter' && TW.phase === 'OVER') { twReset(); TW.phase = 'RUN'; }
 });
 
+/* ================== 🕹️ THE MAZE — the game behind the tower's second door ==================
+   John: "theres a portal there that goes to another game. a ms pac man clone. make it the
+   actual character that they were in 3d. just a 2d sprite version."
+   So: maze-chase MECHANICS, and nothing else borrowed. The cast is this island's own —
+   YOUR hero (their real shirt and cap colours, drawn as a 4-direction sprite), CRUMBS as
+   the chasers (they have always been the island's enemies), CHEESE DOTS to clear, and a
+   CHEESE WHEEL that turns the tables. The maze below is hand-authored and machine-checked:
+   left/right symmetric, every dot reachable, no 2×2 open rooms, one tunnel row, 231 dots.
+   Kind-design holds: a crumb catching you costs you a PIP and a reset, never your stuff —
+   and running out just ends the round and pays you, exactly like the tide in the tower. */
+const MZ_MAP = [
+  '#####################',
+  '#........#.#........#',
+  '#o##.###.#.#.###.##o#',
+  '#.##.###.#.#.###.##.#',
+  '#...................#',
+  '#.##.#.#######.#.##.#',
+  '#....#....#....#....#',
+  '####.####.#.####.####',
+  '#......#.....#......#',
+  '#.##.#.#.###.#.#.##.#',
+  '.........GGG.........',
+  '#.##.#.#.###.#.#.##.#',
+  '#......#..P..#......#',
+  '#.##.#.###.###.#.##.#',
+  '#..#.....#.#.....#..#',
+  '##.#.###.#.#.###.#.##',
+  '#o.......#.#.......o#',
+  '#.#####.#####.#####.#',
+  '#.....#.......#.....#',
+  '#.###.#.#####.#.###.#',
+  '#...................#',
+  '#####################',
+];
+const MZC = 21, MZR = MZ_MAP.length, MZ_TUNNEL = 10;
+const MZ_PALETTES = [                       // one per level, echoing the tower's skies
+  { wall: '#2a5fd0', edge: '#6d97e8', bg: '#0a0e26', dot: '#ffd23e' },
+  { wall: '#d1642f', edge: '#ffa860', bg: '#2a1206', dot: '#ffe9a3' },
+  { wall: '#5a4fd0', edge: '#a99cff', bg: '#0d0a2e', dot: '#cfe8ff' },
+  { wall: '#0f9d9d', edge: '#5fe8d8', bg: '#03211f', dot: '#ffe9a3' },
+  { wall: '#8a4fd0', edge: '#c9a6ff', bg: '#120626', dot: '#fff0b0' },
+];
+const CRUMB_NAMES = ['CRUSTY', 'NIBBLE', 'PINCH', 'DOZY'];
+const CRUMB_TINTS = ['#d1342f', '#e86fb2', '#4fc7e8', '#e8913a'];
+const MZ = { grid: [], pl: null, gs: [], dots: 0, left: 0, level: 1, score: 0, pips: 3,
+             phase: 'READY', t: 0, readyT: 0, phaseIdx: 0, phaseT: 0, fright: 0, chain: 0,
+             bonus: null, bonusT: 0, s: 8, ox: 0, oy: 0, best: 0, msg: '', msgT: 0, zones: [] };
+try { MZ.best = +(localStorage.getItem('d64_maze_best') || 0); } catch (e) {}
+const MZ_PHASES = [['scatter', 7], ['chase', 20], ['scatter', 5], ['chase', 20], ['scatter', 5], ['chase', 1e9]];
+const MZ_CORNERS = [[MZC - 2, 1], [1, 1], [MZC - 2, MZR - 2], [1, MZR - 2]];
+
+const mzWall = (tx, ty) => {
+  if (ty < 0 || ty >= MZR) return true;
+  if (tx < 0 || tx >= MZC) return ty !== MZ_TUNNEL;      // only the tunnel row leaves the map
+  return MZ.grid[ty][tx] === '#';
+};
+const mzPal = () => MZ_PALETTES[(MZ.level - 1) % MZ_PALETTES.length];
+function mzReset(full) {
+  MZ.grid = MZ_MAP.map(r => r.split(''));
+  MZ.dots = 0;
+  let start = [10, 12], pen = [];
+  for (let y = 0; y < MZR; y++) for (let x = 0; x < MZC; x++) {
+    const c = MZ.grid[y][x];
+    if (c === '.' || c === 'o') MZ.dots++;
+    if (c === 'P') { start = [x, y]; MZ.grid[y][x] = ' '; }
+    if (c === 'G') { pen.push([x, y]); MZ.grid[y][x] = ' '; }
+  }
+  MZ.left = MZ.dots;
+  MZ.pl = { x: start[0], y: start[1], hx: start[0], hy: start[1], dir: { dx: -1, dy: 0 },
+            want: { dx: -1, dy: 0 }, chomp: 0, face: 2 };
+  MZ.gs = CRUMB_NAMES.map((nm, i) => ({
+    nm, tint: CRUMB_TINTS[i], i,
+    x: pen[i % pen.length] ? pen[i % pen.length][0] : 10, y: pen[0] ? pen[0][1] : 10,
+    hx: pen[i % pen.length] ? pen[i % pen.length][0] : 10, hy: pen[0] ? pen[0][1] : 10,
+    dir: { dx: i % 2 ? 1 : -1, dy: 0 }, out: i === 0, waitT: i * 3.2, eaten: false, wob: i,
+  }));
+  MZ.phaseIdx = 0; MZ.phaseT = MZ_PHASES[0][1]; MZ.fright = 0; MZ.chain = 0;
+  MZ.bonus = null; MZ.bonusT = 22 + Math.random() * 12;
+  MZ.phase = 'READY'; MZ.readyT = 1.8;
+  if (full) { MZ.level = 1; MZ.score = 0; MZ.pips = 3; }
+}
+function mzFit() {
+  const s = Math.min((TW.W - 6) / MZC, (TW.H - 74) / MZR);
+  MZ.s = s; MZ.ox = (TW.W - MZC * s) / 2; MZ.oy = 44;
+}
+const mzX = tx => MZ.ox + (tx + 0.5) * MZ.s;
+const mzY = ty => MZ.oy + (ty + 0.5) * MZ.s;
+
+/* grid-locked movement with turn buffering — the whole feel of the genre lives here:
+   you may pre-press a turn before the corner and it fires the instant it becomes legal */
+function mzMove(a, dt, speed, canReverse) {
+  const cx = Math.round(a.x), cy = Math.round(a.y);
+  const centred = Math.abs(a.x - cx) < 0.14 && Math.abs(a.y - cy) < 0.14;
+  if (centred) {
+    if (a.want && (a.want.dx !== a.dir.dx || a.want.dy !== a.dir.dy)) {
+      const rev = a.want.dx === -a.dir.dx && a.want.dy === -a.dir.dy;
+      if ((canReverse || !rev) && !mzWall(cx + a.want.dx, cy + a.want.dy)) {
+        a.x = cx; a.y = cy; a.dir = { ...a.want };
+      }
+    }
+    if (mzWall(cx + a.dir.dx, cy + a.dir.dy)) { a.x = cx; a.y = cy; return false; }
+  }
+  a.x += a.dir.dx * speed * dt;
+  a.y += a.dir.dy * speed * dt;
+  if (a.y > MZ_TUNNEL - 0.5 && a.y < MZ_TUNNEL + 0.5) {          // the tunnel wraps
+    if (a.x < -0.6) a.x = MZC - 0.4;
+    else if (a.x > MZC - 0.4) a.x = -0.6;
+  }
+  return true;
+}
+/* every chaser wants a different tile — that's all "personality" is */
+function mzTarget(g) {
+  const p = MZ.pl, px = Math.round(p.x), py = Math.round(p.y);
+  if (g.eaten) return [g.hx, g.hy];
+  if (MZ.fright > 0) return MZ_CORNERS[(g.i + 2) % 4];
+  if (MZ_PHASES[MZ.phaseIdx][0] === 'scatter') return MZ_CORNERS[g.i];
+  switch (g.i) {
+    case 0: return [px, py];                                             // CRUSTY: straight at you
+    case 1: return [px + p.dir.dx * 4, py + p.dir.dy * 4];               // NIBBLE: cuts you off
+    case 2: {                                                            // PINCH: pivots on CRUSTY
+      const c = MZ.gs[0];
+      return [px + (px - Math.round(c.x)), py + (py - Math.round(c.y))];
+    }
+    default: {                                                           // DOZY: bold, then shy
+      const d = Math.hypot(g.x - p.x, g.y - p.y);
+      return d > 8 ? [px, py] : MZ_CORNERS[3];
+    }
+  }
+}
+function mzChooseDir(g) {
+  const cx = Math.round(g.x), cy = Math.round(g.y);
+  const [tx, ty] = mzTarget(g);
+  const opts = [[0, -1], [-1, 0], [0, 1], [1, 0]].filter(([dx, dy]) => {
+    if (dx === -g.dir.dx && dy === -g.dir.dy) return false;              // never turn back
+    return !mzWall(cx + dx, cy + dy);
+  });
+  if (!opts.length) return { dx: -g.dir.dx, dy: -g.dir.dy };            // cornered: about-face
+  let best = opts[0], bd = 1e9;
+  for (const [dx, dy] of opts) {
+    const d = (cx + dx - tx) ** 2 + (cy + dy - ty) ** 2;
+    if (d < bd) { bd = d; best = [dx, dy]; }
+  }
+  return { dx: best[0], dy: best[1] };
+}
+function mzSay(m, secs) { MZ.msg = m; MZ.msgT = secs || 1.6; }
+function mzCaught() {
+  MZ.pips--;
+  MZ.phase = 'CAUGHT'; MZ.readyT = 1.6;
+  AU.bonk(); buzz([80, 50, 110]);
+  mzSay(MZ.pips > 0 ? 'CRUMBED! shake it off' : 'THAT WAS THE LAST ONE', 1.6);
+}
+function mzLevelDone() {
+  MZ.level++; MZ.score += 300;
+  MZ.phase = 'CLEAR'; MZ.readyT = 2.2;
+  AU.fanfare(); buzz([50, 40, 50, 40, 120]);
+  mzSay(`MAZE ${MZ.level - 1} CLEARED!`, 2.2);
+  if (MZ.level === 2) addSpark('maze1', 'you cleared a whole maze of cheese');
+}
+function mzEnd() {
+  MZ.phase = 'OVER';
+  if (MZ.score > MZ.best) { MZ.best = MZ.score; try { localStorage.setItem('d64_maze_best', MZ.score); } catch (e) {} }
+  if (MZ.score >= 3000) addSpark('maze3k', 'three thousand in the maze — real appetite');
+  AU.poof();
+}
+function mzPayout() { return Math.min(60, Math.floor(MZ.score / 90)); }
+
+function stepMaze(dt) {
+  MZ.t += dt;
+  if (MZ.msgT > 0) MZ.msgT -= dt;
+  if (MZ.phase === 'OVER') return;
+  if (MZ.phase === 'READY' || MZ.phase === 'CAUGHT' || MZ.phase === 'CLEAR') {
+    MZ.readyT -= dt;
+    if (MZ.readyT > 0) return;
+    if (MZ.phase === 'CLEAR') { const lv = MZ.level, sc = MZ.score, pp = MZ.pips; mzReset(false); MZ.level = lv; MZ.score = sc; MZ.pips = pp; return; }
+    if (MZ.phase === 'CAUGHT' && MZ.pips <= 0) { mzEnd(); return; }
+    if (MZ.phase === 'CAUGHT') {                        // put everyone back, keep the board
+      const p = MZ.pl; p.x = p.hx; p.y = p.hy; p.dir = { dx: -1, dy: 0 }; p.want = { dx: -1, dy: 0 };
+      MZ.gs.forEach((g, i) => { g.x = g.hx; g.y = g.hy; g.eaten = false; g.out = i === 0; g.waitT = i * 2.4; });
+      MZ.fright = 0; MZ.chain = 0;
+    }
+    MZ.phase = 'PLAY';
+    return;
+  }
+
+  /* ---- your hand on the stick ---- */
+  let wx = 0, wy = 0;
+  if (keys.KeyA || keys.ArrowLeft) wx -= 1;
+  if (keys.KeyD || keys.ArrowRight) wx += 1;
+  if (keys.KeyW || keys.ArrowUp) wy -= 1;
+  if (keys.KeyS || keys.ArrowDown) wy += 1;
+  if (stick.active) { if (Math.abs(stick.x) > Math.abs(stick.y)) wx += Math.sign(stick.x); else wy += Math.sign(stick.y); }
+  const pad = readPad(); if (pad.ix || pad.iz) { if (Math.abs(pad.ix) > Math.abs(pad.iz)) wx += Math.sign(pad.ix); else wy -= Math.sign(pad.iz); }
+  if (wx && wy) wy = 0;
+  if (wx || wy) { MZ.pl.want = { dx: Math.sign(wx), dy: Math.sign(wy) }; }
+
+  const p = MZ.pl;
+  const spd = 5.7 + (MZ.level - 1) * 0.16;
+  const moved = mzMove(p, dt, spd, true);
+  if (moved) p.chomp += dt * 13;
+  p.face = p.dir.dx > 0 ? 0 : p.dir.dx < 0 ? 2 : p.dir.dy > 0 ? 1 : 3;
+
+  /* ---- eating ---- */
+  const cx = Math.round(p.x), cy = Math.round(p.y);
+  if (cx >= 0 && cx < MZC && cy >= 0 && cy < MZR) {
+    const c = MZ.grid[cy][cx];
+    if (c === '.') {
+      MZ.grid[cy][cx] = ' '; MZ.left--; MZ.score += 10;
+      AU.beep('square', 520 + (MZ.left % 2) * 120, 380, 0.035, 0.05);
+    } else if (c === 'o') {
+      MZ.grid[cy][cx] = ' '; MZ.left--; MZ.score += 50;
+      MZ.fright = Math.max(2.5, 8 - (MZ.level - 1) * 0.7); MZ.chain = 0;
+      MZ.gs.forEach(g => { if (!g.eaten) g.dir = { dx: -g.dir.dx, dy: -g.dir.dy }; });
+      AU.star(); buzz(35); mzSay('CHEESE WHEEL! go get them', 1.6);
+    }
+    if (MZ.bonus && MZ.bonus.x === cx && MZ.bonus.y === cy) {
+      MZ.score += MZ.bonus.pts; mzSay(`${MZ.bonus.em} +${MZ.bonus.pts}!`, 1.4);
+      MZ.bonus = null; AU.harvest(); buzz(30);
+    }
+    if (MZ.left <= 0) { mzLevelDone(); return; }
+  }
+
+  /* ---- the bonus, wandering in from the tunnel ---- */
+  if (!MZ.bonus && (MZ.bonusT -= dt) <= 0) {
+    const items = [['🌮', 300], ['🌼', 500], ['⭐', 800], ['🧀', 200]];
+    const it = items[(Math.random() * items.length) | 0];
+    MZ.bonus = { x: 10, y: 16, em: it[0], pts: it[1], t: 11 };
+    MZ.bonusT = 30 + Math.random() * 20;
+    mzSay(`${it[0]} appeared!`, 1.4);
+  }
+  if (MZ.bonus && (MZ.bonus.t -= dt) <= 0) MZ.bonus = null;
+
+  /* ---- phases and fright ---- */
+  if (MZ.fright > 0) {
+    MZ.fright -= dt;
+    if (MZ.fright <= 0) MZ.chain = 0;
+  } else if ((MZ.phaseT -= dt) <= 0 && MZ.phaseIdx < MZ_PHASES.length - 1) {
+    MZ.phaseIdx++; MZ.phaseT = MZ_PHASES[MZ.phaseIdx][1];
+    MZ.gs.forEach(g => { if (!g.eaten) g.dir = { dx: -g.dir.dx, dy: -g.dir.dy }; });
+  }
+
+  /* ---- the crumbs ---- */
+  for (const g of MZ.gs) {
+    if (!g.out) { if ((g.waitT -= dt) <= 0) { g.out = true; g.dir = { dx: 0, dy: -1 }; } else continue; }
+    const gs = g.eaten ? 11 : MZ.fright > 0 ? 3.4 : 5.15 + (MZ.level - 1) * 0.22;
+    const gcx = Math.round(g.x), gcy = Math.round(g.y);
+    if (Math.abs(g.x - gcx) < 0.14 && Math.abs(g.y - gcy) < 0.14) g.want = mzChooseDir(g);
+    mzMove(g, dt, gs, false);
+    if (g.eaten && Math.hypot(g.x - g.hx, g.y - g.hy) < 0.4) { g.eaten = false; g.x = g.hx; g.y = g.hy; }
+    if (g.eaten) continue;
+    if (Math.hypot(g.x - p.x, g.y - p.y) < 0.72) {
+      if (MZ.fright > 0) {
+        g.eaten = true; MZ.chain++;
+        const pts = 200 * Math.pow(2, Math.min(3, MZ.chain - 1));
+        MZ.score += pts;
+        mzSay(`${g.nm} +${pts}!`, 1.2);
+        AU.poof(); buzz(30);
+      } else { mzCaught(); return; }
+    }
+  }
+}
+
+/* ---------- drawing ---------- */
+function mzRect(px, py, w, h, col) {
+  TWX.fillStyle = col;
+  TWX.fillRect(Math.round(px), Math.round(py), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+}
+function mzHeroSprite(px, py, s, face, chomp) {
+  const [c1, c2] = myColors();
+  const shirt = '#' + c1.toString(16).padStart(6, '0'), cap = '#' + c2.toString(16).padStart(6, '0');
+  const u = s / 10, bob = Math.sin(chomp) * u * 0.9;
+  const x = px - s * 0.38, y = py - s * 0.46;
+  mzRect(x + u * 1.2, y + s * 0.62, u * 2.2, s * 0.3 + bob, '#2b2b3a');       // legs, pumping
+  mzRect(x + s * 0.76 - u * 3.4, y + s * 0.62, u * 2.2, s * 0.3 - bob, '#2b2b3a');
+  mzRect(x, y + s * 0.3, s * 0.76, s * 0.34, shirt);                          // body
+  mzRect(x - u * 1.1, y + s * 0.34 + bob, u * 1.6, s * 0.2, shirt);           // arms
+  mzRect(x + s * 0.76 - u * 0.5, y + s * 0.34 - bob, u * 1.6, s * 0.2, shirt);
+  mzRect(x + u * 0.9, y + s * 0.04, s * 0.58, s * 0.3, '#f0c9a0');            // head
+  mzRect(x + u * 0.5, y - u * 0.6, s * 0.66, s * 0.14, cap);                  // cap
+  /* the chomp: a wedge that opens and shuts in the direction you're travelling */
+  const open = (Math.sin(chomp) * 0.5 + 0.5) * s * 0.2;
+  if (open > 1) {
+    const mx = px + (face === 0 ? s * 0.2 : face === 2 ? -s * 0.2 : 0);
+    const my = py - s * 0.16 + (face === 1 ? s * 0.18 : face === 3 ? -s * 0.18 : 0);
+    mzRect(mx - open / 2, my - open / 2, open, open, '#7a2020');
+  }
+  const eyeX = px + (face === 0 ? s * 0.13 : face === 2 ? -s * 0.13 : 0);
+  mzRect(eyeX - u * 0.5, py - s * 0.24, u, u * 1.2, '#1a1a2a');
+}
+function mzCrumbSprite(px, py, s, g, fright) {
+  const wob = Math.sin(MZ.t * 9 + g.wob) * s * 0.05;
+  if (g.eaten) {                                                   // just eyes, hurrying home
+    mzRect(px - s * 0.2, py - s * 0.1, s * 0.14, s * 0.18, '#fff');
+    mzRect(px + s * 0.06, py - s * 0.1, s * 0.14, s * 0.18, '#fff');
+    return;
+  }
+  const startled = fright > 0;
+  const body = startled ? (fright < 2 && Math.floor(MZ.t * 8) % 2 ? '#fffdf2' : '#4f83e8') : g.tint;
+  mzRect(px - s * 0.34, py - s * 0.34 + wob, s * 0.68, s * 0.6, body);
+  mzRect(px - s * 0.34, py + s * 0.2 + wob, s * 0.16, s * 0.12, body);        // little feet
+  mzRect(px - s * 0.06, py + s * 0.2 + wob, s * 0.14, s * 0.12, body);
+  mzRect(px + s * 0.2, py + s * 0.2 + wob, s * 0.14, s * 0.12, body);
+  const ex = startled ? 0 : Math.sign(g.dir.dx) * s * 0.06, ey = startled ? 0 : Math.sign(g.dir.dy) * s * 0.05;
+  mzRect(px - s * 0.22 + ex, py - s * 0.18 + ey + wob, s * 0.14, s * 0.16, startled ? '#fffdf2' : '#fff');
+  mzRect(px + s * 0.08 + ex, py - s * 0.18 + ey + wob, s * 0.14, s * 0.16, startled ? '#fffdf2' : '#fff');
+  if (!startled) {
+    mzRect(px - s * 0.19 + ex * 2, py - s * 0.14 + ey * 2 + wob, s * 0.07, s * 0.09, '#1a1a2a');
+    mzRect(px + s * 0.11 + ex * 2, py - s * 0.14 + ey * 2 + wob, s * 0.07, s * 0.09, '#1a1a2a');
+  }
+}
+function drawMaze() {
+  mzFit();
+  const W = TW.W, H = TW.H, s = MZ.s, pal = mzPal();
+  TWX.fillStyle = pal.bg; TWX.fillRect(0, 0, W, H);
+  /* walls: a chunky block with a lit inner edge reads best in a half-res buffer */
+  for (let y = 0; y < MZR; y++) for (let x = 0; x < MZC; x++) {
+    const c = MZ.grid[y][x];
+    const px = MZ.ox + x * s, py = MZ.oy + y * s;
+    if (c === '#') {
+      mzRect(px, py, s, s, pal.wall);
+      if (y > 0 && MZ.grid[y - 1][x] !== '#') mzRect(px, py, s, Math.max(1, s * 0.18), pal.edge);
+      if (y < MZR - 1 && MZ.grid[y + 1][x] !== '#') mzRect(px, py + s * 0.82, s, Math.max(1, s * 0.18), pal.edge);
+      if (x > 0 && MZ.grid[y][x - 1] !== '#') mzRect(px, py, Math.max(1, s * 0.18), s, pal.edge);
+      if (x < MZC - 1 && MZ.grid[y][x + 1] !== '#') mzRect(px + s * 0.82, py, Math.max(1, s * 0.18), s, pal.edge);
+    } else if (c === '.') {
+      mzRect(px + s * 0.4, py + s * 0.4, Math.max(1, s * 0.2), Math.max(1, s * 0.2), pal.dot);
+    } else if (c === 'o') {
+      const k = 0.26 + Math.sin(MZ.t * 6) * 0.05;
+      TWX.fillStyle = '#ffd23e';
+      TWX.beginPath(); TWX.arc(px + s / 2, py + s / 2, s * k, 0, 7); TWX.fill();
+      TWX.fillStyle = '#c98a2e';
+      TWX.beginPath(); TWX.arc(px + s / 2, py + s / 2, s * k * 0.45, 0, 7); TWX.fill();
+    }
+  }
+  if (MZ.bonus) {
+    TWX.font = `${Math.round(s * 1.1)}px serif`; TWX.textAlign = 'center'; TWX.textBaseline = 'middle';
+    TWX.fillText(MZ.bonus.em, mzX(MZ.bonus.x), mzY(MZ.bonus.y));
+  }
+  for (const g of MZ.gs) if (g.out) mzCrumbSprite(mzX(g.x), mzY(g.y), s, g, MZ.fright);
+  if (MZ.phase !== 'CAUGHT' || Math.floor(MZ.t * 8) % 2) mzHeroSprite(mzX(MZ.pl.x), mzY(MZ.pl.y), s, MZ.pl.face, MZ.pl.chomp);
+
+  /* HUD */
+  const big = Math.max(11, 15 * TW.scale), sm = Math.max(8, 10 * TW.scale);
+  twText(`${MZ.score}`, 8, 14, big, '#ffd23e', 'left');
+  twText(`BEST ${MZ.best}`, 8, 14 + big * 0.95, sm, '#b9c6e8', 'left');
+  twText(`MAZE ${MZ.level}`, W / 2, 14, sm, '#fff');
+  twText('🍞'.repeat(Math.max(0, MZ.pips)), W - 8, 14, big, '#fff', 'right');
+  twText(`${MZ.left} left`, W - 8, 14 + big * 0.95, sm, '#b9c6e8', 'right');
+  if (MZ.msgT > 0) twText(MZ.msg, W / 2, H - 20, Math.max(9, 12 * TW.scale), '#ffd23e');
+
+  MZ.zones = [];
+  const card = (title, sub, a, b) => {
+    TWX.fillStyle = 'rgba(6,8,26,.82)'; TWX.fillRect(0, 0, W, H);
+    twText(title, W / 2, H * 0.34, Math.max(15, 24 * TW.scale), '#ffd23e');
+    if (sub) twText(sub, W / 2, H * 0.43, Math.max(9, 12 * TW.scale), '#fff');
+    if (a) {
+      const bw = W * 0.6, bh = Math.max(28, 40 * TW.scale), y1 = H * 0.56, y2 = y1 + bh + 10;
+      TWX.fillStyle = '#2a5fd0'; TWX.fillRect((W - bw) / 2, y1, bw, bh);
+      twText(a[0], W / 2, y1 + bh / 2, Math.max(10, 13 * TW.scale), '#fff');
+      TWX.fillStyle = '#3fae49'; TWX.fillRect((W - bw) / 2, y2, bw, bh);
+      twText(b[0], W / 2, y2 + bh / 2, Math.max(10, 13 * TW.scale), '#fff');
+      MZ.zones = [{ x: (W - bw) / 2, y: y1, w: bw, h: bh, go: a[1] },
+                  { x: (W - bw) / 2, y: y2, w: bw, h: bh, go: b[1] }];
+    }
+  };
+  if (MZ.phase === 'READY') card('🕹️ THE MAZE', 'eat the cheese · the wheel makes them run');
+  if (MZ.phase === 'CLEAR') card(MZ.msg, 'the crumbs get quicker now');
+  if (MZ.phase === 'OVER')
+    card('OUT OF BREAD', `SCORE ${MZ.score}` + (MZ.score >= MZ.best ? '  ✨NEW BEST!' : ` · BEST ${MZ.best}`),
+      ['PLAY AGAIN', () => { mzReset(true); }],
+      [`🏰 BACK TO THE TOWER  +${mzPayout()} 🪙`, () => exitMaze()]);
+}
+function enterMaze() {
+  mzReset(true); twSizeCanvas(); mzFit();
+  state = 'MAZE';
+  TWC.style.display = 'block';
+  AU.join(); buzz([30, 40, 60]);
+}
+function exitMaze() {
+  const pay = mzPayout();
+  state = 'TOWER';
+  TW.run.pts += MZ.score;
+  TW.mazeCool = 6;
+  TW.tideY -= FH * 8;                       // the bonus room buys you eight floors of breathing room
+  if (pay > 0) { TW.run.mazeCoins = (TW.run.mazeCoins || 0) + pay; }
+  TW.run.word = pay > 0 ? `+${pay} 🪙 FROM THE MAZE` : 'BACK TO THE CLIMB'; TW.run.wordT = 2.4;
+  AU.coin();
+}
+TWC.addEventListener('pointerdown', e => {
+  if (state !== 'MAZE') return;
+  e.preventDefault();
+  const bx = e.clientX / RES, by = e.clientY / RES;
+  for (const z of MZ.zones) if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  if (MZ.phase === 'READY') { MZ.readyT = 0; }
+});
+
 /* ---------- main loop ---------- */
 let last = performance.now(), raf = null;
 function loop(now) {
@@ -4618,6 +5214,7 @@ function loop(now) {
   lastDt = dt; last = now;
   const mt = now / 1000;
   if (state === 'TOWER') { stepTower(dt); drawTower(); return; }   // the 2D world runs alone
+  if (state === 'MAZE') { stepMaze(dt); drawMaze(); return; }      // and the maze behind ITS door
   if (state === 'PLAY' || state === 'WON' || state === 'SWOOP') {
     stepWorld(dt, mt);
     stepHero(dt, mt);
