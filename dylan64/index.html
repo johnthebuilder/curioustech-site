@@ -1832,8 +1832,15 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v14';
+const GAME_VERSION = 'v14.1';
 const CHANGELOG = [
+  { v: 'v14.1', title: '👁️ THE MAZE IN FIRST PERSON', lines: [
+    '👁️ THE MAZE IS 3D NOW — you are DOWN THERE, in the corridors, looking around as you turn.',
+    '🗺️ the flat maze is your MINIMAP, top-right: the whole board, every crumb, and which way you are facing.',
+    '🧀 dots and cheese wheels glow ahead of you in the dark. a crumb coming round a corner is a whole different feeling.',
+    '⚪ grab a wheel and the whole world goes blue while they run.',
+    '🔄 want the old flat view? tap the little 2D button, bottom-left. it swaps instantly, any time.',
+  ]},
   { v: 'v14', title: '🕹️ A GAME INSIDE THE GAME · 🌶️ THE ISLAND JALAPEÑO', lines: [
     '🕹️ THE MAZE — there is a DOOR in the tower now (floor 12, and every 25 after). Walk into it.',
     '🧀 it is a whole other game: eat every cheese dot while four CRUMBS hunt you through the maze.',
@@ -4890,6 +4897,7 @@ function mzReset(full) {
   MZ.phaseIdx = 0; MZ.phaseT = MZ_PHASES[0][1]; MZ.fright = 0; MZ.chain = 0;
   MZ.bonus = null; MZ.bonusT = 22 + Math.random() * 12;
   MZ.phase = 'READY'; MZ.readyT = 1.8;
+  FPV.ang = Math.atan2(MZ.pl.dir.dx, -MZ.pl.dir.dy);      // start looking where you'll walk
   if (full) { MZ.level = 1; MZ.score = 0; MZ.pips = 3; }
 }
 function mzFit() {
@@ -5007,6 +5015,7 @@ function stepMaze(dt) {
   if (wx || wy) { MZ.pl.want = { dx: Math.sign(wx), dy: Math.sign(wy) }; }
 
   const p = MZ.pl;
+  fpvStep(dt);
   const spd = 5.7 + (MZ.level - 1) * 0.16;
   const moved = mzMove(p, dt, spd, true);
   if (moved) p.chomp += dt * 13;
@@ -5120,9 +5129,184 @@ function mzCrumbSprite(px, py, s, g, fright) {
     mzRect(px + s * 0.11 + ex * 2, py - s * 0.14 + ey * 2 + wob, s * 0.07, s * 0.09, '#1a1a2a');
   }
 }
+/* ============ 👁️ THE FIRST-PERSON VIEW — a raycaster, Doom-style ============
+   John: "give pacman a 3d fpv as the main view. doom style and regular ms pacman as a
+   minimap." So the maze is now played from inside it: one ray per screen column, DDA
+   through the same grid the 2D game uses, vertical wall strips shaded by distance, and
+   everything else — dots, wheels, crumbs, the bonus — drawn as depth-sorted billboards
+   against a z-buffer. Movement stays grid-locked (that's the genre's whole feel); the
+   camera just swings smoothly to whatever direction you're travelling, so turning a
+   corner reads as a turn. The flat maze lives on as the minimap in the corner. */
+const FPV = { ang: Math.PI, fov: 1.05, zbuf: [], on: true };
+function fpvStep(dt) {
+  const want = Math.atan2(MZ.pl.dir.dx, -MZ.pl.dir.dy);       // face where you're going
+  let d = want - FPV.ang;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  FPV.ang += d * Math.min(1, dt * 9);
+}
+function fpvSprite(list, px, py, sinA, cosA, W, H, horizon, wallH, draw) {
+  for (const it of list) {
+    const rx = it.x - px, ry = it.y - py;
+    const tz = rx * sinA + ry * -cosA;                        // depth along the view axis
+    if (tz < 0.12) continue;
+    const tx = rx * -cosA - ry * sinA;
+    const sx = W / 2 + (tx / tz) * (W / 2) / Math.tan(FPV.fov / 2);
+    const sz = wallH / tz;
+    if (sx < -sz || sx > W + sz) continue;
+    draw(it, sx, horizon, sz, tz);
+  }
+}
+function drawFPV() {
+  const W = TW.W, H = TW.H, pal = mzPal();
+  const px = MZ.pl.x + 0.5, py = MZ.pl.y + 0.5;
+  const a = FPV.ang, sinA = Math.sin(a), cosA = Math.cos(a);
+  const horizon = H * 0.52, wallH = H * 0.62;
+  /* sky and floor */
+  const g = TWX.createLinearGradient(0, 0, 0, horizon);
+  g.addColorStop(0, pal.bg); g.addColorStop(1, pal.wall);
+  TWX.fillStyle = g; TWX.fillRect(0, 0, W, horizon);
+  const g2 = TWX.createLinearGradient(0, horizon, 0, H);
+  g2.addColorStop(0, '#101426'); g2.addColorStop(1, '#242a44');
+  TWX.fillStyle = g2; TWX.fillRect(0, horizon, W, H - horizon);
+  /* one ray per column, DDA across the grid */
+  FPV.zbuf.length = W;
+  const halfT = Math.tan(FPV.fov / 2);
+  for (let c = 0; c < W; c++) {
+    const camX = (2 * c / W - 1) * halfT;
+    const rdx = sinA + camX * cosA, rdy = -cosA + camX * sinA;
+    let mx = Math.floor(px), my = Math.floor(py);
+    const ddx = Math.abs(1 / (rdx || 1e-6)), ddy = Math.abs(1 / (rdy || 1e-6));
+    let stepX, stepY, sdx, sdy;
+    if (rdx < 0) { stepX = -1; sdx = (px - mx) * ddx; } else { stepX = 1; sdx = (mx + 1 - px) * ddx; }
+    if (rdy < 0) { stepY = -1; sdy = (py - my) * ddy; } else { stepY = 1; sdy = (my + 1 - py) * ddy; }
+    let side = 0, hit = false, guard = 0;
+    while (!hit && guard++ < 64) {
+      if (sdx < sdy) { sdx += ddx; mx += stepX; side = 0; } else { sdy += ddy; my += stepY; side = 1; }
+      if (my < 0 || my >= MZR) { hit = true; break; }
+      if (mx < 0 || mx >= MZC) { if (my !== MZ_TUNNEL) { hit = true; } else break; }
+      else if (MZ.grid[my][mx] === '#') hit = true;
+    }
+    const dist = Math.max(0.08, side === 0 ? sdx - ddx : sdy - ddy);
+    FPV.zbuf[c] = dist;
+    if (!hit) continue;
+    const h = Math.min(H * 2.4, wallH / dist);
+    const shade = Math.max(0.22, Math.min(1, 1.35 / (1 + dist * 0.42))) * (side ? 0.74 : 1);
+    TWX.fillStyle = pal.wall;
+    TWX.globalAlpha = 1;
+    TWX.fillRect(c, horizon - h / 2, 1, h);
+    TWX.fillStyle = '#000';
+    TWX.globalAlpha = 1 - shade;
+    TWX.fillRect(c, horizon - h / 2, 1, h);
+    TWX.globalAlpha = 1;
+    if (h > 6) {                                    // a lit lip so corners read
+      TWX.fillStyle = pal.edge; TWX.globalAlpha = shade * 0.85;
+      TWX.fillRect(c, horizon - h / 2, 1, Math.max(1, h * 0.05));
+      TWX.fillRect(c, horizon + h / 2 - Math.max(1, h * 0.05), 1, Math.max(1, h * 0.05));
+      TWX.globalAlpha = 1;
+    }
+  }
+  /* pickups, then crumbs — far to near, clipped against the wall depths */
+  const dots = [], wheels = [];
+  const r0 = Math.max(0, Math.floor(py) - 12), r1 = Math.min(MZR - 1, Math.floor(py) + 12);
+  const c0 = Math.max(0, Math.floor(px) - 12), c1 = Math.min(MZC - 1, Math.floor(px) + 12);
+  for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) {
+    const ch = MZ.grid[y][x];
+    if (ch === '.') dots.push({ x: x + 0.5, y: y + 0.5 });
+    else if (ch === 'o') wheels.push({ x: x + 0.5, y: y + 0.5 });
+  }
+  const blit = (sx, sz, w, hgt, yOff, col, tz) => {
+    const x0 = Math.round(sx - w / 2), x1 = Math.round(sx + w / 2);
+    TWX.fillStyle = col;
+    for (let c = Math.max(0, x0); c < Math.min(W, x1); c++) {
+      if (FPV.zbuf[c] !== undefined && tz > FPV.zbuf[c]) continue;   // behind a wall
+      TWX.fillRect(c, Math.round(horizon + yOff - hgt / 2), 1, Math.max(1, Math.round(hgt)));
+    }
+  };
+  fpvSprite(dots, px, py, sinA, cosA, W, H, horizon, wallH, (it, sx, hz, sz, tz) =>
+    blit(sx, sz, Math.max(1, sz * 0.11), Math.max(1, sz * 0.11), sz * 0.3, pal.dot, tz));
+  fpvSprite(wheels, px, py, sinA, cosA, W, H, horizon, wallH, (it, sx, hz, sz, tz) => {
+    const w = Math.max(2, sz * 0.3);
+    blit(sx, sz, w, w, sz * 0.24, '#ffd23e', tz);
+    blit(sx, sz, w * 0.4, w * 0.4, sz * 0.24, '#c98a2e', tz);
+  });
+  if (MZ.bonus) fpvSprite([{ x: MZ.bonus.x + 0.5, y: MZ.bonus.y + 0.5 }], px, py, sinA, cosA, W, H, horizon, wallH,
+    (it, sx, hz, sz, tz) => {
+      if (sx < 0 || sx >= W || (FPV.zbuf[Math.round(sx)] !== undefined && tz > FPV.zbuf[Math.round(sx)])) return;
+      TWX.font = `${Math.max(8, Math.round(sz * 0.42))}px serif`;
+      TWX.textAlign = 'center'; TWX.textBaseline = 'middle';
+      TWX.fillText(MZ.bonus.em, sx, horizon + sz * 0.2);
+    });
+  const gs = MZ.gs.filter(g => g.out).map(g => ({ g, x: g.x + 0.5, y: g.y + 0.5 }))
+    .sort((A, B) => Math.hypot(B.x - px, B.y - py) - Math.hypot(A.x - px, A.y - py));
+  fpvSprite(gs, px, py, sinA, cosA, W, H, horizon, wallH, (it, sx, hz, sz, tz) => {
+    const g = it.g;
+    const body = g.eaten ? null : MZ.fright > 0
+      ? (MZ.fright < 2 && Math.floor(MZ.t * 8) % 2 ? '#fffdf2' : '#4f83e8') : g.tint;
+    const w = Math.max(2, sz * 0.42);
+    if (body) {
+      blit(sx, sz, w, w * 0.95, sz * 0.16, body, tz);
+      blit(sx - w * 0.22, sz, w * 0.26, w * 0.3, sz * 0.02, '#fff', tz);   // eyes, always
+      blit(sx + w * 0.22, sz, w * 0.26, w * 0.3, sz * 0.02, '#fff', tz);
+      if (MZ.fright <= 0) {
+        blit(sx - w * 0.22, sz, w * 0.13, w * 0.16, sz * 0.02, '#1a1a2a', tz);
+        blit(sx + w * 0.22, sz, w * 0.13, w * 0.16, sz * 0.02, '#1a1a2a', tz);
+      }
+    } else {
+      blit(sx - w * 0.22, sz, w * 0.26, w * 0.3, sz * 0.02, '#fff', tz);
+      blit(sx + w * 0.22, sz, w * 0.26, w * 0.3, sz * 0.02, '#fff', tz);
+    }
+  });
+  /* your own hands-and-hat, so it still feels like YOUR hero down there */
+  const [c1x, c2x] = myColors();
+  const shirt = '#' + c1x.toString(16).padStart(6, '0'), cap = '#' + c2x.toString(16).padStart(6, '0');
+  const bob = Math.sin(MZ.pl.chomp) * H * 0.012;
+  TWX.fillStyle = shirt;
+  TWX.fillRect(W * 0.06, H - H * 0.16 + bob, W * 0.16, H * 0.2);
+  TWX.fillRect(W * 0.78, H - H * 0.16 - bob, W * 0.16, H * 0.2);
+  TWX.fillStyle = cap;
+  TWX.fillRect(W * 0.06, H - H * 0.16 + bob, W * 0.16, Math.max(2, H * 0.03));
+  TWX.fillRect(W * 0.78, H - H * 0.16 - bob, W * 0.16, Math.max(2, H * 0.03));
+  /* the chomp bites the bottom of the screen */
+  const open = (Math.sin(MZ.pl.chomp) * 0.5 + 0.5) * H * 0.05;
+  if (open > 1) {
+    TWX.fillStyle = '#7a2020';
+    TWX.fillRect(W * 0.4, H - open, W * 0.2, open);
+  }
+  if (MZ.fright > 0) {                       // the wheel tints the whole world
+    TWX.fillStyle = '#2a5fd0';
+    TWX.globalAlpha = 0.16 + Math.sin(MZ.t * 7) * 0.05;
+    TWX.fillRect(0, 0, W, H);
+    TWX.globalAlpha = 1;
+  }
+}
+function drawMinimap() {
+  const pal = mzPal();
+  const s = Math.max(1.4, Math.min(TW.W * 0.34 / MZC, TW.H * 0.26 / MZR));
+  const w = MZC * s, h = MZR * s, ox = TW.W - w - 5, oy = 30;
+  TWX.fillStyle = 'rgba(4,6,20,.72)';
+  TWX.fillRect(ox - 3, oy - 3, w + 6, h + 6);
+  for (let y = 0; y < MZR; y++) for (let x = 0; x < MZC; x++) {
+    const c = MZ.grid[y][x];
+    if (c === '#') { TWX.fillStyle = pal.wall; TWX.fillRect(ox + x * s, oy + y * s, Math.ceil(s), Math.ceil(s)); }
+    else if (c === '.') { TWX.fillStyle = pal.dot; TWX.fillRect(ox + x * s + s * 0.35, oy + y * s + s * 0.35, Math.max(1, s * 0.3), Math.max(1, s * 0.3)); }
+    else if (c === 'o') { TWX.fillStyle = '#ffd23e'; TWX.fillRect(ox + x * s + s * 0.15, oy + y * s + s * 0.15, Math.max(1, s * 0.7), Math.max(1, s * 0.7)); }
+  }
+  for (const g of MZ.gs) {
+    if (!g.out) continue;
+    TWX.fillStyle = g.eaten ? '#8b9ac2' : MZ.fright > 0 ? '#4f83e8' : g.tint;
+    TWX.fillRect(ox + g.x * s, oy + g.y * s, Math.max(2, s), Math.max(2, s));
+  }
+  const [pc] = myColors();
+  TWX.fillStyle = '#' + pc.toString(16).padStart(6, '0');
+  TWX.fillRect(ox + MZ.pl.x * s - s * 0.1, oy + MZ.pl.y * s - s * 0.1, Math.max(2, s * 1.2), Math.max(2, s * 1.2));
+  TWX.fillStyle = '#fff';                                   // a nose showing which way you face
+  TWX.fillRect(ox + (MZ.pl.x + MZ.pl.dir.dx * 0.6) * s, oy + (MZ.pl.y + MZ.pl.dir.dy * 0.6) * s, Math.max(1, s * 0.6), Math.max(1, s * 0.6));
+}
 function drawMaze() {
   mzFit();
   const W = TW.W, H = TW.H, s = MZ.s, pal = mzPal();
+  if (FPV.on) { drawFPV(); drawMinimap(); drawMazeHud(); return; }
   TWX.fillStyle = pal.bg; TWX.fillRect(0, 0, W, H);
   /* walls: a chunky block with a lit inner edge reads best in a half-res buffer */
   for (let y = 0; y < MZR; y++) for (let x = 0; x < MZC; x++) {
@@ -5151,7 +5335,11 @@ function drawMaze() {
   for (const g of MZ.gs) if (g.out) mzCrumbSprite(mzX(g.x), mzY(g.y), s, g, MZ.fright);
   if (MZ.phase !== 'CAUGHT' || Math.floor(MZ.t * 8) % 2) mzHeroSprite(mzX(MZ.pl.x), mzY(MZ.pl.y), s, MZ.pl.face, MZ.pl.chomp);
 
-  /* HUD */
+  drawMazeHud();
+}
+/* the HUD and the cards are shared by both views */
+function drawMazeHud() {
+  const W = TW.W, H = TW.H;
   const big = Math.max(11, 15 * TW.scale), sm = Math.max(8, 10 * TW.scale);
   twText(`${MZ.score}`, 8, 14, big, '#ffd23e', 'left');
   twText(`BEST ${MZ.best}`, 8, 14 + big * 0.95, sm, '#b9c6e8', 'left');
@@ -5161,6 +5349,14 @@ function drawMaze() {
   if (MZ.msgT > 0) twText(MZ.msg, W / 2, H - 20, Math.max(9, 12 * TW.scale), '#ffd23e');
 
   MZ.zones = [];
+  /* a corner button to swap between being IN the maze and looking down on it */
+  {
+    const bw = Math.max(30, 44 * TW.scale), bh = Math.max(14, 18 * TW.scale);
+    const bx = 6, by = H - bh - 6;
+    TWX.fillStyle = 'rgba(10,14,38,.8)'; TWX.fillRect(bx, by, bw, bh);
+    twText(FPV.on ? '2D' : '3D', bx + bw / 2, by + bh / 2, Math.max(8, 10 * TW.scale), '#c9a6ff');
+    MZ.zones.push({ x: bx, y: by, w: bw, h: bh, go: () => { FPV.on = !FPV.on; AU.beep('square', 400, 900, 0.08, 0.08); } });
+  }
   const card = (title, sub, a, b) => {
     TWX.fillStyle = 'rgba(6,8,26,.82)'; TWX.fillRect(0, 0, W, H);
     twText(title, W / 2, H * 0.34, Math.max(15, 24 * TW.scale), '#ffd23e');
@@ -5171,8 +5367,8 @@ function drawMaze() {
       twText(a[0], W / 2, y1 + bh / 2, Math.max(10, 13 * TW.scale), '#fff');
       TWX.fillStyle = '#3fae49'; TWX.fillRect((W - bw) / 2, y2, bw, bh);
       twText(b[0], W / 2, y2 + bh / 2, Math.max(10, 13 * TW.scale), '#fff');
-      MZ.zones = [{ x: (W - bw) / 2, y: y1, w: bw, h: bh, go: a[1] },
-                  { x: (W - bw) / 2, y: y2, w: bw, h: bh, go: b[1] }];
+      MZ.zones.push({ x: (W - bw) / 2, y: y1, w: bw, h: bh, go: a[1] },
+                    { x: (W - bw) / 2, y: y2, w: bw, h: bh, go: b[1] });
     }
   };
   if (MZ.phase === 'READY') card('🕹️ THE MAZE', 'eat the cheese · the wheel makes them run');
