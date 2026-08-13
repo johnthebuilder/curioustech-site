@@ -1645,6 +1645,8 @@ const CHANGELOG = [
     '🌳 the SKILL TREE grew all the way up: tier 2 (3 ✨) and tier 3 (5 ✨) are REAL now, for all seven heroes — every node upgrades one of your spells.',
     '⚡ SPARK got a proper glow-up: taller spikes, a real trench coat with tails that fly when you run, and an actual katana.',
     '🧹 the island got tidied — clear sightlines, props grouped into places, and all the little buttons moved into one ☰ menu.',
+    '🌶️ BOSS FIGHT — at floor 25 THE JALAPEÑO is waiting. it throws SEEDS at you and sets the floors ON FIRE.',
+    '🌮 stomp seeds to load your chips · climb to its head · deploy the airstrike · three hits and it is done. (the tide holds still while you fight — this one is a fair fight.)',
     '🌠 WISH GRANTED — DYLAN wished for a TORTILLA CHIP AIRSTRIKE. it is spell 4 🌮, it costs 25 🪙, and it is exactly what it sounds like. thank you Dylan.',
     '⌨️ also fixed because of that wish: you can type SPACES in the wish box now. sorry about that.',
     '📻 two new radio stations: THE DEEP (underwater) and DEEP END (boss music, plays automatically in the tower).',
@@ -3894,8 +3896,11 @@ function twFloor(n) {
   if (n <= 0) return { x: 0, w: SHAFT, n: 0 };
   let f = TW.floors[n];
   if (!f) {
+    const arena = n >= BOSS_FLOOR - 1 && n <= BOSS_TOP;      // the jalapeño owns the right side
+    if (n === BOSS_TOP) { f = TW.floors[n] = { x: 16, w: 150, n }; return f; }   // its head, reachable
     const w = clamp(80 - n * 0.42, 28, 80) * (0.72 + Math.random() * 0.48);
-    const span = SHAFT - WALLW * 2 - w;
+    const right = arena ? BOSS_X - BOSS_W / 2 - 4 : SHAFT - WALLW;
+    const span = right - WALLW - w;
     f = TW.floors[n] = { x: WALLW + Math.random() * Math.max(4, span), w, n };
   }
   return f;
@@ -3907,6 +3912,7 @@ function twReset() {
   TW.camY = -6; TW.tideY = -150;
   TW.pl = { x: SHAFT / 2, y: 0, vx: 0, vy: 0, w: 13, h: 20, grounded: true, face: 1,
             coyote: 0, buf: 0, fromFloor: 0, floor: 0, sq: 0, run: 0, wall: 0 };
+  bossReset();
   TW.run = { floor: 0, best: 0, pts: 0, comboFloors: 0, comboT: 0, comboPts: 0, word: '', wordT: 0,
              started: false, tideSpeed: 0, bounces: 0, bigCombo: 0, endReason: '' };
   TW.stars = [];
@@ -3979,6 +3985,108 @@ function twComboEnd() {
   r.comboFloors = 0; r.comboT = 0;
 }
 
+/* ---------- 🌶️ THE JALAPEÑO — the boss, designed by John (8/12) ----------
+   "a giant jalapeño that sends out mob enemies. you have to kill the mobs to charge
+    your air strike, platform to the top of the jalapeño, and deploy the strike to do
+    damage. but the jalapeño also causes the platforms to catch on fire every few
+    seconds so gotta watch out for that."
+   Exactly that. Stomp seeds → charge → climb to the head → 🌮. Burning floors don't
+   hurt you, they just refuse to hold you — you bounce off and lose your speed, which
+   in this game is the real punishment. Nothing here can kill you. */
+const BOSS_FLOOR = 25, BOSS_TOP = 37, BOSS_X = 158, BOSS_W = 74, CHARGE_NEED = 5;
+function bossReset() {
+  TW.boss = { on: false, beaten: false, hp: 3, charge: 0, seeds: [], spawnT: 2.2, fireT: 4,
+              fires: {}, roarT: 0, hitT: 0, shake: 0, introT: 0 };
+}
+function bossStart() {
+  const b = TW.boss;
+  b.on = true; b.introT = 2.2;
+  AU.shark(); buzz([90, 60, 90, 60, 160]);
+  TW.run.word = '🌶️ THE JALAPEÑO'; TW.run.wordT = 2.4;
+}
+function bossStrike() {
+  const b = TW.boss;
+  b.charge = 0; b.hp--; b.hitT = 1.2; b.shake = 1;
+  TW.dust.push(...Array.from({ length: 40 }, () => ({
+    x: BOSS_X + (Math.random() - 0.5) * BOSS_W, y: BOSS_TOP * FH + Math.random() * 40,
+    vx: (Math.random() - 0.5) * 200, vy: Math.random() * 120, t: 0.9, col: '#e0b25c' })));
+  AU.poof(); buzz([70, 40, 70, 40, 140]);
+  if (b.hp <= 0) {
+    b.on = false; b.beaten = true; b.seeds = []; b.fires = {};
+    TW.run.pts += 500; TW.run.word = 'JALAPEÑO DOWN!'; TW.run.wordT = 3;
+    TW.tideY -= FH * 5;                                   // the heat backs off. breathe.
+    for (let i = 0; i < 60; i++) TW.dust.push({ x: BOSS_X + (Math.random() - 0.5) * BOSS_W,
+      y: BOSS_TOP * FH * (0.9 + Math.random() * 0.15), vx: (Math.random() - 0.5) * 260,
+      vy: Math.random() * 200, t: 1.4, col: '#ffd23e' });
+    addSpark('towerboss', 'you took down THE JALAPEÑO with a chip airstrike');
+    AU.fanfare();
+  } else {
+    TW.run.word = `DIRECT HIT! ${b.hp} TO GO`; TW.run.wordT = 2;
+  }
+}
+function stepBoss(dt) {
+  const b = TW.boss, p = TW.pl, r = TW.run;
+  if (b.beaten) return;
+  if (!b.on) { if (r.best >= BOSS_FLOOR - 1) bossStart(); return; }
+  if (b.introT > 0) b.introT -= dt;
+  if (b.hitT > 0) b.hitT -= dt;
+  if (b.shake > 0) b.shake -= dt;
+  /* it sets the floors on fire */
+  b.fireT -= dt;
+  if (b.fireT <= 0) {
+    b.fireT = b.hp >= 3 ? 5 : b.hp === 2 ? 4 : 3;
+    const lo = Math.max(1, Math.floor(p.y / FH) - 1);
+    const pool = [];
+    for (let f = lo; f < lo + 7; f++) if (!(f === p.floor && p.grounded) && !b.fires[f]) pool.push(f);
+    for (let i = 0, want = b.hp >= 3 ? 2 : 3; i < want && pool.length; i++)
+      b.fires[pool.splice(Math.floor(Math.random() * pool.length), 1)[0]] = 3.2;
+    AU.beep('sawtooth', 220, 90, 0.3, 0.14);
+  }
+  for (const k in b.fires) { b.fires[k] -= dt; if (b.fires[k] <= 0) delete b.fires[k]; }
+  /* it sends out seeds */
+  b.spawnT -= dt;
+  if (b.spawnT <= 0 && b.seeds.length < 6) {
+    b.spawnT = b.hp >= 3 ? 2.6 : b.hp === 2 ? 2.1 : 1.7;
+    b.seeds.push({ x: BOSS_X - BOSS_W / 2, y: (p.floor + 2 + Math.floor(Math.random() * 3)) * FH,
+                   vx: -50 - Math.random() * 40, vy: 0, w: 11, h: 11, hopT: 0 });
+  }
+  for (let i = b.seeds.length - 1; i >= 0; i--) {
+    const s = b.seeds[i];
+    s.vy -= 1400 * dt;
+    const prevY = s.y;
+    s.x += s.vx * dt; s.y += s.vy * dt;
+    if (s.x < WALLW + 6) { s.x = WALLW + 6; s.vx = Math.abs(s.vx); }
+    if (s.x > SHAFT - WALLW - 6) { s.x = SHAFT - WALLW - 6; s.vx = -Math.abs(s.vx); }
+    if (s.vy <= 0) {                                       // land + hop toward you
+      const n = Math.floor((prevY + 2) / FH);
+      const f = twFloor(n), top = n * FH;
+      if (prevY >= top - 0.5 && s.y <= top && s.x > f.x - 6 && s.x < f.x + f.w + 6) {
+        s.y = top; s.vy = 0;
+        if ((s.hopT -= dt) <= 0) { s.hopT = 0.5 + Math.random() * 0.4; s.vy = 250; s.vx = Math.sign(p.x - s.x) * (55 + Math.random() * 45); }
+      }
+    }
+    /* you stomp it from above → charge. touch it from the side → you lose your speed. */
+    const hit = Math.abs(s.x - p.x) < (s.w + p.w) / 2 && Math.abs((s.y + s.h / 2) - (p.y + p.h / 2)) < (s.h + p.h) / 2;
+    if (hit) {
+      if (p.vy < 0 && p.y > s.y + 2) {
+        b.seeds.splice(i, 1);
+        b.charge = Math.min(CHARGE_NEED, b.charge + 1);
+        p.vy = 330; p.sq = 1;
+        twDust(s.x, s.y, 9, '#d1342f'); AU.hitCrumb(); buzz(20);
+        r.pts += 25;
+        if (b.charge >= CHARGE_NEED) { r.word = '🌮 AIRSTRIKE READY — GET TO THE TOP'; r.wordT = 2.6; AU.star(); }
+        continue;
+      }
+      p.vx *= -0.35; p.vy = Math.max(p.vy, 120);
+      twDust(p.x, p.y + p.h / 2, 6, '#ff9a5c');
+      if (!s.bumpT) { s.bumpT = 1; AU.bonk(); buzz(30); }
+    }
+    if (s.bumpT) s.bumpT -= dt;
+    if (s.y < TW.camY - 60) b.seeds.splice(i, 1);
+  }
+  /* at the head, fully charged → chips away */
+  if (b.charge >= CHARGE_NEED && p.grounded && p.floor >= BOSS_TOP - 1) bossStrike();
+}
 function stepTower(dt) {
   TW.t += dt;
   const p = TW.pl, r = TW.run;
@@ -4047,6 +4155,12 @@ function stepTower(dt) {
       const f = twFloor(n), top = n * FH;
       if (prevY < top - 0.5 || p.y > top) continue;
       if (p.x + hw < f.x || p.x - hw > f.x + f.w) continue;
+      if (TW.boss.fires[n] > 0) {                       // that one's on fire — it won't hold you
+        p.y = top; p.vy = 270; p.vx *= 0.45; p.sq = 1;
+        twDust(p.x, top, 8, '#ff9a5c'); AU.bonk(); buzz(35);
+        if (!TW.fireToast) { TW.fireToast = 1; r.word = 'HOT! HOT! HOT!'; r.wordT = 1.4; }
+        break;
+      }
       p.y = top; p.vy = 0; p.grounded = true; p.coyote = 0.09; p.sq = -1;
       const gained = n - p.fromFloor;
       if (n !== p.floor || gained > 0) {
@@ -4073,8 +4187,10 @@ function stepTower(dt) {
   /* ---- the camera, and the tide that follows it up ---- */
   const target = Math.max(TW.camY, p.y - TW.viewH * 0.42);
   TW.camY += (target - TW.camY) * Math.min(1, dt * 6);
+  stepBoss(dt);
   if (r.started) {
-    r.tideSpeed = 11 + Math.min(62, r.best * 0.42);   // gentle at the bottom, mean at the top
+    /* the tide HOLDS during the boss — the jalapeño is the fight, the clock isn't */
+    r.tideSpeed = TW.boss.on ? 0 : 11 + Math.min(62, r.best * 0.42);
     TW.tideY += r.tideSpeed * dt;
   }
   TW.tideY = Math.max(TW.tideY, TW.camY - FH * 1.4);
@@ -4115,6 +4231,95 @@ function twHero(gx, gy, sq, face, runPhase, airborne) {
   twRect(x + 0.6, gy + 4.2 + h * 0.74, w - 1.2, 3.4, cap);              // cap
   twRect(x + (face > 0 ? w - 2 : -2.6), gy + 4.2 + h * 0.74, 4.6, 2.2, cap);  // brim
 }
+function drawBossBody() {                 // behind the platforms, so you climb in front of it
+  const b = TW.boss;
+  if (!b.on) return;
+  const S = TW.scale, cx = BOSS_X, w = BOSS_W;
+  const yBot = (BOSS_FLOOR - 2) * FH, yTop = BOSS_TOP * FH + 26;
+  if (twSY(yBot) < -40 || twSY(yTop) > TW.H + 40) return;
+  const sh = b.shake > 0 ? (Math.random() - 0.5) * 10 * b.shake * S : 0;
+  const body = b.hitT > 0.9 ? '#ffffff' : b.hp >= 3 ? '#2f8f3a' : b.hp === 2 ? '#86a327' : '#c2542a';
+  TWX.save(); TWX.translate(sh, 0);
+  TWX.fillStyle = body;
+  TWX.beginPath();
+  TWX.moveTo(twSX(cx - w / 2), twSY(yTop));
+  TWX.quadraticCurveTo(twSX(cx - w / 2 - 10), twSY((yTop + yBot) / 2), twSX(cx + 4), twSY(yBot));
+  TWX.quadraticCurveTo(twSX(cx + w / 2 + 8), twSY((yTop + yBot) / 2), twSX(cx + w / 2), twSY(yTop));
+  TWX.closePath(); TWX.fill();
+  TWX.fillStyle = 'rgba(255,255,255,.18)';                       // the shine down its left side
+  TWX.beginPath();
+  TWX.moveTo(twSX(cx - w / 2 + 8), twSY(yTop - 20));
+  TWX.quadraticCurveTo(twSX(cx - w / 2 - 2), twSY((yTop + yBot) / 2), twSX(cx - 4), twSY(yBot + 50));
+  TWX.lineTo(twSX(cx + 6), twSY(yBot + 60));
+  TWX.quadraticCurveTo(twSX(cx - w / 2 + 12), twSY((yTop + yBot) / 2), twSX(cx - w / 2 + 20), twSY(yTop - 18));
+  TWX.closePath(); TWX.fill();
+  twRect(cx - 7, yTop, 14, 16, '#2a6b22');                        // stem
+  twRect(cx - 16, yTop + 12, 32, 7, '#3f8a2e');
+  /* the face — angry, and angrier the more you hit it */
+  const eyY = yTop - 46, ang = b.hp >= 3 ? 0 : b.hp === 2 ? 3 : 6;
+  [-1, 1].forEach(s => {
+    twRect(cx + s * 17 - 8, eyY, 16, 17, '#fffdf2');
+    twRect(cx + s * 17 - 5 + (b.hitT > 0 ? s * 3 : 0), eyY + 3, 9, 10, '#1a1a2a');
+    twRect(cx + s * 17 - 10, eyY + 18 + ang, 20, 5, body === '#ffffff' ? '#888' : '#1f5c1a');
+  });
+  TWX.fillStyle = '#5a1010';
+  const mw = 34, mY = eyY - 20;
+  TWX.beginPath();
+  TWX.moveTo(twSX(cx - mw / 2), twSY(mY));
+  for (let i = 0; i <= 6; i++) TWX.lineTo(twSX(cx - mw / 2 + mw * i / 6), twSY(mY + (i % 2 ? 9 : 0)));
+  TWX.lineTo(twSX(cx + mw / 2), twSY(mY - 12));
+  TWX.lineTo(twSX(cx - mw / 2), twSY(mY - 12));
+  TWX.closePath(); TWX.fill();
+  TWX.restore();
+}
+function drawBossFront() {                // seeds + fire, in front of the platforms
+  const b = TW.boss, S = TW.scale;
+  if (!b.on) return;
+  for (const k in b.fires) {                                     // flames licking off a floor
+    const n = +k, f = twFloor(n), top = n * FH;
+    if (twSY(top) < -30 || twSY(top) > TW.H + 30) continue;
+    twRect(f.x, top - 7, f.w, 7, '#c2401f');
+    for (let x = f.x + 2; x < f.x + f.w; x += 7) {
+      const h = 7 + Math.sin(TW.t * 13 + x) * 4;
+      TWX.fillStyle = '#ffb020';
+      TWX.beginPath();
+      TWX.moveTo(twSX(x), twSY(top));
+      TWX.lineTo(twSX(x + 3.4), twSY(top + h));
+      TWX.lineTo(twSX(x + 6.8), twSY(top));
+      TWX.closePath(); TWX.fill();
+      TWX.fillStyle = '#ffe9a3';
+      TWX.beginPath();
+      TWX.moveTo(twSX(x + 1.8), twSY(top));
+      TWX.lineTo(twSX(x + 3.4), twSY(top + h * 0.55));
+      TWX.lineTo(twSX(x + 5), twSY(top));
+      TWX.closePath(); TWX.fill();
+    }
+  }
+  for (const s of b.seeds) {                                     // the mobs
+    twRect(s.x - 5.5, s.y, 11, 11, '#e8d8a0');
+    twRect(s.x - 3.5, s.y + 9, 7, 3, '#c9b070');
+    twRect(s.x - 3.5, s.y + 4, 3, 4, '#1a1a2a');
+    twRect(s.x + 0.5, s.y + 4, 3, 4, '#1a1a2a');
+  }
+}
+function drawBossHud() {
+  const b = TW.boss, W = TW.W, S = TW.scale;
+  if (!b.on) return;
+  const y = Math.round(TW.H * 0.09), sz = Math.max(9, 12 * S);
+  twText('🌶️ THE JALAPEÑO', W / 2, y, sz, '#ffd23e');
+  const pw = Math.max(14, 22 * S), gap = Math.max(3, 5 * S), tot = 3 * pw + 2 * gap;
+  for (let i = 0; i < 3; i++) {
+    TWX.fillStyle = i < b.hp ? '#d1342f' : 'rgba(255,255,255,.2)';
+    TWX.fillRect((W - tot) / 2 + i * (pw + gap), y + sz * 0.9, pw, Math.max(5, 8 * S));
+  }
+  const cw = Math.max(8, 13 * S), ct = CHARGE_NEED * cw + (CHARGE_NEED - 1) * gap;
+  for (let i = 0; i < CHARGE_NEED; i++) {
+    TWX.fillStyle = i < b.charge ? '#e0b25c' : 'rgba(255,255,255,.18)';
+    TWX.fillRect((W - ct) / 2 + i * (cw + gap), y + sz * 2.1, cw, Math.max(5, 8 * S));
+  }
+  twText(b.charge >= CHARGE_NEED ? '🌮 GO TO THE TOP!' : 'STOMP THE SEEDS TO LOAD THE CHIPS',
+    W / 2, y + sz * 3.3, Math.max(7, 9.5 * S), b.charge >= CHARGE_NEED ? '#ffd23e' : '#ffffffcc');
+}
 function drawTower() {
   const W = TW.W, H = TW.H, S = TW.scale, r = TW.run, p = TW.pl;
   const sky = twSky(r ? r.best : 0), nextSky = twSky((r ? r.best : 0) + 25);
@@ -4141,6 +4346,7 @@ function drawTower() {
     TWX.fillRect(0, y, Math.round(twSX(WALLW)), Math.max(1, Math.round(S)));
     TWX.fillRect(Math.round(twSX(SHAFT - WALLW)), y, W - Math.round(twSX(SHAFT - WALLW)), Math.max(1, Math.round(S)));
   }
+  drawBossBody();
   /* floors */
   const lo = Math.max(0, Math.floor(TW.camY / FH) - 1), hi = Math.floor((TW.camY + TW.viewH) / FH) + 1;
   for (let n = lo; n <= hi; n++) {
@@ -4151,6 +4357,7 @@ function drawTower() {
     twRect(f.x, top - 7, f.w, 1.2, 'rgba(0,0,0,.28)');
     if (n > 0 && n % 5 === 0) twText(String(n), twSX(f.x + f.w / 2), twSY(top - 3.5), Math.max(8, 11 * S), 'rgba(255,255,255,.85)');
   }
+  drawBossFront();
   /* the nacho tide */
   const ty = twSY(TW.tideY);
   if (ty < H + 20) {
@@ -4184,6 +4391,7 @@ function drawTower() {
     TWX.fillStyle = '#ffd23e'; TWX.fillRect(cx, cy, cw * clamp(r.comboT / 2.7, 0, 1), Math.round(7 * S));
     twText(`COMBO ${r.comboFloors} FLOORS`, W / 2, cy + Math.round(3.5 * S), sm, '#fff');
   }
+  drawBossHud();
   if (r && r.wordT > 0) {
     const k = 1 - r.wordT / 1.6;
     twText(r.word, W / 2, H * 0.32 - k * 20 * S, Math.max(16, 26 * S) * (1 + (1 - k) * 0.25), '#ffd23e');
