@@ -250,6 +250,17 @@
   #pingWheel .pw.em { background: rgba(120, 180, 255, .15); }
   #pingWheel .pw:active { transform: scale(.92); }
 
+  /* ---------- zone title: the big golden WoW-style splash ---------- */
+  #zoneTitle { position: fixed; top: 16vh; left: 0; right: 0; z-index: 54; text-align: center;
+    pointer-events: none; opacity: 0; }
+  #zoneTitle.go { animation: ztFade 3.6s ease forwards; }
+  #ztBig { font-size: clamp(1.6rem, 7vw, 3rem); color: #ffd23e;
+    text-shadow: 0 0 18px rgba(255, 210, 62, .55), 3px 3px 0 #000; letter-spacing: .06em; }
+  #ztSub { font-family: Arial, sans-serif; font-size: clamp(.8rem, 3.2vw, 1.05rem);
+    color: #e8eef8; text-shadow: 2px 2px 0 #000; margin-top: 6px; }
+  @keyframes ztFade { 0% { opacity: 0; transform: scale(.92); } 12% { opacity: 1; transform: scale(1); }
+    78% { opacity: 1; } 100% { opacity: 0; } }
+
   /* ---------- fourth wall ---------- */
   #wall { position: fixed; inset: 0; z-index: 120; background: #000; display: none; place-items: center; }
   #wallText { font-family: "Courier New", monospace; color: #8be89b; font-size: clamp(1rem, 3.6vw, 1.5rem);
@@ -557,6 +568,7 @@
   <div class="pw em" data-k="wave">🙋</div><div class="pw em" data-k="dance">🕺</div><div class="pw em" data-k="sit">🧘</div><div class="pw em" data-k="point">👉</div>
 </div>
 
+<div id="zoneTitle"><div id="ztBig" class="chunk"></div><div id="ztSub"></div></div>
 <div id="wall"><div id="wallText"></div></div>
 <button id="mute">🔊</button>
 <button id="btnRadio">📻</button>
@@ -1377,6 +1389,231 @@ function stepTutor(dt, mt) {
   }
 }
 
+/* ================== 🌄 THE MEADOW: where every session begins ==================
+   John (8/28): "a big green field with mountains in the distance… a portal in the
+   distance… you can go back to the island… more of a World of Warcraft type game…
+   you start off as a character, no choices yet."
+   HOW IT WORKS: the meadow lives in the SAME scene, 600 units east. The camera's far
+   plane is 220, so whichever zone you are not in is frustum-culled automatically —
+   the island costs nothing while you are here, and the meadow costs nothing there.
+   Mountains, trees, flowers and boulders are each BAKED into one merged mesh
+   (one draw call apiece) so a phone barely notices the whole zone. The peaks ignore
+   fog on purpose: they read as far scenery, WoW-postcard style, while the portal
+   fades up out of the haze as you walk the path toward it. */
+const MD = { x: 600, z: 0, sx: 600, sz: 26 };            // zone center + spawn
+function inMeadow() { return P.x > 300; }
+
+/* bake many transformed geometries into ONE vertex-colored mesh (one draw call) */
+function mdBake(parts, matOpts, lit = true) {
+  let vtx = 0;
+  const geos = parts.map(p => { const g = p.g.toNonIndexed(); vtx += g.attributes.position.count; return g; });
+  const pos = new Float32Array(vtx * 3), col = new Float32Array(vtx * 3), nrm = new Float32Array(vtx * 3);
+  let o = 0;
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), nm = new THREE.Matrix3();
+  geos.forEach((g, gi) => {
+    const p = parts[gi], pa = g.attributes.position, na = g.attributes.normal;
+    nm.getNormalMatrix(p.m);
+    for (let i = 0; i < pa.count; i++) {
+      v.fromBufferAttribute(pa, i);
+      const c = p.colorFn ? p.colorFn(v.x, v.y, v.z) : p.col;
+      v.applyMatrix4(p.m);
+      pos[o * 3] = v.x; pos[o * 3 + 1] = v.y; pos[o * 3 + 2] = v.z;
+      n.fromBufferAttribute(na, i).applyMatrix3(nm).normalize();
+      nrm[o * 3] = n.x; nrm[o * 3 + 1] = n.y; nrm[o * 3 + 2] = n.z;
+      col[o * 3] = c[0]; col[o * 3 + 1] = c[1]; col[o * 3 + 2] = c[2];
+      o++;
+    }
+    g.dispose();
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mesh = new THREE.Mesh(g, lit
+    ? new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, matOpts || {}))
+    : new THREE.MeshBasicMaterial(Object.assign({ vertexColors: true }, matOpts || {})));
+  scene.add(mesh);
+  return mesh;
+}
+const mdM4 = (x, y, z, ry = 0, s = 1, sy) =>
+  new THREE.Matrix4().compose(new THREE.Vector3(x, y, z),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)),
+    new THREE.Vector3(s, sy === undefined ? s : sy, s));
+
+{ /* ---- the field itself ---- */
+  const gnd = box(MD.x, 0, MD.z, 160, 160, 8, mat.grass);
+  gnd.material = gnd.material.clone(); gnd.material.map = gnd.material.map.clone();
+  gnd.material.map.needsUpdate = true; gnd.material.map.repeat.set(32, 32);
+  box(MD.x, -3.9, MD.z, 160.4, 160.4, 4.2, mat.dirt, false);
+
+  /* ---- the mountain ring: one draw call, fog-proof, snow-capped ---- */
+  const mParts = [];
+  for (let i = 0; i < 13; i++) {
+    const a = i / 13 * Math.PI * 2 + 0.23;
+    const rr = 64 + ((i * 37) % 9);
+    const mx = MD.x + Math.cos(a) * rr, mz = MD.z + Math.sin(a) * rr;
+    const h = 26 + ((i * 7919) % 17), br = 11 + ((i * 104729) % 6);
+    const tj = ((i * 31) % 10) / 100;
+    mParts.push({
+      g: new THREE.ConeGeometry(br, h, 7),
+      m: mdM4(mx, h / 2, mz, (i * 1.7) % Math.PI),
+      colorFn: (x, y) => y > h * 0.17
+        ? [0.93 - tj * 0.2, 0.96 - tj * 0.2, 1.0]
+        : [0.30 + tj, 0.36 + tj, 0.50 + tj],
+    });
+    colliders.push({ minX: mx - br * 0.62, maxX: mx + br * 0.62, minZ: mz - br * 0.62, maxZ: mz + br * 0.62, top: h * 0.9, bottom: 0 });
+  }
+  mdBake(mParts, { fog: false }, false);
+
+  /* ---- the dirt path: spawn → the portal, wandering a little ---- */
+  const pParts = [];
+  for (let i = 0; i < 10; i++) {
+    const z0 = MD.sz - 4 - i * 5.2;
+    pParts.push({ g: new THREE.BoxGeometry(3.4, 0.06, 5.6), m: mdM4(MD.x + Math.sin(i * 1.9) * 1.3, 0.03, z0, Math.sin(i) * 0.1), col: [0.55 + (i % 3) * 0.02, 0.42, 0.28] });
+  }
+  mdBake(pParts, {});
+
+  /* ---- trees, boulders, wildflowers — one merged mesh each ---- */
+  const tParts = [], bParts = [], fParts = [];
+  const TREE_AT = [[-36, 30], [-24, -18], [-42, -4], [30, 34], [44, 12], [38, -22], [-12, 44], [16, -40], [52, -42], [-52, 24]];
+  TREE_AT.forEach(([dx, dz], i) => {
+    const s = 0.9 + (i % 4) * 0.18, tx = MD.x + dx, tz = MD.z + dz;
+    tParts.push({ g: new THREE.BoxGeometry(0.62, 3.2, 0.62), m: mdM4(tx, 1.6 * s, tz, i, s), col: [0.42, 0.30, 0.19] });
+    tParts.push({ g: new THREE.BoxGeometry(3.4, 2.4, 3.4), m: mdM4(tx, 4.2 * s, tz, i * 0.7, s), col: [0.22, 0.52 + (i % 3) * 0.05, 0.24] });
+    tParts.push({ g: new THREE.BoxGeometry(2.3, 1.7, 2.3), m: mdM4(tx + 0.6 * s, 5.6 * s, tz - 0.4 * s, i * 1.3, s), col: [0.28, 0.60 + (i % 2) * 0.05, 0.28] });
+  });
+  mdBake(tParts, {});
+  [[-18, 12, 0.9], [22, 18, 1.2], [8, -18, 0.8], [-30, -32, 1.1], [40, -6, 1.0], [-6, 34, 0.7]].forEach(([dx, dz, s], i) => {
+    const bx = MD.x + dx, bz = MD.z + dz;
+    bParts.push({ g: new THREE.BoxGeometry(2.4 * s, 1.5 * s, 1.9 * s), m: mdM4(bx, 0.6 * s, bz, i * 0.9), col: [0.52, 0.54, 0.58] });
+    bParts.push({ g: new THREE.BoxGeometry(1.5 * s, 1.0 * s, 1.3 * s), m: mdM4(bx + 0.8 * s, 1.35 * s, bz + 0.3 * s, i * 1.7), col: [0.58, 0.60, 0.64] });
+    colliders.push({ minX: bx - 1.2 * s, maxX: bx + 1.2 * s, minZ: bz - 0.95 * s, maxZ: bz + 0.95 * s, top: 1.35 * s, bottom: 0 });
+  });
+  mdBake(bParts, {});
+  const PETALS = [[0.95, 0.55, 0.62], [0.98, 0.83, 0.30], [0.72, 0.55, 0.90], [0.98, 0.98, 0.98], [0.95, 0.62, 0.35]];
+  for (let i = 0; i < 90; i++) {
+    const a = i * 2.399963, rr = 6 + (i * 0.83) % 58;          // sunflower-spiral scatter
+    const fx = MD.x + Math.cos(a) * rr, fz = MD.z + Math.sin(a) * rr;
+    if (Math.abs(fx - MD.x) < 2.4 && fz < MD.sz && fz > MD.z - 32) continue;   // keep the path clear
+    fParts.push({ g: new THREE.BoxGeometry(0.09, 0.55, 0.09), m: mdM4(fx, 0.27, fz), col: [0.25, 0.58, 0.25] });
+    fParts.push({ g: new THREE.BoxGeometry(0.34, 0.3, 0.34), m: mdM4(fx, 0.62, fz, i), col: PETALS[i % PETALS.length] });
+  }
+  mdBake(fParts, {});
+
+  /* ---- the spawn camp: stone circle, campfire, signpost ---- */
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 0.12, 18), mat.stone);
+  ring.position.set(MD.sx, 0.06, MD.sz); scene.add(ring);
+  box(MD.sx - 4.6, 0.5, MD.sz + 1.6, 1.0, 0.7, 0.5, mat.trunk);   // sitting logs, west of the circle
+  box(MD.sx - 4.6, 0.5, MD.sz - 1.6, 1.0, 0.7, 0.5, mat.trunk);
+  box(MD.sx - 4.6, 0.28, MD.sz, 0.9, 0.9, 0.28, mat.crate, false); // fire base between them
+  MD.flame = emojiSprite('🔥'); MD.flame.scale.set(1.1, 1.1, 1);
+  MD.flame.position.set(MD.sx - 4.6, 1.05, MD.sz); scene.add(MD.flame);
+  MD.fireLi = new THREE.PointLight(0xffa040, 1.0, 15);
+  MD.fireLi.position.set(MD.sx - 4.6, 1.4, MD.sz); scene.add(MD.fireLi);
+  box(MD.sx + 3.4, 1.5, MD.sz - 2.4, 0.18, 0.18, 3.0, mat.trunk, false);   // signpost
+  const sg = nameSprite('THE MEADOW'); sg.scale.set(5.4, 0.9, 1);
+  sg.position.set(MD.sx + 3.4, 3.35, MD.sz - 2.4); scene.add(sg);
+  for (let i = 0; i < 4; i++) {                                   // a few clouds of our own
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.75, depthWrite: false }));
+    m.scale.set(26 + i * 6, 9 + i * 2, 1);
+    m.position.set(MD.x + (i - 1.5) * 52, 30 + i * 4, MD.z + Math.sin(i * 2.4) * 60);
+    scene.add(m);
+  }
+}
+
+/* ---- the gates: one on each side of the world, same door both ways ---- */
+function mdGate(gx, gz, alongX, discHex, ringHex, emHex, emoji, label) {
+  if (alongX) {
+    box(gx, 4.6, gz - 2.1, 1.0, 1.0, 4.6, mat.stone);
+    box(gx, 4.6, gz + 2.1, 1.0, 1.0, 4.6, mat.stone);
+    box(gx, 5.6, gz, 1.0, 5.2, 1.0, mat.stone, false);
+  } else {
+    box(gx - 2.1, 4.6, gz, 1.0, 1.0, 4.6, mat.stone);
+    box(gx + 2.1, 4.6, gz, 1.0, 1.0, 4.6, mat.stone);
+    box(gx, 5.6, gz, 5.2, 1.0, 1.0, mat.stone, false);
+  }
+  const d = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.2),
+    new THREE.MeshBasicMaterial({ color: discHex, transparent: true, opacity: 0.68, side: THREE.DoubleSide, depthWrite: false }));
+  d.position.set(gx, 2.3, gz); if (alongX) d.rotation.y = Math.PI / 2;
+  scene.add(d);
+  const r = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.16, 6, 20),
+    new THREE.MeshLambertMaterial({ color: ringHex, emissive: emHex }));
+  r.position.set(gx, 2.3, gz); if (alongX) r.rotation.y = Math.PI / 2;
+  scene.add(r);
+  const motes = [];
+  for (let i = 0; i < 7; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.13),
+      new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffd23e : ringHex }));
+    scene.add(m); motes.push({ m, a: i / 7 * Math.PI * 2, r: 1.5 + Math.random() * 0.6, sp: 0.7 + Math.random() * 0.8 });
+  }
+  const em = emojiSprite(emoji); em.scale.set(1.5, 1.5, 1); em.position.set(gx, 6.9, gz); scene.add(em);
+  const lb = nameSprite(label); lb.scale.set(5.6, 0.8, 1); lb.position.set(gx, 6.05, gz); scene.add(lb);
+  return { x: gx, z: gz, alongX, disc: d, ring: r, motes, em, toasted: false };
+}
+const MGATE = mdGate(MD.x, MD.z - 30, false, 0x2fd0a8, 0x9ff0d8, 0x0e5c46, '🏝️', 'TO THE ISLAND');
+const IGATE = mdGate(13, 8, true, 0x6fdc8c, 0xb2f0c0, 0x145c2a, '🌄', 'TO THE MEADOW');
+
+let gateCd = 0, seenIslandWelcome = false;
+function zoneSplash(big, sub) {
+  const el = $('zoneTitle'); if (!el) return;
+  $('ztBig').textContent = big; $('ztSub').textContent = sub || '';
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+}
+function applyZoneUI() {
+  const m = inMeadow();
+  if (m && buildMode) setBuild(false);
+  $('btnBuild').style.display = m ? 'none' : 'grid';
+  $('btnB').style.display = (!m && isTouch) ? 'grid' : 'none';
+}
+function gateTravel(toMeadow) {
+  gateCd = 2.4;
+  burst(P.x, 2, P.z, 16, 5);
+  if (toMeadow) {
+    P.x = MD.x; P.z = MD.z - 24; P.yaw = 0;
+    P.spawn = { x: MD.sx, z: MD.sz };
+    zoneSplash('🌄 THE MEADOW', 'mountains ahead · the island behind you');
+  } else {
+    P.x = 8.6; P.z = 8; P.yaw = -Math.PI / 2;
+    P.spawn = { x: 0, z: 8 };
+    zoneSplash('🏝️ THE ISLAND', 'everyone plays together');
+    if (!seenIslandWelcome && !localStorage.getItem('d64_welcomed')) {
+      seenIslandWelcome = true;
+      setTimeout(() => { if (state === 'PLAY' || state === 'WON') $('welcome').style.display = 'grid'; }, 1600);
+    }
+  }
+  P.y = 0.2; P.vx = P.vy = P.vz = 0; P.jumps = 0;
+  camYaw = P.yaw + Math.PI;              // camera settles BEHIND you, facing your way forward
+  camPos.set(P.x + Math.sin(camYaw) * 8.5, 4.6, P.z + Math.cos(camYaw) * 8.5);
+  burst(P.x, 2, P.z, 16, 5);
+  AU.ping('light'); buzz([30, 30, 60]);
+  applyZoneUI();
+}
+function stepGateOne(g, dt, mt, tip, go) {
+  g.disc.material.opacity = 0.55 + Math.sin(mt * 2.6) * 0.16;
+  g.disc.scale.set(1 + Math.sin(mt * 1.7) * 0.05, 1 + Math.sin(mt * 2.2) * 0.05, 1);
+  g.ring.rotation[g.alongX ? 'x' : 'z'] = mt * 1.1;
+  g.em.position.y = 6.9 + Math.sin(mt * 2) * 0.14;
+  for (const o of g.motes) {
+    o.a += o.sp * dt;
+    if (g.alongX) o.m.position.set(g.x + Math.sin(o.a) * 0.25, 2.3 + Math.sin(o.a) * o.r, g.z + Math.cos(o.a) * o.r);
+    else o.m.position.set(g.x + Math.cos(o.a) * o.r, 2.3 + Math.sin(o.a) * o.r, g.z + Math.sin(o.a) * 0.25);
+  }
+  if (state !== 'PLAY' && state !== 'WON') return;
+  const d = Math.hypot(P.x - g.x, P.z - g.z);
+  if (d < 6.5 && !g.toasted) { g.toasted = true; toast(tip, 3800); }
+  if (d > 10) g.toasted = false;
+  if (gateCd <= 0 && d < 1.9 && P.y < 3.6) go();
+}
+function stepMeadow(dt, mt) {
+  if (gateCd > 0) gateCd -= dt;
+  stepGateOne(MGATE, dt, mt, '🏝️ THE ISLAND GATE — walk in. your builds, your friends, the whole world.', () => gateTravel(false));
+  stepGateOne(IGATE, dt, mt, '🌄 THE MEADOW GATE — walk in to visit the field where journeys start.', () => gateTravel(true));
+  const m = inMeadow();
+  skyStars.position.x = m ? MD.x : 0;                       // the night sky follows you
+  MD.flame.position.y = 1.05 + Math.sin(mt * 9) * 0.06;
+  MD.fireLi.intensity = nightAmt > 0.4 ? 1.3 + Math.sin(mt * 11) * 0.25 : 0.7 + Math.sin(mt * 11) * 0.15;
+}
+
 /* ---------- THE CLIMB: four sky areas that BUILD THEMSELVES as you earn them ----------
    Fall-Guys-style progression off the pier: jumps → wobbles → the riddle tiles → summit.
    Locked areas hang in the sky as GHOSTS; touch an area's beacon and the next one
@@ -1832,8 +2069,17 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v14.1';
+const GAME_VERSION = 'v15';
 const CHANGELOG = [
+  { v: 'v15', title: '🌄 THE MEADOW — a whole new beginning', lines: [
+    '🌄 you wake up in THE MEADOW now — a huge green field with snow-capped mountains all around.',
+    '🌀 there is a PORTAL down the dirt path. walk into it and it takes you home to the island — everything is exactly where you left it.',
+    '🏝️ and there is a matching gate ON the island (right by the landing) so you can go back to the meadow any time.',
+    '🧍 no picking, no menus — you just APPEAR as a hero and start walking. making a hero your own still lives on the key.',
+    '🏕️ the meadow has a campfire that glows at night, boulders you can climb, wildflowers, and mountains that stay crisp on the horizon.',
+    '📱 it is easy on phones on purpose: the whole meadow draws in a handful of GPU calls, and each world rests while you are in the other.',
+    '🔨 building stays an ISLAND thing — the meadow is for running, jumping and setting out.',
+  ]},
   { v: 'v14.1', title: '👁️ THE MAZE IN FIRST PERSON', lines: [
     '👁️ THE MAZE IS 3D NOW — you are DOWN THERE, in the corridors, looking around as you turn.',
     '🗺️ the flat maze is your MINIMAP, top-right: the whole board, every crumb, and which way you are facing.',
@@ -2214,8 +2460,8 @@ function destroyChar(c) {
 
 /* local hero */
 const P = Object.assign({
-  spawn: { x: 0, z: 8 },
-  x: 0, y: 0, z: 8, vx: 0, vy: 0, vz: 0,
+  spawn: { x: 600, z: 26 },              // v15: every session begins in THE MEADOW
+  x: 600, y: 0, z: 26, vx: 0, vy: 0, vz: 0,
   grounded: false, groundedPrev: false, onMov: false, jumps: 0,
   yaw: Math.PI, r: 0.45, hurtT: 0,
   swimming: false, wasSwimming: false, swimToasted: false, lastSquish: 0,
@@ -3041,6 +3287,7 @@ addEventListener('pointerup', e => {
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 let buildMode = false, tool = '0';
 function setBuild(on) {
+  if (on && inMeadow()) { toast('🔨 builds live on the ISLAND — through the portal!', 2400); on = false; }
   buildMode = on;
   $('btnBuild').classList.toggle('on', on);
   $('palette').style.display = on ? 'flex' : 'none';
@@ -3210,7 +3457,13 @@ function startGame() {
   $('title').classList.add('out');
   if (acct) showKeyHome();              // the family's heroes live on the key
   else if (hero) showWback();           // one local hero, no key yet
-  else { buildPickerUI(); $('pgo').textContent = "THAT'S ME — LET'S GROW!"; $('picker').style.display = 'grid'; }
+  else {
+    /* v15 "no choices yet": a brand-new player just IS somebody — straight into the
+       meadow as ZIP. Making a hero your own still lives in the key flow, later. */
+    hero = { ch: 1, sparks: 0, trees: {}, earned: {}, life: {} };
+    try { localStorage.setItem('d64_hero', JSON.stringify(hero)); } catch (e) {}
+    enterIsland();
+  }
 }
 function showWback() {
   const c = CH_DEFS[hero.ch];
@@ -3413,6 +3666,11 @@ function enterIsland() {
   MMO.connect();
   applyGauntProgress();
   state = 'SWOOP'; swoopT = 0;
+  /* v15: sessions begin in THE MEADOW — swoop down over the field, then settle
+     behind the hero looking down the path (portal + mountains in frame, WoW style) */
+  camPos.set(MD.x, 34, MD.sz + 56);
+  camYaw = 0;
+  zoneSplash('🌄 THE MEADOW', 'your story starts here');
   $('hud').style.display = 'block';
   /* v13 CLEANUP: mute · radio · skills · wish · what's-new · feedback all moved
      into the ☰ pocket menu. The thumb zone now holds only what you PLAY with. */
@@ -3420,16 +3678,15 @@ function enterIsland() {
   $('btnRadio').style.display = 'none';
   $('btnTree').style.display = 'none';
   $('btnMenu').style.display = 'grid';
-  if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; $('btnB').style.display = 'grid'; }
-  $('btnBuild').style.display = 'grid';
+  if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; }
+  applyZoneUI();          // build & cheese wait on the island — the meadow keeps thumbs simple
   $('btnPing').style.display = 'grid';
   refreshLampChip();
   refreshSpellBar();
   renderQuest();
-  if (!localStorage.getItem('d64_welcomed'))
-    setTimeout(() => { if (state === 'PLAY' || state === 'SWOOP') $('welcome').style.display = 'grid'; }, 1900);
-  $('hint').textContent = isTouch ? 'STICK run · A jump ×2 · 🧀 cheese · 🔨 BUILD & plant · your builds STAY'
-                                  : 'WASD run · SPACE jump ×2 · X cheese · 🔨/B build & plant · your builds STAY';
+  /* the island welcome card now greets you when you first step THROUGH the gate */
+  $('hint').textContent = isTouch ? 'STICK run · A jump ×2 · follow the path to the PORTAL'
+                                  : 'WASD run · SPACE jump ×2 · follow the path to the PORTAL';
   setTimeout(() => $('hint').style.opacity = 0, 9000);
 }
 function winGame() {
@@ -3558,7 +3815,7 @@ function stepHero(dt, mt) {
   }
   P.groundedPrev = P.grounded;
 
-  if (P.y < -22) respawn("THE ISLAND CAUGHT YOU! TRY AGAIN 🪂");
+  if (P.y < -22) respawn(inMeadow() ? "THE MEADOW CAUGHT YOU! 🪂" : "THE ISLAND CAUGHT YOU! TRY AGAIN 🪂");
 
   if (P.spray && state !== 'SWOOP' && mt - P.lastGlob > 0.075) { P.lastGlob = mt; fireCheese(); }
 
@@ -3659,6 +3916,7 @@ function spinCollectibles(dt, mt) {
   stepSmash(dt);
   stepTutor(dt, mt);
   stepPortal(dt, mt);
+  stepMeadow(dt, mt);
   stepIslandBoss(dt, mt);
   stepGauntlet(dt, mt);
   stepSpells(dt, mt);
