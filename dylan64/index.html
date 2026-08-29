@@ -12,8 +12,14 @@
   html, body { height: 100%; overflow: hidden; background: #000; touch-action: none;
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
     font-family: "Arial Black", "Arial Bold", Arial, sans-serif; }
-  canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
-    image-rendering: pixelated; image-rendering: crisp-edges; }
+  canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  /* v16: no image-rendering here on purpose — default bilinear upscale is the
+     soft childhood-TV N64 look (D6 Option A). #tower keeps ITS pixelated lines:
+     the LCD stays crunchy. Revert = restore the two lines + antialias:false. */
+  /* v16: the CRT-corner vignette — pure DOM, composited free (GFX #8).
+     z=3 sits under #crt 40 / #tower 44 / #hud 50 / the sticks 55. */
+  #vig { position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(8,10,30,.28) 100%); }
   /* touch-action does NOT inherit: without this, rapid A-taps trigger the
      browser's double-tap zoom and the game gets stuck zoomed (John, 8/9) */
   button, canvas, #btnA, #btnB, #btnBuild, #btnPing, #btnTree, #stickZone, #stickBase, #nub,
@@ -367,6 +373,7 @@
 <body>
 
 <canvas id="gl"></canvas>
+<div id="vig"></div>
 <canvas id="tower"></canvas>
 <div id="crt"></div>
 
@@ -801,13 +808,55 @@ const buzz = ms => { try { userGestured && navigator.vibrate && navigator.vibrat
 
 /* ---------- renderer / scene ---------- */
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'low-power' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });   // v16: the N64 look — AA inside the tiny buffer, ~free
 renderer.setPixelRatio(1);
 const scene = new THREE.Scene();
 const SKY = 0x7db8ff, FOGC = 0xa9c9ee;
 scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(FOGC, 34, 95);
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 220);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 640);   // v16: far enough for the three-ridge skyline
+
+/* ---------- gradient sky dome (GFX #1): horizon = EXACTLY the fog color, so far
+   geometry melts into the sky instead of silhouetting; zenith = deeper sky. This
+   is how the N64 era faked big skies. scene.background keeps painting behind it —
+   first-frame fallback and the polar-cap sliver. Repaints only when the lerped
+   colors actually change (~once a real minute; instantly on ☀️ DAYBREAK). */
+const skyGeo = new THREE.SphereGeometry(190, 20, 12);          // inside far=640; ridges paint over it (D7)
+const skyColAttr = new Float32Array(skyGeo.attributes.position.count * 3);
+skyGeo.setAttribute('color', new THREE.BufferAttribute(skyColAttr, 3));
+const skyDome = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({
+  vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false, dithering: true }));
+skyDome.renderOrder = -2; skyDome.frustumCulled = false; skyDome.userData.shared = true; scene.add(skyDome);
+const _zen = new THREE.Color(), _hor = new THREE.Color(), _mix = new THREE.Color();
+let lastSkyKey = '';
+function paintSky() {
+  const key = scene.background.getHex() + ',' + scene.fog.color.getHex();
+  if (key === lastSkyKey) return; lastSkyKey = key;            // repaints ~once a minute
+  _zen.copy(scene.background).multiplyScalar(0.62);            // zenith: deeper, more saturated
+  _hor.copy(scene.fog.color);                                  // horizon: EXACTLY the fog color
+  const pa = skyGeo.attributes.position;
+  for (let i = 0; i < pa.count; i++) {
+    const t = Math.pow(clamp(pa.getY(i) / 190, 0, 1), 0.6);    // 0 horizon → 1 zenith
+    _mix.copy(_hor).lerp(_zen, t);
+    skyColAttr[i*3] = _mix.r; skyColAttr[i*3+1] = _mix.g; skyColAttr[i*3+2] = _mix.b;
+  }
+  skyGeo.attributes.color.needsUpdate = true;
+}
+/* ---------- a sun and a moon that cross the sky (GFX #3): the world has a clock
+   in it now. Both depth-test, so the sun RISES FROM BEHIND the near ridge — that
+   is a feature, not a bug (D7). applyDayNight moves them and drags the real
+   directional light along, warm at the horizons. */
+function glowTex(rgb) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 30);
+  g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(0.4, `rgba(${rgb},.55)`); g.addColorStop(1, `rgba(${rgb},0)`);
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(cv);
+}
+const sunSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('255,240,200'), transparent: true, depthWrite: false, fog: false }));
+sunSpr.scale.set(38, 38, 1); sunSpr.userData.shared = true; scene.add(sunSpr);
+const moonSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('220,228,255'), transparent: true, depthWrite: false, fog: false }));
+moonSpr.scale.set(16, 16, 1); moonSpr.userData.shared = true; scene.add(moonSpr);
 
 function sizeIt() {
   const aspect = innerWidth / innerHeight;
@@ -819,8 +868,9 @@ function sizeIt() {
 }
 addEventListener('resize', sizeIt); sizeIt();
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0x5a8c46, 0.95); scene.add(hemi);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x5a8c46, 0.95); hemi.userData.shared = true; scene.add(hemi);   // v16: the WORLD'S lights are shared — the zone swap must never turn off the sun
 const sun = new THREE.DirectionalLight(0xfff2cc, 0.85);
+sun.userData.shared = true;                              // v16: shared — see hemi
 sun.position.set(24, 42, 12); scene.add(sun);
 
 /* ---------- textures ---------- */
@@ -837,7 +887,22 @@ function checker(c1, c2, n) {
 }
 const grassTex = checker('#58b34a', '#4da543', 8);
 const dirtTex  = checker('#c9a06a', '#bb9159', 8);
-const waterTex = checker('#3f7fd4', '#3573c4', 8); waterTex.repeat.set(30, 30);
+const waterTex = (() => {              // v16: hand-painted wave glints — the checker was a tech demo
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#3a74c6'; x.fillRect(0, 0, 64, 64);
+  x.fillStyle = '#3268b4';                                  // soft dark dapples
+  for (let i = 0; i < 9; i++) { x.beginPath(); x.arc((i * 23) % 64, (i * 41) % 64, 7 + (i % 3) * 3, 0, 7); x.fill(); }
+  x.strokeStyle = '#7fb6e8'; x.lineWidth = 2;               // chunky crest glints
+  for (let i = 0; i < 6; i++) {
+    const yy = 6 + i * 10.5, xx = (i * 29) % 44;
+    x.beginPath(); x.moveTo(xx, yy); x.quadraticCurveTo(xx + 7, yy - 3, xx + 14, yy); x.stroke();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(30, 30);
+  return t;
+})();
 const stoneTex = checker('#9a9aa2', '#8b8b94', 4);
 
 const mat = {
@@ -874,15 +939,51 @@ const island = box(0, 0, 0, 90, 90, 8, mat.grass); island.material.map.repeat.se
 box(0, -3.9, 0, 90.4, 90.4, 4.2, mat.dirt, false);
 const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), mat.water);
 water.rotation.x = -Math.PI / 2; water.position.y = -7.5; scene.add(water);
+/* v16: a second, fainter wave sheet drifting the OTHER way — the interference
+   between the two layers is what finally reads as moving water (GFX #4). Both
+   sheets stay Lambert so the existing day/night lerp darkens the sea at night.
+   x=0 puts water2 in the ISLAND zone for the swap: hidden in the meadow, where
+   the haze sea covers the horizon anyway — correct, and saves the overdraw. */
+const waterTex2 = waterTex.clone(); waterTex2.needsUpdate = true; waterTex2.repeat.set(21, 21);
+const water2 = new THREE.Mesh(new THREE.PlaneGeometry(600, 600),
+  new THREE.MeshLambertMaterial({ map: waterTex2, transparent: true, opacity: 0.35, depthWrite: false }));
+water2.rotation.x = -Math.PI / 2; water2.position.y = -7.35; scene.add(water2);
+
+/* v16: the blob shadow (GFX #5) — a soft dark disc under the hero that shrinks
+   and fades with height, so THE CLIMB's landings can finally be judged. Hero
+   only for v16; puppets keep their little discs (deferred list). The base test
+   is D13-corrected: island top OR meadow field — open water and the void past
+   the rim have NO ground, and the blob hides itself there. */
+const blobTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+  const x = cv.getContext('2d'), g = x.createRadialGradient(16, 16, 2, 16, 16, 15);
+  g.addColorStop(0, 'rgba(0,0,10,.5)'); g.addColorStop(1, 'rgba(0,0,10,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(cv);
+})();
+function mkBlob() {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7),
+    new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.renderOrder = 1; scene.add(m); return m;   // renderOrder 1: draws after the cheese paint
+}
+const heroBlob = mkBlob(); heroBlob.userData.shared = true;
+function groundUnder(x, z, y) {
+  let g = (Math.abs(x) <= 45 && Math.abs(z) <= 45) || (Math.abs(x - 600) <= 80 && Math.abs(z) <= 80) ? 0 : -999;
+  for (const c of colliders)
+    if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ && c.top <= y + 0.05 && c.top > g) g = c.top;
+  return g;
+}
 
 /* ---------- the sky lives here: real time-of-day, clouds, night ---------- */
-// keyframes: [hour, skyHex, fogHex, hemiIntensity, sunIntensity]
+// keyframes: [hour, skyHex, fogHex, hemiIntensity, sunIntensity, fogNear, fogFar]
+// v16: fog follows the clock — closer, cozier at night and dawn (lanterns MATTER),
+// the classic 34/95 at midday. Never below far 74: the crumbs must stay spottable.
 const DAY_KEYS = [
-  [0, 0x121a36, 0x161e40, 0.38, 0.06], [5, 0x121a36, 0x161e40, 0.38, 0.06],
-  [6.5, 0xe8907a, 0xeeb190, 0.68, 0.42], [8, 0x7db8ff, 0xa9c9ee, 0.95, 0.85],
-  [17, 0x7db8ff, 0xa9c9ee, 0.95, 0.85], [19, 0xff9a5c, 0xf3b488, 0.75, 0.5],
-  [20.5, 0x2a2e5e, 0x333b6c, 0.48, 0.14], [22, 0x121a36, 0x161e40, 0.38, 0.06],
-  [24, 0x121a36, 0x161e40, 0.38, 0.06],
+  [0,   0x121a36, 0x161e40, 0.38, 0.06, 24, 74], [5, 0x121a36, 0x161e40, 0.38, 0.06, 24, 74],
+  [6.5, 0xe8907a, 0xeeb190, 0.68, 0.42, 26, 80], [8, 0x7db8ff, 0xa9c9ee, 0.95, 0.85, 34, 95],
+  [17,  0x7db8ff, 0xa9c9ee, 0.95, 0.85, 34, 95], [19, 0xff9a5c, 0xf3b488, 0.75, 0.50, 27, 82],
+  [20.5,0x2a2e5e, 0x333b6c, 0.48, 0.14, 25, 76], [22, 0x121a36, 0x161e40, 0.38, 0.06, 24, 74],
+  [24,  0x121a36, 0x161e40, 0.38, 0.06, 24, 74],
 ];
 const _cA = new THREE.Color(), _cB = new THREE.Color();
 let nightAmt = 0;
@@ -895,9 +996,25 @@ function applyDayNight() {
   _cA.setHex(a[2]); _cB.setHex(b[2]); _cA.lerp(_cB, t); scene.fog.color.copy(_cA);
   hemi.intensity = lerp(a[3], b[3], t);
   sun.intensity = lerp(a[4], b[4], t);
+  scene.fog.near = lerp(a[5], b[5], t); scene.fog.far = lerp(a[6], b[6], t);
+  /* the sun crosses the sky and drags the directional light with it (GFX #3) */
+  const sa = (h - 6) / 12 * Math.PI;
+  const cx = camera.position.x, cz = camera.position.z;
+  sunSpr.position.set(cx + Math.cos(sa) * 150, Math.sin(sa) * 120 + 4, cz - 55);
+  sunSpr.material.opacity = clamp(Math.sin(sa) * 3, 0, 1);
+  _cA.setHex(0xfff2cc); _cB.setHex(0xff8c3a);
+  sun.color.copy(_cA).lerp(_cB, clamp(1 - Math.sin(sa) * 2.5, 0, 1));
+  sun.position.set(Math.cos(sa) * 40, Math.max(Math.sin(sa), 0.12) * 42, 12);
+  if (mdSky) mdSky.material.color.copy(scene.fog.color);   // aerial perspective: the range wears the fog's color
   nightAmt = clamp(1 - (hemi.intensity - 0.38) / 0.57, 0, 1);
+  moonSpr.position.set(cx - Math.cos(sa) * 150, -Math.sin(sa) * 120 + 4, cz + 55);
+  moonSpr.material.opacity = nightAmt * 0.9;
+  _cB.setHex(0xffffff);
+  cloudMat.color.copy(_cB).lerp(scene.fog.color, 0.45 + nightAmt * 0.4);
+  cloudMat.opacity = 0.75 - nightAmt * 0.35;
   skyStars.material.opacity = nightAmt * 0.9;
-  fireflies.visible = nightAmt > 0.5;
+  fireflies.visible = nightAmt > 0.5 && !inMeadow();   // v16: don't resurrect island fireflies in the meadow
+  paintSky();
 }
 /* clouds */
 const cloudTex = (() => {
@@ -910,9 +1027,13 @@ const cloudTex = (() => {
   }
   return new THREE.CanvasTexture(cv);
 })();
+/* v16: ONE shared material for all 11 clouds, tinted by applyDayNight — clouds
+   belong to whatever sky they float in: white noon puffs, peach at dusk,
+   dim blue-grey ghosts at midnight. 11 materials become 1. */
+const cloudMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.75, depthWrite: false });
 const clouds = [];
 for (let i = 0; i < 7; i++) {
-  const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.75, depthWrite: false }));
+  const m = new THREE.Sprite(cloudMat);
   m.scale.set(26 + Math.random() * 20, 9 + Math.random() * 6, 1);
   m.position.set((Math.random() - 0.5) * 240, 26 + Math.random() * 14, (Math.random() - 0.5) * 240);
   scene.add(m); clouds.push(m);
@@ -920,12 +1041,12 @@ for (let i = 0; i < 7; i++) {
 /* night sky stars */
 const _sg = new THREE.BufferGeometry(), _sp = new Float32Array(150 * 3);
 for (let i = 0; i < 150; i++) {
-  const a = Math.random() * Math.PI * 2, e = Math.random() * Math.PI * 0.45 + 0.08, r = 170;
+  const a = Math.random() * Math.PI * 2, e = Math.random() * Math.PI * 0.45 + 0.22, r = 170;   // v16: floor raised — stars clear every ridge apex
   _sp[i * 3] = Math.cos(a) * Math.cos(e) * r; _sp[i * 3 + 1] = Math.sin(e) * r; _sp[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
 }
 _sg.setAttribute('position', new THREE.BufferAttribute(_sp, 3));
 const skyStars = new THREE.Points(_sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0 }));
-skyStars.frustumCulled = false; scene.add(skyStars);
+skyStars.frustumCulled = false; skyStars.userData.shared = true; scene.add(skyStars);
 /* fireflies (dusk+) */
 const _fg = new THREE.BufferGeometry(), _fp = new Float32Array(40 * 3), _fs = [];
 for (let i = 0; i < 40; i++) {
@@ -937,7 +1058,7 @@ _fg.setAttribute('position', new THREE.BufferAttribute(_fp, 3));
 const fireflies = new THREE.Points(_fg, new THREE.PointsMaterial({ color: 0xd9f77a, size: 0.45, transparent: true, opacity: 0.9 }));
 fireflies.visible = false; scene.add(fireflies);
 /* WICK: glimmer + thrown lanterns */
-const heroLight = new THREE.PointLight(0xffe28a, 0, 12); scene.add(heroLight);
+const heroLight = new THREE.PointLight(0xffe28a, 0, 12); heroLight.userData.shared = true; scene.add(heroLight);
 const lanterns = [];
 function dropLantern(x, y, z) {
   if (lanterns.filter(l => l.life > 0).length >= 3) { toast('3 LANTERNS MAX — one will fade soon', 1400); return; }
@@ -952,6 +1073,16 @@ function stepVisuals(dt, mt) {
   heroLight.position.set(P.x, P.y + 2.2, P.z);
   heroLight.intensity = myCh === 3 ? nightAmt * 1.1 : myCh === 6 ? (ffS.on ? 1.9 : 0.8) : 0;   // WICK · GLIMMER / SPARK · AURA (blazing in FINAL FORM)
   heroLight.color.setHex(myCh === 6 ? 0xffd23e : 0xffe28a);
+  skyDome.position.set(camera.position.x, 0, camera.position.z);   // the sky goes where you go
+  /* v16: the blob shadow (GFX #5) — and the old tiny hard disc from makeChar
+     retires: it defaulted its ground to −8, which would hover mid-air over the
+     v16 overlook fall. Hidden every frame because rebuildHero re-creates it. */
+  const gy = groundUnder(P.x, P.z, P.y), hh = clamp(P.y - gy, 0, 12);
+  heroBlob.visible = gy > -100;
+  heroBlob.position.set(P.x, gy + 0.05, P.z);
+  const bs = Math.max(0.35, 1 - hh * 0.055); heroBlob.scale.set(bs, bs, 1);
+  heroBlob.material.opacity = Math.max(0.15, 1 - hh * 0.07);
+  P.blob.visible = false;
   for (const l of lanterns) {
     if (l.life <= 0) continue;
     l.life -= dt;
@@ -1393,15 +1524,31 @@ function stepTutor(dt, mt) {
    John (8/28): "a big green field with mountains in the distance… a portal in the
    distance… you can go back to the island… more of a World of Warcraft type game…
    you start off as a character, no choices yet."
-   HOW IT WORKS: the meadow lives in the SAME scene, 600 units east. The camera's far
-   plane is 220, so whichever zone you are not in is frustum-culled automatically —
-   the island costs nothing while you are here, and the meadow costs nothing there.
+   HOW IT WORKS: the meadow lives in the SAME scene, 600 units east. v16 raised the
+   camera's far plane to 640 for the three-ridge skyline, which retired the old free
+   frustum cull — so whichever zone you are not in is hidden by setZoneVis() at every
+   gate teleport instead: one O(n) pass at a loading moment, zero per-frame cost.
+   `userData.shared` marks the few objects that live in both worlds (sky, characters,
+   particles); baked meshes carry `userData.zx` because their mesh sits at the origin.
    Mountains, trees, flowers and boulders are each BAKED into one merged mesh
    (one draw call apiece) so a phone barely notices the whole zone. The peaks ignore
    fog on purpose: they read as far scenery, WoW-postcard style, while the portal
    fades up out of the haze as you walk the path toward it. */
 const MD = { x: 600, z: 0, sx: 600, sz: 26 };            // zone center + spawn
+let mdSky;                                               // the baked skyline (applyDayNight tints it)
+const AR = { x: MD.sx + 9.5, z: MD.sz + 6.5, coolT: 0, toasted: false };   // 🕹️ GAME SHACK anchor
 function inMeadow() { return P.x > 300; }
+/* one-shot visibility swap at zone crossings — far=640 killed the old free frustum
+   cull, so whichever world you are not in is HIDDEN by hand at every gate teleport:
+   one O(n) pass at a loading moment, zero per-frame cost. `userData.shared` marks
+   the handful of objects that live in both worlds (sky, characters, lights). */
+function setZoneVis(inMd) {
+  for (const o of scene.children) {
+    if (o.userData.shared) continue;
+    const zx = o.userData.zx !== undefined ? o.userData.zx : o.position.x;   // baked meshes sit at
+    o.visible = (zx > 300) === inMd;                                          // origin — they carry a tag
+  }
+}
 
 /* bake many transformed geometries into ONE vertex-colored mesh (one draw call) */
 function mdBake(parts, matOpts, lit = true) {
@@ -1432,7 +1579,8 @@ function mdBake(parts, matOpts, lit = true) {
   const mesh = new THREE.Mesh(g, lit
     ? new THREE.MeshLambertMaterial(Object.assign({ vertexColors: true }, matOpts || {}))
     : new THREE.MeshBasicMaterial(Object.assign({ vertexColors: true }, matOpts || {})));
-  scene.add(mesh);
+  mesh.userData.zx = MD.x;               // baked geometry is world-absolute; the mesh itself sits at
+  scene.add(mesh);                       // the origin — tag it so setZoneVis knows whose world it is
   return mesh;
 }
 const mdM4 = (x, y, z, ry = 0, s = 1, sy) =>
@@ -1446,24 +1594,67 @@ const mdM4 = (x, y, z, ry = 0, s = 1, sy) =>
   gnd.material.map.needsUpdate = true; gnd.material.map.repeat.set(32, 32);
   box(MD.x, -3.9, MD.z, 160.4, 160.4, 4.2, mat.dirt, false);
 
-  /* ---- the mountain ring: one draw call, fog-proof, snow-capped ---- */
-  const mParts = [];
-  for (let i = 0; i < 13; i++) {
-    const a = i / 13 * Math.PI * 2 + 0.23;
-    const rr = 64 + ((i * 37) % 9);
-    const mx = MD.x + Math.cos(a) * rr, mz = MD.z + Math.sin(a) * rr;
-    const h = 26 + ((i * 7919) % 17), br = 11 + ((i * 104729) % 6);
-    const tj = ((i * 31) % 10) / 100;
-    mParts.push({
-      g: new THREE.ConeGeometry(br, h, 7),
-      m: mdM4(mx, h / 2, mz, (i * 1.7) % Math.PI),
-      colorFn: (x, y) => y > h * 0.17
-        ? [0.93 - tj * 0.2, 0.96 - tj * 0.2, 1.0]
-        : [0.30 + tj, 0.36 + tj, 0.50 + tj],
-    });
-    colliders.push({ minX: mx - br * 0.62, maxX: mx + br * 0.62, minZ: mz - br * 0.62, maxZ: mz + br * 0.62, top: h * 0.9, bottom: 0 });
+  /* ---- the skyline: three ridge lines standing in a sea of haze (v16) ----
+     48 unlit cones in three arcs a day's walk out (r 175–460), every layer
+     leaving a gap facing west — the sea you sailed from. Vertex colors are
+     MULTIPLIERS of the fog color (aerial perspective for free): applyDayNight
+     tints the whole range with one color-copy per frame, so midnight collapses
+     it to layered navy silhouettes and sunset sets it glowing peach. Cones sink
+     below the haze surface so they rise OUT of the mist. NO colliders out
+     here — unreachable geometry with colliders is pure collision-loop tax. */
+  const skyParts = [];
+  const RIDGES = [
+    /* near ridge: the hike you'd take someday */
+    { n: 20, a0: -2.182, arc: 4.363, r0: 175, rj: 37, rm: 21, h0: 30, hm: 15, b0: 26, bm: 13, sink: -6,
+      rock: [0.50, 0.50, 0.50], snow: [1.40, 1.22, 1.07], snowAt: 0.20, foot: [0.45, 0.58, 0.42] },
+    /* mid ridge: peeks through the near saddles */
+    { n: 16, a0: -2.007, arc: 4.014, r0: 290, rj: 41, rm: 26, h0: 44, hm: 13, b0: 40, bm: 16, sink: -8,
+      rock: [0.78, 0.78, 0.78], snow: [1.32, 1.17, 1.06], snowAt: 0.10 },
+    /* far ridge: broad blue massifs, barely darker than the haze */
+    { n: 12, a0: -1.833, arc: 3.665, r0: 435, rj: 43, rm: 26, h0: 48, hm: 15, b0: 60, bm: 21, sink: -10,
+      rock: [0.94, 0.94, 0.94], snow: [1.10, 1.06, 1.02], snowAt: 0.15 },
+  ];
+  for (const L of RIDGES) {
+    for (let i = 0; i < L.n; i++) {
+      const a = L.a0 + (i + 0.5) / L.n * L.arc;                  // a=0 faces east; the gap faces west
+      const rr = L.r0 + ((i * L.rj) % L.rm);
+      const mx = MD.x + Math.cos(a) * rr, mz = MD.z + Math.sin(a) * rr;
+      const h = L.h0 + ((i * 7919) % L.hm), br = L.b0 + ((i * 104729) % L.bm);
+      skyParts.push({
+        g: new THREE.ConeGeometry(br, h, 7),
+        m: mdM4(mx, h / 2 + L.sink, mz, (i * 1.7) % Math.PI),
+        colorFn: (x, y) => y > h * L.snowAt ? L.snow             // y is CONE-LOCAL: −h/2…+h/2
+          : (L.foot && y < -h * 0.28) ? L.foot : L.rock,
+      });
+    }
   }
-  mdBake(mParts, { fog: false }, false);
+  /* the haze sea: one flat disc lapping the plateau's dirt skirt at y −2.5.
+     It is FULL (covers under the plateau), so no downward ray from the rim can
+     miss it — there is no camera angle that shows void. A squashed cylinder,
+     not a rotated circle, because mdM4 only rotates around y. */
+  skyParts.push({ g: new THREE.CylinderGeometry(470, 470, 0.1, 24), m: mdM4(MD.x, -2.55, MD.z), col: [1, 1, 1] });
+  mdSky = mdBake(skyParts, { fog: false }, false);
+  mdSky.userData.shared = true;      // the island keeps its faint eastern ranges — world coherence
+
+  /* ---- the rim berm: the walkable edge is a ring of low scree humps now ----
+     22 humps at r 76–79, full circle minus a 24° due-west overlook gap framed
+     by the two tallest humps. Lit, fogged, SOLID — this is the new wall. The
+     frame humps stay ghost (plan receipt: 20 colliders): slipping past them
+     just joins the overlook fall, and stepping off is a parachute giggle
+     ("THE MEADOW CAUGHT YOU! 🪂"), never a punishment. */
+  const rimParts = [], RIM_GAP = 0.2094;                         // 12° — half the overlook, in radians
+  for (let i = 0; i < 22; i++) {
+    const a = Math.PI + RIM_GAP + i / 21 * (Math.PI * 2 - RIM_GAP * 2);
+    const rr = 76 + ((i * 31) % 4);
+    const mx = MD.x + Math.cos(a) * rr, mz = MD.z + Math.sin(a) * rr;
+    const br = 5.5 + ((i * 104729) % 3);
+    const h = (i === 0 || i === 21) ? 4.2 : 2.2 + ((i * 7919) % 3) * 0.7;   // frame humps stand tallest
+    rimParts.push({ g: new THREE.ConeGeometry(br, h, 6), m: mdM4(mx, h / 2, mz, (i * 1.7) % Math.PI),
+                    col: i % 2 ? [0.50, 0.53, 0.48] : [0.42, 0.46, 0.42] });
+    if (i > 0 && i < 21)
+      colliders.push({ minX: mx - br * 0.7, maxX: mx + br * 0.7, minZ: mz - br * 0.7, maxZ: mz + br * 0.7, top: h * 0.85, bottom: 0 });
+  }
+  mdBake(rimParts, {});
 
   /* ---- the dirt path: spawn → the portal, wandering a little ---- */
   const pParts = [];
@@ -1495,6 +1686,7 @@ const mdM4 = (x, y, z, ry = 0, s = 1, sy) =>
     const a = i * 2.399963, rr = 6 + (i * 0.83) % 58;          // sunflower-spiral scatter
     const fx = MD.x + Math.cos(a) * rr, fz = MD.z + Math.sin(a) * rr;
     if (Math.abs(fx - MD.x) < 2.4 && fz < MD.sz && fz > MD.z - 32) continue;   // keep the path clear
+    if (Math.abs(fx - AR.x) < 4.2 && Math.abs(fz - AR.z) < 3.8) continue;   // keep the shack floor clear
     fParts.push({ g: new THREE.BoxGeometry(0.09, 0.55, 0.09), m: mdM4(fx, 0.27, fz), col: [0.25, 0.58, 0.25] });
     fParts.push({ g: new THREE.BoxGeometry(0.34, 0.3, 0.34), m: mdM4(fx, 0.62, fz, i), col: PETALS[i % PETALS.length] });
   }
@@ -1513,8 +1705,68 @@ const mdM4 = (x, y, z, ry = 0, s = 1, sy) =>
   box(MD.sx + 3.4, 1.5, MD.sz - 2.4, 0.18, 0.18, 3.0, mat.trunk, false);   // signpost
   const sg = nameSprite('THE MEADOW'); sg.scale.set(5.4, 0.9, 1);
   sg.position.set(MD.sx + 3.4, 3.35, MD.sz - 2.4); scene.add(sg);
+  /* ---- 🕹️ THE GAME SHACK — a lean-to where one warm little screen glows (ART spec §1) ----
+     NE of camp, open front facing WEST: a kid at spawn turns and looks straight into it.
+     Static shell is mdBake'd (2 draw calls total); the cabinet's screen is the only lit
+     thing in the room. At night this is the second light in the meadow after the campfire —
+     that contrast is the whole mood, do not add more lights. */
+  {
+    const plankDark = [0.48, 0.33, 0.18], plankLight = [0.62, 0.44, 0.24],
+          terracotta = [0.79, 0.44, 0.23], mustard = [0.91, 0.64, 0.24],
+          cream = [0.95, 0.89, 0.76], inkC = [0.23, 0.20, 0.14];
+    const shp = (dx, y, dz, w, h, d, col) =>
+      ({ g: new THREE.BoxGeometry(w, h, d), m: mdM4(AR.x + dx, y, AR.z + dz), col });
+    /* Bake A — lit shell (MeshLambert, one draw call) */
+    mdBake([
+      shp( 0.00, 0.15,  0.00, 5.20, 0.30, 4.60, plankDark ),    // raised plank floor
+      shp(-2.45, 1.95, -2.15, 0.30, 3.60, 0.30, plankDark ),    // post, front-left (west face open)
+      shp(-2.45, 1.95,  2.15, 0.30, 3.60, 0.30, plankDark ),    // post, front-right
+      shp( 2.45, 1.95, -2.15, 0.30, 3.60, 0.30, plankDark ),    // post, back-left
+      shp( 2.45, 1.95,  2.15, 0.30, 3.60, 0.30, plankDark ),    // post, back-right
+      shp( 2.45, 2.05,  0.00, 0.24, 3.50, 4.60, plankLight),    // back wall (east, full)
+      shp( 0.60, 2.05, -2.28, 3.90, 3.50, 0.24, plankLight),    // side wall north (gap at front)
+      shp( 0.60, 2.05,  2.28, 3.90, 3.50, 0.24, plankLight),    // side wall south
+      shp( 0.00, 4.00,  0.00, 6.00, 0.28, 5.40, plankLight),    // roof slab (overhangs 0.4)
+      shp( 0.60, 4.28,  0.00, 4.60, 0.28, 4.20, terracotta),    // ridge slab = faked slant
+      shp(-2.95, 4.05,  0.00, 0.18, 0.42, 5.40, cream     ),    // roof-lip trim board, front
+      shp(-2.95, 3.60,  0.00, 0.10, 0.16, 5.40, mustard   ),    // thin stripe under the trim
+      /* the cabinet — against the back wall, screen facing WEST */
+      shp( 1.55, 1.10,  0.00, 1.30, 2.20, 1.10, inkC      ),    // cabinet body
+      shp( 1.45, 1.10, -0.62, 1.10, 2.20, 0.14, terracotta),    // side panel north
+      shp( 1.45, 1.10,  0.62, 1.10, 2.20, 0.14, terracotta),    // side panel south
+      shp( 0.85, 2.32,  0.00, 0.30, 0.55, 1.30, mustard   ),    // marquee header, leans proud
+      shp( 0.82, 0.95,  0.00, 0.28, 0.10, 1.00, plankLight),    // control deck lip
+      shp( 0.70, 0.98, -0.22, 0.10, 0.16, 0.10, terracotta),    // button A (chunky cube)
+      shp( 0.70, 0.98,  0.22, 0.10, 0.16, 0.10, mustard   ),    // button B
+      shp( 0.70, 1.12,  0.00, 0.08, 0.28, 0.08, inkC      ),    // joystick shaft
+      shp( 0.70, 1.30,  0.00, 0.16, 0.16, 0.16, terracotta),    // joystick ball
+    ], {});
+    /* Bake B — unlit glow bits (MeshBasic, full-bright: they read as light sources) */
+    mdBake([
+      shp( 0.86, 1.75,  0.00, 0.04, 0.62, 0.86, [0.91, 0.85, 0.66]),   // the screen face (LCD paper)
+      shp(-2.90, 3.85, -1.60, 0.14, 0.14, 0.14, [0.99, 0.83, 0.45]),   // string bulb 1
+      shp(-2.90, 3.85,  0.00, 0.14, 0.14, 0.14, [0.95, 0.62, 0.35]),   // string bulb 2
+      shp(-2.90, 3.85,  1.60, 0.14, 0.14, 0.14, [0.99, 0.83, 0.45]),   // string bulb 3
+    ], {}, false);
+    /* colliders — mdBake doesn't push them (floor is low enough to just step onto) */
+    colliders.push(
+      { minX: AR.x + 2.33, maxX: AR.x + 2.57, minZ: AR.z - 2.30, maxZ: AR.z + 2.30, top: 3.8, bottom: 0 },  // back wall
+      { minX: AR.x - 1.35, maxX: AR.x + 2.55, minZ: AR.z - 2.40, maxZ: AR.z - 2.16, top: 3.8, bottom: 0 },  // north wall
+      { minX: AR.x - 1.35, maxX: AR.x + 2.55, minZ: AR.z + 2.16, maxZ: AR.z + 2.40, top: 3.8, bottom: 0 },  // south wall
+      { minX: AR.x + 0.9,  maxX: AR.x + 2.2,  minZ: AR.z - 0.55, maxZ: AR.z + 0.55, top: 2.2, bottom: 0 }); // cabinet
+    /* live pieces — the screen "plays itself" from across the meadow (stepMeadow animates them) */
+    AR.glow = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.52),                    // screen shimmer
+      new THREE.MeshBasicMaterial({ color: 0xe8d8a8, transparent: true, opacity: 0.5, depthWrite: false }));
+    AR.glow.position.set(AR.x + 0.83, 1.75, AR.z); AR.glow.rotation.y = -Math.PI / 2; scene.add(AR.glow);
+    AR.li = new THREE.PointLight(0xffc86e, 0.9, 9);                                  // warm spill, like fireLi
+    AR.li.position.set(AR.x + 0.4, 2.0, AR.z); scene.add(AR.li);
+    const em = emojiSprite('🕹️'); em.scale.set(1.4, 1.4, 1);                        // roof beacon
+    em.position.set(AR.x, 5.3, AR.z); scene.add(em);
+    const sg2 = nameSprite('GAME SHACK'); sg2.scale.set(5.0, 0.85, 1);
+    sg2.position.set(AR.x, 4.65, AR.z); scene.add(sg2);
+  }
   for (let i = 0; i < 4; i++) {                                   // a few clouds of our own
-    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.75, depthWrite: false }));
+    const m = new THREE.Sprite(cloudMat);
     m.scale.set(26 + i * 6, 9 + i * 2, 1);
     m.position.set(MD.x + (i - 1.5) * 52, 30 + i * 4, MD.z + Math.sin(i * 2.4) * 60);
     scene.add(m);
@@ -1586,6 +1838,7 @@ function gateTravel(toMeadow) {
   camPos.set(P.x + Math.sin(camYaw) * 8.5, 4.6, P.z + Math.cos(camYaw) * 8.5);
   burst(P.x, 2, P.z, 16, 5);
   AU.ping('light'); buzz([30, 30, 60]);
+  setZoneVis(toMeadow);
   applyZoneUI();
 }
 function stepGateOne(g, dt, mt, tip, go) {
@@ -1612,6 +1865,14 @@ function stepMeadow(dt, mt) {
   skyStars.position.x = m ? MD.x : 0;                       // the night sky follows you
   MD.flame.position.y = 1.05 + Math.sin(mt * 9) * 0.06;
   MD.fireLi.intensity = nightAmt > 0.4 ? 1.3 + Math.sin(mt * 11) * 0.25 : 0.7 + Math.sin(mt * 11) * 0.15;
+  /* the GAME SHACK plays itself from afar, and standing at the cabinet is playing it */
+  if (AR.coolT > 0) AR.coolT -= dt;
+  AR.glow.material.opacity = 0.40 + Math.sin(mt * 3.1) * 0.10;
+  AR.li.intensity = 0.8 + Math.sin(mt * 3.1) * 0.15;
+  const ad = Math.hypot(P.x - (AR.x + 0.2), P.z - AR.z);
+  if (ad < 5.0 && !AR.toasted) { AR.toasted = true; toast('🕹️ THE GAME SHACK — step up to the little screen.', 4200); }
+  if (ad > 8) AR.toasted = false;
+  if (AR.coolT <= 0 && ad < 1.7 && P.y < 3.0) enterArcade();
 }
 
 /* ---------- THE CLIMB: four sky areas that BUILD THEMSELVES as you earn them ----------
@@ -2069,8 +2330,17 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v15';
+const GAME_VERSION = 'v16';
 const CHANGELOG = [
+  { v: 'v16', title: '🕹️ THE GAME SHACK — and a whole bigger sky', lines: [
+    '🕹️ there is a GAME SHACK in the meadow now — walk up to the little glowing screen and you are playing it.',
+    '🍳 the game inside is SIZZLE: flip food on a pan, cook it in three catches, and feed MUNCHO — he is always hungry and never disappointed.',
+    '🧀 drops are fine. a crumb throws a tiny picnic, you keep everything, and both endings are a party.',
+    '🏔️ the mountains moved a whole day\'s walk away — three ridges deep, floating in haze.',
+    '🌅 the sun and the moon actually cross the sky now, and dawn looks like dawn.',
+    '🌊 the water moves like water, with a second sheet sliding the other way.',
+    '👟 you have a shadow — so you can finally stick your landings.',
+  ]},
   { v: 'v15', title: '🌄 THE MEADOW — a whole new beginning', lines: [
     '🌄 you wake up in THE MEADOW now — a huge green field with snow-capped mountains all around.',
     '🌀 there is a PORTAL down the dirt path. walk into it and it takes you home to the island — everything is exactly where you left it.',
@@ -2434,9 +2704,9 @@ function makeChar(shirtHex, capHex, ch = 1, custom = false, goldForm = false) {
       held.position.set(0.74, 1.05, 0.18); held.rotation.z = -0.42; held.rotation.x = -0.25;
       held.visible = false;
       group.add(held);
-      scene.add(group);
+      group.userData.shared = true; scene.add(group);   // characters walk both worlds
       const blob6 = new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
-      blob6.rotation.x = -Math.PI / 2; scene.add(blob6);
+      blob6.rotation.x = -Math.PI / 2; blob6.userData.shared = true; scene.add(blob6);
       return { group, legL, legR, armL, armR, blob: blob6, coatL, coatR, kat, held };
     }
     case 5: { // SPROUT: a seedling on the head
@@ -2449,9 +2719,9 @@ function makeChar(shirtHex, capHex, ch = 1, custom = false, goldForm = false) {
       break;
     }
   }
-  scene.add(group);
+  group.userData.shared = true; scene.add(group);       // characters walk both worlds
   const blob = new THREE.Mesh(new THREE.CircleGeometry(0.55, 12), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 }));
-  blob.rotation.x = -Math.PI / 2; scene.add(blob);
+  blob.rotation.x = -Math.PI / 2; blob.userData.shared = true; scene.add(blob);
   return { group, legL, legR, armL, armR, blob };
 }
 function destroyChar(c) {
@@ -2930,7 +3200,7 @@ function stepSharks(dt, mt) {
 const PN = 160, pGeo = new THREE.BufferGeometry();
 pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PN * 3).fill(9999), 3));
 const pMat = new THREE.PointsMaterial({ color: 0xffe27a, size: 0.35, sizeAttenuation: true });
-const points = new THREE.Points(pGeo, pMat); points.frustumCulled = false; scene.add(points);
+const points = new THREE.Points(pGeo, pMat); points.frustumCulled = false; points.userData.shared = true; scene.add(points);   // bursts happen in both worlds
 const parts = Array.from({ length: PN }, () => ({ life: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }));
 function burst(x, y, z, n = 16, speed = 5) {
   let placed = 0;
@@ -2959,7 +3229,7 @@ function stepParts(dt) {
 const CHN = 96, chGeo = new THREE.BufferGeometry();
 chGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(CHN * 3).fill(9999), 3));
 const chMat = new THREE.PointsMaterial({ color: 0xffb020, size: 0.55, sizeAttenuation: true });
-const chPoints = new THREE.Points(chGeo, chMat); chPoints.frustumCulled = false; scene.add(chPoints);
+const chPoints = new THREE.Points(chGeo, chMat); chPoints.frustumCulled = false; chPoints.userData.shared = true; scene.add(chPoints);   // chip strikes rain anywhere
 const globs = Array.from({ length: CHN }, () => ({ life: 0, remote: false, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }));
 const splats = [];
 const splatMat = new THREE.MeshBasicMaterial({ color: 0xf0a020, transparent: true, opacity: 0.9 });
@@ -3679,6 +3949,7 @@ function enterIsland() {
   $('btnTree').style.display = 'none';
   $('btnMenu').style.display = 'grid';
   if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; }
+  setZoneVis(true);       // sessions spawn in the meadow — hide the island's world
   applyZoneUI();          // build & cheese wait on the island — the meadow keeps thumbs simple
   $('btnPing').style.display = 'grid';
   refreshLampChip();
@@ -3731,6 +4002,7 @@ function stepWorld(dt, mt) {
   movMesh.position.x = mx;
   movCol.minX = mx - 2.5; movCol.maxX = mx + 2.5;
   waterTex.offset.x = mt * 0.02; waterTex.offset.y = mt * 0.013;
+  waterTex2.offset.x = -mt * 0.014; waterTex2.offset.y = mt * 0.019;   // v16: counter-scroll = moving water
   flag.rotation.y = Math.sin(mt * 2.4) * 0.35;
   padMesh.scale.y = 1 + Math.sin(mt * 5) * 0.12;
   if (state === 'PLAY' && !won) { playT += dt; $('clock').textContent = fmtT(playT); }
@@ -5062,6 +5334,7 @@ function drawTower() {
   }
 }
 addEventListener('resize', () => { if (state === 'TOWER') twSizeCanvas(); });
+addEventListener('resize', () => { if (state === 'ARCADE') arSizeCanvas(); });
 TWC.addEventListener('pointerdown', e => {
   if (state !== 'TOWER') return;
   e.preventDefault();
@@ -5660,6 +5933,726 @@ TWC.addEventListener('pointerdown', e => {
   if (MZ.phase === 'READY') { MZ.readyT = 0; }
 });
 
+/* ================== 🕹️ THE ARCADE — SIZZLE, behind the shack's little screen ==================
+   A fake-handheld LCD cooking game in the "Butterscotch LCD" language (ARCADE-ART-SPEC):
+   warm butterscotch crystal, ONE near-black ink, every segment the game owns faintly
+   ghosted into the glass, and a bezel painted like a kid's cardboard cabinet. The chef
+   design (ARCADE-CHEF-SPEC): juggle food over a pan in discrete LCD steps, cook it in
+   three arcs, feed MUNCHO. Nothing here ever takes from a kid — drops are a crumb's
+   picnic, pause is free, leaving always pays. state='ARCADE', same TWC canvas the
+   TOWER and MAZE already share; zero three.js while you're in here. */
+
+/* ---- tunables (ARCADE-CHEF-SPEC §Tunables, starting values) ---- */
+const SZ_TICK_START  = 420;   // ms per LCD step at round start
+const SZ_TICK_MIN    = 240;   // ms floor — never faster than this
+const SZ_TICK_STEP   = 12;    // ms shaved off per successful feed
+const SZ_COOK_ARCS   = 3;     // full arcs to go RAW → DONE
+const SZ_DRIFT_BASE  = 0.25;  // chance food changes lane at apex, round start
+const SZ_DRIFT_MAX   = 0.55;  // drift ceiling (+0.05 per belly dance)
+const SZ_FOOD2_AT    = 18;    // seconds until 2nd food enters (or 1st belly dance)
+const SZ_FOOD3_AT    = 50;    // seconds until 3rd food enters (or 2nd belly dance)
+const SZ_ROUND_LEN   = 90;    // seconds per round
+const SZ_DROPS_END   = 3;     // drops for the gentle "EVERYBODY ATE!" ending
+const SZ_COIN_FEED   = 5;     // coins per feed (streak +1 ea capped +5; HOT HAND +2; dance +10)
+const SZ_CRUMB_PAUSE = 900;   // ms breather while the crumb waves
+
+/* ---- Butterscotch palette (ARCADE-ART-SPEC §2.1 — original, NOT any licensed handheld) ---- */
+const LCD_PAPER = '#e8d8a8';              // screen field — calculator left in the sun
+const LCD_SHADE = '#d9c68e';              // edge vignette + scan bands
+const LCD_INK   = '#4a3f28';              // every active segment. ONE ink. no exceptions
+const LCD_GHOST = 'rgba(74,63,40,0.09)';  // the afterimage — every segment, always faintly there
+const LCD_BLINK = 'rgba(74,63,40,0.55)';  // half-ink for the classic 2 Hz urgent-blink
+const CARD_TERRA = '#c96f3b';             // printed-card accent (the griddle line)
+const CARD_FADE  = '#dbb98a';             // terracotta faded into paper (printed ground)
+const BZ_CARD    = '#7a4d2c';             // cardboard base
+const BZ_PANEL   = '#8f5c35';             // raised panel / button deck
+const BZ_CREAM   = '#f2e4c2';             // silkscreen, screws, button rings
+const BZ_RED     = '#c9412f';             // racing stripe 1, pause button
+const BZ_MUSTARD = '#e8a33d';             // racing stripe 2, marquee
+const BZ_SHADOW  = '#3a2a1c';             // hand-cut edge lines, screen well
+
+/* ---- view metrics + phone scaling (ARCADE-ART-SPEC §3 — the TOWER's own approach) ---- */
+/* game space: crystal 150×200 (3:4 portrait) + bezel margins  */
+const ARV = { GW: 150, GH: 200, PADX: 13, PADT: 30, PADB: 50 };   // marquee up top, button deck below
+const arBezel = document.createElement('canvas');                 // cardboard+card+ghosts, device res
+
+function arSizeCanvas() {
+  ARV.W = TWC.width  = Math.max(160, Math.round(innerWidth  / RES));   // RES = 2, same const
+  ARV.H = TWC.height = Math.max(160, Math.round(innerHeight / RES));
+  ARV.scale = Math.min(ARV.W / (ARV.GW + ARV.PADX * 2),
+                       ARV.H / (ARV.GH + ARV.PADT + ARV.PADB));
+  ARV.ox = (ARV.W - ARV.GW * ARV.scale) / 2;                            // crystal centered in x
+  ARV.oy = (ARV.H - (ARV.GH + ARV.PADT + ARV.PADB) * ARV.scale) / 2 + ARV.PADT * ARV.scale;
+  TWX.imageSmoothingEnabled = false;
+  arDrawBezel();                                                        // rebuild the offscreen here only
+}
+const arX = gx => Math.round(ARV.ox + gx * ARV.scale);                  // snap → crisp segments
+const arY = gy => Math.round(ARV.oy + gy * ARV.scale);
+const arS = gu => Math.max(1, Math.round(gu * ARV.scale));              // a game-unit length, snapped
+
+/* ---- the crystal's cell grid (V16-BUILD-PLAN §3 — steps ARE the feel) ---- */
+const SZ_LANE_X = [24, 64, 104];                 // 3 lane x-centers, 40 wide each
+const SZ_ROW_Y  = [164, 142, 120, 98, 76];       // row 0 (pan) … row 4 (apex), 22/row
+const SZ_FEED_Y = 54;                            // row 5 — the feed path to MUNCHO
+const SZ_FLOOR_Y = 184;                          // row -1 — where the crumb picnics
+const SZ_FEED_P = [[88, 66], [108, 60], [128, 56]];   // three fixed cells, up-and-right
+const SZ_MX = 137;                               // MUNCHO's center (zone x 126–150)
+const SZ_PBTN = { gx: 75, gy: 235, r: 12 };      // pause button, bottom-center of the deck
+
+/* ---- game state (the SZ contract from V16-BUILD-PLAN §3) ---- */
+const SZ = {
+  phase: 'INTRO',        // 'INTRO' | 'RUN' | 'PAUSE' | 'DANCE' | 'CRUMB' | 'OVER'
+  t: 0, tickMs: SZ_TICK_START, tickAcc: 0, foods: [], pan: 1,     // pan = 0|1|2 (lane)
+  drops: 0, belly: 0, score: 0, coins: 0, bank: 0, streak: 0, feeds: 0, best: 0, idleT: 0,
+  /* internals */
+  tickCount: 0, dances: 0, driftCh: SZ_DRIFT_BASE, spawnIx: 0, spawnCd: 0,
+  danceT: 0, crumb: null, prevPhase: 'RUN', resting: false, bestStreak: 0,
+  word: '', wordT: 0, panPose: 'idle', panPoseT: 0, flashT: 0, fxs: [],
+  zones: [], blink: 0, overMsg: '', lampScoreT: 0,
+};
+try { SZ.best = +(localStorage.getItem('d64_sizzle_best') || 0); } catch (e) {}
+
+/* ---- seeded PRNG for the hand-cut bezel edges (seed = 1 = SIZZLE; never per-frame) ---- */
+function szRng(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---- tiny draw kit: everything takes GAME coords and snaps to device pixels ---- */
+function szRR(ctx, gx, gy, gw, gh, r) {          // one blobby LCD segment (soft corners)
+  const x = arX(gx), y = arY(gy), w = arS(gw), h = arS(gh);
+  const rr = Math.min(arS(r), w / 2, h / 2);
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, rr); else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+function szText(ctx, s, gx, gy, size, col, align = 'center') {   // no strokes on the crystal
+  ctx.font = `900 ${Math.max(6, Math.round(size * ARV.scale))}px "Arial Black", Arial, sans-serif`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.fillStyle = col; ctx.fillText(s, arX(gx), arY(gy));
+}
+
+/* seven-segment digits — 10×18 cell, 2.4 thick, 0.6 gaps, 8° LCD lean (ART §2.4) */
+const SEG7 = ['1111110', '0110000', '1101101', '1111001', '0110011',
+              '1011011', '1011111', '1110000', '1111111', '1111011'];   // A B C D E F G
+function lcdDigit(gx, gy, n, on, s = 1, ctx = TWX) {
+  const segs = SEG7[n];
+  ctx.save();
+  ctx.translate(arX(gx), arY(gy));
+  ctx.transform(1, 0, -0.10, 1, 0, 0);                       // the lean
+  ctx.scale(ARV.scale * s, ARV.scale * s);
+  ctx.fillStyle = on ? LCD_INK : LCD_GHOST;
+  const R = (x, y, w, h) => {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, 1.1); else ctx.rect(x, y, w, h);
+    ctx.fill();
+  };
+  if (segs[0] === '1') R(3.0, 0, 4.0, 2.4);                  // A
+  if (segs[1] === '1') R(7.6, 3.0, 2.4, 4.2);                // B
+  if (segs[2] === '1') R(7.6, 10.8, 2.4, 4.2);               // C
+  if (segs[3] === '1') R(3.0, 15.6, 4.0, 2.4);               // D
+  if (segs[4] === '1') R(0, 10.8, 2.4, 4.2);                 // E
+  if (segs[5] === '1') R(0, 3.0, 2.4, 4.2);                  // F
+  if (segs[6] === '1') R(3.0, 7.8, 4.0, 2.4);                // G
+  ctx.restore();
+}
+function szDigits(val, gx, gy, s, ctx = TWX) {               // live digits over the baked ghost-eights
+  const str = String(Math.min(9999, Math.max(0, Math.round(val))));
+  for (let i = 0; i < str.length; i++)
+    lcdDigit(gx + (4 - str.length + i) * 12 * s, gy, +str[i], true, s, ctx);
+}
+
+/* ---- segment sprites — fixed pose cells, no tween/rotate/scale, ever (ART §2.3) ---- */
+function szDrawFood(ctx, kind, gx, gy, flat) {
+  const sq = flat ? 3 : 0;                                   // the 1-tick impact flatten (D4)
+  if (kind === 0) {                                          // 🧀 CHEESE CUBE — wobbly square
+    szRR(ctx, gx - 7, gy - 7 + sq, 14, 14 - sq, 3);
+    szRR(ctx, gx - 5, gy - 8.5 + sq, 9, 4, 2);               // the wobble lip
+  } else if (kind === 1) {                                   // 🌶️ PEPPER RING — a thin O
+    const x = arX(gx), y = arY(gy);
+    ctx.beginPath();
+    ctx.arc(x, y + arS(sq / 2), arS(7.5), 0, Math.PI * 2);
+    ctx.arc(x, y + arS(sq / 2), arS(4.2), 0, Math.PI * 2);
+    ctx.fill('evenodd');
+  } else {                                                   // 🔺 TORTILLA TRIANGLE — island classic
+    const x = arX(gx), y = arY(gy);
+    ctx.beginPath();
+    ctx.moveTo(x - arS(8), y + arS(7 - sq));
+    ctx.lineTo(x + arS(8), y + arS(7 - sq));
+    ctx.lineTo(x, y - arS(8 - sq * 2));
+    ctx.closePath(); ctx.fill();
+  }
+}
+function szDrawPan(ctx, gx, gy, pose) {
+  if (pose === 'windup') {                                   // the big feed launch frame
+    szRR(ctx, gx - 14, gy - 8, 28, 7, 3);                    // pan raised high
+    szRR(ctx, gx + 13, gy - 7, 10, 4, 2);                    // handle
+    szRR(ctx, gx - 10, gy + 2, 20, 2, 1);                    // motion tick where it was
+  } else if (pose === 'impact') {                            // 1-tick catch pose — pan tilts (D4)
+    szRR(ctx, gx - 14, gy - 2, 28, 5, 2);
+    szRR(ctx, gx - 12, gy - 5, 16, 3, 1.5);                  // tipped lip
+    szRR(ctx, gx + 13, gy - 1, 10, 4, 2);
+  } else {
+    szRR(ctx, gx - 14, gy - 4, 28, 7, 3);                    // resting pan
+    szRR(ctx, gx + 13, gy - 3, 10, 4, 2);                    // stubby handle
+  }
+}
+function szDrawSteam(ctx, gx, gy, big) {
+  if (big) {                                                 // the DONE curl
+    szRR(ctx, gx - 1.5, gy - 15, 3, 6, 1.5);
+    szRR(ctx, gx + 1.5, gy - 20, 3, 6, 1.5);
+    szRR(ctx, gx - 3.5, gy - 24, 3, 5, 1.5);
+  } else szRR(ctx, gx - 1, gy - 15, 2, 6, 1);                // thin SIZZLING wisp
+}
+function szDrawSparks(ctx, gx, gy, ph) {                     // 2 sparkle ticks orbit a SIZZLING food
+  if (ph) { szRR(ctx, gx - 12, gy - 4, 2.5, 2.5, 1); szRR(ctx, gx + 10, gy + 2, 2.5, 2.5, 1); }
+  else    { szRR(ctx, gx + 10, gy - 6, 2.5, 2.5, 1); szRR(ctx, gx - 11, gy + 4, 2.5, 2.5, 1); }
+}
+function szDrawFlame(ctx, gx, gy, ph) {                      // the HOT HAND flourish
+  szRR(ctx, gx - 4, gy - 12 - ph * 2, 3, 6, 1.5);
+  szRR(ctx, gx + 1, gy - 15 + ph * 2, 3, 8, 1.5);
+  szRR(ctx, gx + 5, gy - 11 - ph, 2.5, 5, 1.2);
+}
+/* MUNCHO — knee-high, barrel-round, tied his own bib. o = {dx,dy,bounce,mouthOpen,eyeLock,
+   arms:'idle'|'up'|'out',bellyFlash,bellyN}. His eye is a HOLE in the skull (evenodd),
+   pointed at whichever food is closest to done. */
+function szDrawMuncho(ctx, o) {
+  const dx = o.dx || 0, dy = (o.dy || 0) - (o.bounce ? 2 : 0);
+  const x = arX(SZ_MX + dx), exo = o.eyeLock ? -5 : 0, eyo = o.eyeLock ? -2 : 0;
+  /* skull with the eye hole */
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(arX(127 + dx), arY(54 + dy), arS(20), arS(18), arS(5));
+  else ctx.rect(arX(127 + dx), arY(54 + dy), arS(20), arS(18));
+  ctx.arc(x + arS(2 + exo), arY(61 + dy + eyo), arS(2), 0, Math.PI * 2);
+  ctx.fill('evenodd');
+  /* jaw — closed leaves a grin line of paper; open pops a 5-unit mouth gap */
+  szRR(ctx, 128 + dx, (o.mouthOpen ? 78 : 73) + dy, 15, 6, 3);
+  /* bib he tied on himself */
+  const bx0 = arX(131 + dx), by0 = arY(86 + dy);
+  ctx.beginPath();
+  ctx.moveTo(bx0, by0); ctx.lineTo(arX(143 + dx), by0); ctx.lineTo(arX(137 + dx), arY(96 + dy));
+  ctx.closePath(); ctx.fill();
+  /* barrel body with 5 belly-meter windows punched through (evenodd holes) */
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(arX(126 + dx), arY(84 + dy), arS(23), arS(76), arS(10));
+  else ctx.rect(arX(126 + dx), arY(84 + dy), arS(23), arS(76));
+  for (let i = 0; i < 5; i++) {
+    const ny = arY(148 - i * 11 + dy);                       // fills bottom-up, like a tank
+    ctx.rect(arX(132 + dx), ny, arS(12), arS(8));
+  }
+  ctx.fill('evenodd');
+  /* lit belly notches (or the 1-frame CHOMP flash that lights them all) */
+  const lit = o.bellyFlash ? 5 : (o.bellyN || 0);
+  for (let i = 0; i < lit; i++) szRR(ctx, 133 + dx, 149 - i * 11 + dy, 10, 6, 2);
+  /* stubby legs — bounce stretches them */
+  szRR(ctx, 130 + dx, 160 + dy, 6, o.bounce ? 16 : 14, 3);
+  szRR(ctx, 139 + dx, 160 + dy, 6, o.bounce ? 16 : 14, 3);
+  /* arms: idle nubs · up (dance) · out (shrug) */
+  if (o.arms === 'up')      { szRR(ctx, 121 + dx, 92 + dy, 5, 13, 2.5); szRR(ctx, 145 + dx, 92 + dy, 5, 13, 2.5); }
+  else if (o.arms === 'out'){ szRR(ctx, 119 + dx, 106 + dy, 7, 5, 2.5); szRR(ctx, 145 + dx, 106 + dy, 5, 5, 2.5); }
+  else                      { szRR(ctx, 122 + dx, 108 + dy, 5, 12, 2.5); szRR(ctx, 146 + dx, 108 + dy, 4, 12, 2); }
+}
+function szDrawCrumb(ctx, gx, gy, pose) {                    // the little picnicker
+  szRR(ctx, gx - 5, gy - 8, 10, 7, 3);                       // body
+  szRR(ctx, gx - 2, gy - 12, 5, 4, 2);                       // head bump
+  szRR(ctx, gx + 2, gy - 15, 1.5, 4, 0.7);                   // antenna
+  if (pose === 0) { szRR(ctx, gx - 4, gy - 1, 2, 3, 1); szRR(ctx, gx + 2, gy - 1, 2, 3, 1); }
+  else if (pose === 1) { szRR(ctx, gx - 5, gy - 1, 2, 3, 1); szRR(ctx, gx + 3, gy - 1, 2, 3, 1); }
+  else if (pose === 2) { szRR(ctx, gx - 8, gy - 11, 3, 2, 1); szRR(ctx, gx + 5, gy - 11, 3, 2, 1); }  // hoist!
+  else { szRR(ctx, gx - 8, gy - 13, 3, 2, 1); szRR(ctx, gx + 5, gy - 9, 3, 2, 1); }                   // wave
+}
+
+/* ---- the bezel — painted cardboard, redrawn ONLY on resize (ART §2.5) + FULL ghost pass ---- */
+function arDrawBezel() {
+  arBezel.width = ARV.W; arBezel.height = ARV.H;
+  const bz = arBezel.getContext('2d');
+  bz.imageSmoothingEnabled = false;
+  const rnd = szRng(1);                                      // seed 1 = SIZZLE, stable forever
+  const jit = () => (rnd() * 3 - 1.5) * ARV.scale;           // ±1.5 game units of hand-cut wobble
+  const poly = pts => {                                      // a jittered polygon
+    bz.beginPath();
+    pts.forEach((p, i) => { const x = arX(p[0]) + jit(), y = arY(p[1]) + jit();
+      i ? bz.lineTo(x, y) : bz.moveTo(x, y); });
+    bz.closePath(); bz.fill();
+  };
+  /* cardboard everywhere (letterbox just grows the cheeks) */
+  bz.fillStyle = BZ_CARD; bz.fillRect(0, 0, ARV.W, ARV.H);
+  /* racing stripes down the left — slightly not parallel, the kid got tired */
+  bz.fillStyle = BZ_RED;     poly([[-11, -30], [-7, -30], [-5.8, 250], [-9.8, 250]]);
+  bz.fillStyle = BZ_MUSTARD; poly([[-5.5, -30], [-3, -30], [-3.8, 250], [-6.3, 250]]);
+  /* mustard marquee, silkscreened SIZZLE */
+  bz.fillStyle = BZ_MUSTARD;
+  poly([[-ARV.PADX + 1, -26], [ARV.GW + ARV.PADX - 1, -26], [ARV.GW + ARV.PADX - 1, -8], [-ARV.PADX + 1, -8]]);
+  bz.font = `900 ${Math.max(8, Math.round(13 * ARV.scale))}px "Arial Black", Arial, sans-serif`;
+  bz.textAlign = 'center'; bz.textBaseline = 'middle';
+  bz.fillStyle = BZ_CREAM;  bz.fillText('SIZZLE', arX(75) + 1, arY(-17) + 1);
+  bz.fillStyle = BZ_SHADOW; bz.fillText('SIZZLE', arX(75), arY(-17));
+  /* three painted lamp rings under the marquee: score · combo · pause */
+  for (const lx of [55, 75, 95]) {
+    bz.strokeStyle = BZ_CREAM; bz.lineWidth = Math.max(1, 1.2 * ARV.scale);
+    bz.beginPath(); bz.arc(arX(lx), arY(-4), arS(2.5), 0, Math.PI * 2); bz.stroke();
+  }
+  /* the screen well — 3 units of shadow reveal, hand-cut, then the crystal */
+  bz.fillStyle = BZ_SHADOW;
+  poly([[-3, -3], [ARV.GW + 3, -3], [ARV.GW + 3, ARV.GH + 3], [-3, ARV.GH + 3]]);
+  bz.fillStyle = LCD_PAPER;
+  bz.fillRect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH));
+  /* crystal dressing: edge vignette band + alternating scan bands, then the printed card */
+  bz.save();
+  bz.beginPath(); bz.rect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH)); bz.clip();
+  bz.globalAlpha = 0.5; bz.fillStyle = LCD_SHADE;
+  bz.fillRect(arX(0), arY(0), arS(ARV.GW), arS(3)); bz.fillRect(arX(0), arY(ARV.GH - 3), arS(ARV.GW), arS(3));
+  bz.fillRect(arX(0), arY(0), arS(3), arS(ARV.GH)); bz.fillRect(arX(ARV.GW - 3), arY(0), arS(3), arS(ARV.GH));
+  bz.globalAlpha = 0.25;
+  for (let y = arY(0); y < arY(ARV.GH); y += 4) bz.fillRect(arX(0), y, arS(ARV.GW), 2);
+  bz.globalAlpha = 1;
+  /* the card: ink-jet scenery printed UNDER the glass — it never animates */
+  bz.fillStyle = CARD_TERRA;                                 // the griddle line the pan rides
+  bz.fillRect(arX(4), arY(171), arS(120), arS(3));
+  bz.fillStyle = CARD_FADE;                                  // the floor everybody stands on
+  bz.fillRect(arX(0), arY(187), arS(ARV.GW), arS(2));
+  /* THE GHOST PASS — every cell, every pose, faintly there: a machine holding its breath */
+  bz.fillStyle = LCD_GHOST;
+  for (let ln = 0; ln < 3; ln++)
+    for (let rw = 0; rw < 5; rw++)
+      szDrawFood(bz, (ln + rw) % 3, SZ_LANE_X[ln], SZ_ROW_Y[rw], 0);   // one shape per cell
+  SZ_FEED_P.forEach((p, i) => szDrawFood(bz, i % 3, p[0], p[1], 0));   // the feed path
+  for (let ln = 0; ln < 3; ln++) {
+    szDrawFood(bz, ln, SZ_LANE_X[ln], SZ_FLOOR_Y - 8, 0);              // the crumb floor
+    szDrawPan(bz, SZ_LANE_X[ln], SZ_ROW_Y[0], 'idle');                 // pan in every lane
+    szDrawSteam(bz, SZ_LANE_X[ln], SZ_ROW_Y[4], true);                 // steam over every apex
+    szDrawCrumb(bz, SZ_LANE_X[ln], SZ_FLOOR_Y, 0);                     // the picnickers
+  }
+  szDrawMuncho(bz, { arms: 'idle' });                                  // MUNCHO, waiting
+  szDrawMuncho(bz, { arms: 'up', mouthOpen: true });                   // MUNCHO, mid-party
+  for (let i = 0; i < 5; i++) szRR(bz, 133, 149 - i * 11, 10, 6, 2);   // all 5 belly notches
+  for (let i = 0; i < 3; i++) szDrawCrumb(bz, 12 + i * 11, 34, 0);     // the 3 drop pips
+  for (let i = 0; i < 4; i++) lcdDigit(100 + i * 12, 6, 8, false, 1, bz);       // score ghost-eights
+  for (let i = 0; i < 4; i++) lcdDigit(6 + i * 6, 10, 8, false, 0.5, bz);       // best ghost-eights
+  szRR(bz, 12, 4, 3, 3, 1); szRR(bz, 16, 2.5, 3, 4.5, 1); szRR(bz, 20, 4, 3, 3, 1);   // tiny crown
+  bz.restore();
+  /* tape over the well's top corners (someone fixed this cabinet with love) */
+  bz.globalAlpha = 0.35; bz.fillStyle = BZ_CREAM;
+  poly([[-8, -6], [4, -6], [1, 3], [-11, 3]]);
+  poly([[ARV.GW - 4, -6], [ARV.GW + 8, -6], [ARV.GW + 11, 3], [ARV.GW - 1, 3]]);
+  bz.globalAlpha = 1;
+  /* the button deck — raised panel, 3 lane slabs, and the ONE chrome control */
+  bz.fillStyle = BZ_PANEL;
+  poly([[-ARV.PADX + 2, ARV.GH + 4], [ARV.GW + ARV.PADX - 2, ARV.GH + 4],
+        [ARV.GW + ARV.PADX - 2, ARV.GH + 46], [-ARV.PADX + 2, ARV.GH + 46]]);
+  bz.fillStyle = BZ_CARD;
+  for (let ln = 0; ln < 3; ln++) {
+    const x = arX(2 + ln * 50), y = arY(ARV.GH + 7);
+    bz.beginPath();
+    if (bz.roundRect) bz.roundRect(x, y, arS(46), arS(14), arS(3)); else bz.rect(x, y, arS(46), arS(14));
+    bz.fill();
+  }
+  /* fat red pause button, cream ring, painted ⏸ — the only chrome on the whole cabinet */
+  bz.fillStyle = BZ_RED;
+  bz.beginPath(); bz.arc(arX(SZ_PBTN.gx), arY(SZ_PBTN.gy), arS(SZ_PBTN.r), 0, Math.PI * 2); bz.fill();
+  bz.strokeStyle = BZ_CREAM; bz.lineWidth = Math.max(1, 1.5 * ARV.scale);
+  bz.beginPath(); bz.arc(arX(SZ_PBTN.gx), arY(SZ_PBTN.gy), arS(SZ_PBTN.r), 0, Math.PI * 2); bz.stroke();
+  bz.fillStyle = BZ_CREAM;
+  bz.fillRect(arX(SZ_PBTN.gx - 3.5), arY(SZ_PBTN.gy - 4), arS(2.5), arS(8));
+  bz.fillRect(arX(SZ_PBTN.gx + 1), arY(SZ_PBTN.gy - 4), arS(2.5), arS(8));
+  /* four screws, each slotted at its own angle (seeded — never per-frame random) */
+  const scr = [[-ARV.PADX + 4, -ARV.PADT + 5], [ARV.GW + ARV.PADX - 4, -ARV.PADT + 5],
+               [-ARV.PADX + 4, ARV.GH + ARV.PADB - 5], [ARV.GW + ARV.PADX - 4, ARV.GH + ARV.PADB - 5]];
+  for (const [sx, sy] of scr) {
+    bz.fillStyle = BZ_CREAM;
+    bz.beginPath(); bz.arc(arX(sx), arY(sy), arS(1.6), 0, Math.PI * 2); bz.fill();
+    const a = rnd() * Math.PI;
+    bz.strokeStyle = BZ_SHADOW; bz.lineWidth = 1;
+    bz.beginPath();
+    bz.moveTo(arX(sx) - Math.cos(a) * arS(1.2), arY(sy) - Math.sin(a) * arS(1.2));
+    bz.lineTo(arX(sx) + Math.cos(a) * arS(1.2), arY(sy) + Math.sin(a) * arS(1.2));
+    bz.stroke();
+  }
+}
+
+/* ---- the game itself ---- */
+function szReset(full) {
+  SZ.phase = 'INTRO'; SZ.t = 0; SZ.tickMs = SZ_TICK_START; SZ.tickAcc = 0; SZ.tickCount = 0;
+  SZ.foods = []; SZ.pan = 1; SZ.drops = 0; SZ.belly = 0; SZ.score = 0; SZ.coins = 0;
+  SZ.streak = 0; SZ.bestStreak = 0; SZ.feeds = 0; SZ.dances = 0; SZ.idleT = 0;
+  SZ.driftCh = SZ_DRIFT_BASE; SZ.spawnIx = 0; SZ.spawnCd = 0; SZ.crumb = null; SZ.danceT = 0;
+  SZ.word = ''; SZ.wordT = 0; SZ.panPose = 'idle'; SZ.panPoseT = 0; SZ.flashT = 0;
+  SZ.fxs = []; SZ.zones = []; SZ.resting = false; SZ.prevPhase = 'RUN'; SZ.overMsg = '';
+  SZ.lampScoreT = 0;
+  if (full) SZ.bank = 0;                          // fresh visit; PLAY AGAIN keeps the visit's bank
+}
+function szBegin() {                              // bib is tied — dinner rush opens
+  SZ.phase = 'RUN'; SZ.t = 0; SZ.idleT = 0;
+  szSpawnFood();
+}
+function szCoins(n) {                             // one river: round coins + visit bank + the counter
+  SZ.coins += n; SZ.bank += n; SZ.score += n;
+  SZ.lampScoreT = 0.35;
+}
+function szSpawnFood() {
+  /* earned-pace scheduler: clock or belly-dances unlock food 2 and 3, whichever first */
+  const want = Math.min(3, 1 + ((SZ.t >= SZ_FOOD2_AT || SZ.dances >= 1) ? 1 : 0)
+                             + ((SZ.t >= SZ_FOOD3_AT || SZ.dances >= 2) ? 1 : 0));
+  if (SZ.spawnCd > 0) { SZ.spawnCd--; return; }
+  if (SZ.foods.length >= want) return;
+  /* stagger: only launch while every airborne food is mid-arc, so landings sit ≥3 ticks apart */
+  if (SZ.foods.length && SZ.foods.some(f => f.path !== 'ARC' || f.step < 3 || f.step > 5)) return;
+  SZ.foods.push({ kind: SZ.spawnIx++ % 3, lane: SZ.pan, step: 0, cook: 0,
+                  hot: false, path: 'ARC', flat: 0, feedIx: 0 });
+  SZ.spawnCd = 3;
+}
+function szTick() {
+  SZ.tickCount++;
+  if (SZ.panPoseT > 0 && --SZ.panPoseT <= 0) SZ.panPose = 'idle';
+  if (SZ.flashT > 0) SZ.flashT--;
+  SZ.fxs = SZ.fxs.filter(f => --f.ticks > 0);
+  for (const f of [...SZ.foods]) {                // copy — szFeed splices mid-walk
+    if (f.flat > 0) f.flat--;
+    if (f.path === 'FEED') {                      // three cells up-and-right, then CHOMP
+      f.feedIx++;
+      if (f.feedIx >= SZ_FEED_P.length) szFeed(f);
+      continue;
+    }
+    if (f.path !== 'ARC') continue;
+    f.step++;
+    if (f.step === 4 && Math.random() < SZ.driftCh) {        // apex drift roll — 4 ticks of warning
+      f.lane = f.lane === 0 ? 1 : f.lane === 2 ? 1 : (Math.random() < 0.5 ? 0 : 2);
+    }
+    if (f.step >= 8) {                            // LANDING — the whole game is this moment
+      if (SZ.pan === f.lane) {
+        SZ.panPose = 'impact'; SZ.panPoseT = 1; SZ.lampScoreT = 0.35; buzz(15);
+        if (f.cook >= SZ_COOK_ARCS) {             // a DONE food caught → the feed path, not a relaunch
+          f.path = 'FEED'; f.feedIx = 0;
+          SZ.panPose = 'windup'; SZ.panPoseT = 1;
+          SZ.score++;
+        } else {
+          const was = f.cook;
+          f.cook++; SZ.score++;
+          f.flat = 1; f.step = 0;                 // impact cell + auto-relaunch, same tick
+          if (f.cook >= SZ_COOK_ARCS) {           // it turned DONE in the pan this very tick
+            f.hot = true;                          // HOT HAND banked for the CHOMP (+2 there)
+            SZ.fxs.push({ lane: f.lane, ticks: 2 });
+            AU.ping('light');                      // ding!
+          } else if (was === 0) AU.beep('triangle', 140, 80, 0.06, 0.14);   // dull *tup*
+          else AU.cheese();                        // *tss!* crackle
+        }
+      } else szDrop(f);                            // the crumbs eat well tonight
+      if (SZ.phase !== 'RUN') return;              // a drop swapped phases — stop mid-tick
+    }
+  }
+  szSpawnFood();
+}
+function szFeed(f) {                               // CHOMP — the whole reason MUNCHO exists
+  SZ.foods.splice(SZ.foods.indexOf(f), 1);
+  SZ.flashT = 1;                                   // 1-frame belly flash
+  SZ.streak++; SZ.feeds++; SZ.belly++;
+  SZ.bestStreak = Math.max(SZ.bestStreak, SZ.streak);
+  let c = SZ_COIN_FEED + Math.min(Math.max(SZ.streak - 1, 0), 5);   // streak +1 each, capped +5
+  if (f.hot) c += 2;                               // HOT HAND — fed on its freshest tick
+  szCoins(c);
+  SZ.tickMs = Math.max(SZ_TICK_MIN, SZ.tickMs - SZ_TICK_STEP);      // dinner rush speeds up
+  AU.squish(); AU.coin(); buzz(40);
+  if (f.hot) AU.harvest();
+  if (SZ.streak === 2)      { SZ.word = 'NICE!';  SZ.wordT = 1.4; }
+  else if (SZ.streak === 4) { SZ.word = 'TASTY!'; SZ.wordT = 1.4; }
+  else if (SZ.streak === 6) { SZ.word = 'CHEF!!'; SZ.wordT = 1.6; }
+  if (SZ.belly >= 5) {                             // belly full → the happy dance IS the breather
+    SZ.belly = 0; SZ.dances++;
+    SZ.driftCh = Math.min(SZ_DRIFT_MAX, SZ.driftCh + 0.05);
+    szCoins(10);
+    SZ.word = 'MUNCHO DANCE! +10'; SZ.wordT = 2;
+    SZ.phase = 'DANCE'; SZ.danceT = 2;
+    AU.fanfare(); buzz([40, 30, 80]);
+  }
+  szSpawnFood();                                   // keep the kitchen stocked
+}
+function szDrop(f) {                               // the kind-miss rule: a tiny scene, never a buzzer
+  f.path = 'FLOOR';
+  SZ.drops++; SZ.streak = 0;                       // streak-so-far coins stay banked, always
+  SZ.crumb = { lane: f.lane, step: 0, holdMs: 0, food: f };
+  SZ.phase = 'CRUMB';
+  SZ.word = 'CRUMB GOT ONE!'; SZ.wordT = 1.6;
+  AU.leave(); buzz(18);                            // a cheerful jingle, not a fail-state
+}
+function szEnd(msg) {                              // both endings are warm — there is no losing screen
+  SZ.overMsg = msg; SZ.phase = 'OVER'; SZ.zones = [];
+  if (SZ.coins > SZ.best) {
+    SZ.best = SZ.coins;
+    try { localStorage.setItem('d64_sizzle_best', String(SZ.best)); } catch (e) {}
+  }
+  AU.fanfare();
+}
+function szPause(on) {                             // pausing can NEVER cost anything (VISION rail)
+  if (on) {
+    if (SZ.phase === 'PAUSE' || SZ.phase === 'OVER') return;
+    SZ.prevPhase = SZ.phase; SZ.phase = 'PAUSE'; SZ.idleT = 0;
+  } else {
+    if (SZ.phase !== 'PAUSE') return;
+    SZ.phase = SZ.prevPhase; SZ.resting = false; SZ.idleT = 0;
+  }
+}
+function szPayout() { return SZ.bank; }            // coins accrued live; leaving always pays
+function szSelectLane(ln) {                        // direct-select: a kid taps where the food falls
+  SZ.idleT = 0;
+  if (SZ.phase === 'INTRO') { SZ.pan = ln; szBegin(); return; }
+  if (SZ.phase !== 'RUN' && SZ.phase !== 'DANCE' && SZ.phase !== 'CRUMB') return;
+  if (SZ.pan !== ln) {
+    SZ.pan = ln;
+    AU.beep('square', 180, null, 0.03, 0.12); buzz(15);      // chunky clack
+  }
+}
+
+/* ---- enter / exit — mirrors enterTower()/exitTower() with the three deltas (plan §3) ---- */
+function enterArcade() {
+  if (state === 'ARCADE') return;
+  szReset(true); arSizeCanvas();
+  state = 'ARCADE';
+  TWC.style.display = 'block';
+  $('hud').style.display = 'none';
+  $('spells').style.display = 'none';
+  $('palette').style.display = 'none';
+  $('btnMenu').style.display = 'none'; $('menu').style.display = 'none';
+  $('btnBuild').style.display = 'none'; $('btnPing').style.display = 'none';
+  $('btnB').style.display = 'none'; $('pingWheel').style.display = 'none';
+  $('btnWish').style.display = 'none';
+  /* DELTA 1: zone + btnA stay HIDDEN too (TOWER shows them; SIZZLE's input is the
+     canvas thirds — no joystick, no A button) */
+  zone.style.display = 'none'; $('btnA').style.display = 'none';
+  setBuild(false);
+  AR.prevStation = AU.station;                                  // DELTA 2 (D10): radio off,
+  const off = AU.STATIONS.findIndex(s => s.off);                //   the LCD is the soundtrack
+  if (off >= 0 && !AU.STATIONS[AU.station].off) AU.setStation(off);
+  AU.join(); buzz([30, 40, 60]);
+}
+function exitArcade() {
+  const pay = szPayout();
+  state = 'PLAY'; TWC.style.display = 'none';
+  $('hud').style.display = 'block'; $('btnMenu').style.display = 'grid';
+  $('btnPing').style.display = 'grid';
+  if (isTouch) { zone.style.display = 'block'; $('btnA').style.display = 'grid'; }
+  applyZoneUI();                          // DELTA 3 (D11): zone-aware — build stays hidden here
+  refreshSpellBar();
+  if (AR.prevStation !== undefined && AU.station !== AR.prevStation) AU.setStation(AR.prevStation);
+  AR.coolT = 2.5;
+  P.x = AR.x - 2.8; P.z = AR.z; P.y = 0.35; P.vx = P.vy = P.vz = 0;   // shack floor, facing out
+  if (pay > 0) { coinCount += pay; $('coinCt').textContent = coinCount;
+    AU.coin(); toast(`🕹️ MUNCHO SAYS THANKS — ${SZ.feeds} feeds · +${pay} 🪙`, 3200); }
+  else toast('🕹️ THE SHACK WILL KEEP YOUR SCREEN WARM', 2600);
+}
+
+/* ---- step: the metronome — the sim ONLY advances on ticks; the crystal only shows ticks ---- */
+function stepArcade(dt) {
+  SZ.blink = ((performance.now() / 250) | 0) % 2;   // 2 Hz, real time — the pause lamp keeps winking
+  if (SZ.wordT > 0) SZ.wordT -= dt;
+  if (SZ.lampScoreT > 0) SZ.lampScoreT -= dt;
+  if (SZ.phase === 'PAUSE' || SZ.phase === 'OVER') return;      // fully frozen, fully free
+  if (SZ.phase === 'INTRO') {                        // MUNCHO ties his bib (~3s, tap to skip)
+    SZ.t += dt;
+    if (SZ.t >= 3) szBegin();
+    return;
+  }
+  if (SZ.phase === 'DANCE') {                        // airborne food politely pauses mid-air
+    SZ.danceT -= dt;
+    if (SZ.danceT <= 0) SZ.phase = 'RUN';
+    return;
+  }
+  if (SZ.phase === 'CRUMB') {                        // the picnic: 3 steps in, hoist, wave, resume
+    const c = SZ.crumb;
+    SZ.tickAcc += dt * 1000;
+    while (SZ.tickAcc >= SZ.tickMs && c.step < 3) { SZ.tickAcc -= SZ.tickMs; c.step++; }
+    if (c.step >= 3) {
+      c.holdMs += dt * 1000;
+      if (c.holdMs >= SZ_CRUMB_PAUSE) {
+        SZ.foods.splice(SZ.foods.indexOf(c.food), 1);
+        SZ.crumb = null; SZ.tickAcc = 0; SZ.spawnCd = 2;        // NOTHING else was lost
+        if (SZ.drops >= SZ_DROPS_END) szEnd('EVERYBODY ATE! 🧀');
+        else SZ.phase = 'RUN';
+      }
+    }
+    return;
+  }
+  /* RUN */
+  SZ.idleT += dt;
+  if (SZ.idleT >= 25) { SZ.resting = true; szPause(true); return; }   // little hands wander off
+  SZ.t += dt;
+  if (SZ.t >= SZ_ROUND_LEN) { szEnd('DINNER RUSH COMPLETE!'); return; }
+  SZ.tickAcc += dt * 1000;
+  while (SZ.tickAcc >= SZ.tickMs) {
+    SZ.tickAcc -= SZ.tickMs;
+    szTick();
+    if (SZ.phase !== 'RUN') break;                   // a drop/dance/ending swapped phases mid-batch
+  }
+}
+
+/* ---- draw: blit bezel → ink pass → digits → 3 bezel lamps → (card, when one is out) ---- */
+function drawArcade() {
+  TWX.setTransform(1, 0, 0, 1, 0, 0);                // the maze may leave a transform behind
+  TWX.clearRect(0, 0, TWC.width, TWC.height);
+  TWX.drawImage(arBezel, 0, 0);
+  SZ.zones = [];
+  const tp = SZ.tickCount % 2;                       // tick parity — the LCD's whole idea of motion
+
+  /* deck glow: the current lane's slab teaches the mapping without a word */
+  if (SZ.phase === 'RUN' || SZ.phase === 'DANCE' || SZ.phase === 'CRUMB' || SZ.phase === 'INTRO') {
+    TWX.globalAlpha = 0.22; TWX.fillStyle = BZ_CREAM;
+    TWX.fillRect(arX(2 + SZ.pan * 50), arY(ARV.GH + 7), arS(46), arS(14));
+    TWX.globalAlpha = 1;
+  }
+
+  /* ---- INK PASS — only the segments that are ON, at full LCD_INK ---- */
+  TWX.save();
+  TWX.beginPath(); TWX.rect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH)); TWX.clip();
+  TWX.fillStyle = LCD_INK;
+
+  /* the pan, wherever the player put it */
+  szDrawPan(TWX, SZ_LANE_X[SZ.pan], SZ_ROW_Y[0], SZ.panPose);
+
+  /* foods — cook state is segment count + blink; ONE ink, zero color (D3) */
+  let anyDone = false, mouthOpen = false;
+  for (const f of SZ.foods) {
+    let fx, fy;
+    if (f.path === 'FEED') {
+      const p = SZ_FEED_P[Math.min(f.feedIx, SZ_FEED_P.length - 1)];
+      fx = p[0]; fy = p[1];
+      if (f.feedIx >= 1) mouthOpen = true;           // one tick of telegraph before the CHOMP
+    } else if (f.path === 'FLOOR') { fx = SZ_LANE_X[f.lane]; fy = SZ_FLOOR_Y - 8; }
+    else { fx = SZ_LANE_X[f.lane]; fy = SZ_ROW_Y[f.step <= 4 ? f.step : 8 - f.step]; }
+    const done = f.cook >= SZ_COOK_ARCS;
+    if (done && f.path === 'ARC') anyDone = true;
+    TWX.fillStyle = done && SZ.blink ? LCD_BLINK : LCD_INK;   // the classic urgent-blink
+    szDrawFood(TWX, f.kind, fx, fy, f.flat);
+    if (done) szDrawSteam(TWX, fx, fy, true);
+    else if (f.cook > 0) { szDrawSteam(TWX, fx, fy, false); szDrawSparks(TWX, fx, fy, tp); }
+    TWX.fillStyle = LCD_INK;
+  }
+  for (const x of SZ.fxs) szDrawFlame(TWX, SZ_LANE_X[x.lane], SZ_ROW_Y[0] - 4, x.ticks % 2);
+
+  /* MUNCHO — bounces on the tick, eyes lock the nearest DONE food, dances when the belly fills */
+  szDrawMuncho(TWX, {
+    bounce: SZ.phase === 'RUN' && tp === 1,
+    mouthOpen: mouthOpen || SZ.flashT > 0,
+    eyeLock: anyDone || mouthOpen,
+    arms: SZ.phase === 'DANCE' ? (SZ.blink ? 'up' : 'out') : (SZ.phase === 'CRUMB' ? 'out' : 'idle'),
+    bellyFlash: SZ.flashT > 0, bellyN: SZ.belly,
+  });
+
+  /* the crumb scene — 3 steps in, hoist the haul, wave; and the pips that count the picnics */
+  if (SZ.crumb) {
+    const c = SZ.crumb, tx = SZ_LANE_X[c.lane];
+    const cx = c.step === 0 ? Math.max(10, tx - 36) : c.step === 1 ? Math.max(10, tx - 18) : tx;
+    szDrawCrumb(TWX, cx, SZ_FLOOR_Y, c.step < 2 ? (c.step % 2) : (c.holdMs > 0 ? (SZ.blink ? 3 : 2) : 2));
+    if (c.step >= 2) szDrawFood(TWX, c.food.kind, cx, SZ_FLOOR_Y - 20, 0);   // hoisted overhead
+  }
+  for (let i = 0; i < Math.min(SZ.drops, 3); i++) szDrawCrumb(TWX, 12 + i * 11, 34, 0);
+
+  /* the drops ending's floor scene: three crumbs share their haul while the card hangs above */
+  if (SZ.phase === 'OVER' && SZ.drops >= SZ_DROPS_END) {
+    for (let ln = 0; ln < 3; ln++) szDrawCrumb(TWX, SZ_LANE_X[ln], SZ_FLOOR_Y, SZ.blink ? 3 : 2);
+    szDrawFood(TWX, 0, SZ_LANE_X[1], SZ_FLOOR_Y - 8, 0);
+  }
+
+  /* combo words — the only words the crystal ever says */
+  if (SZ.wordT > 0) szText(TWX, SZ.word, 64, 40, 11, LCD_INK);
+
+  /* digits over their baked ghost-eights; the crown marks a best that exists */
+  szDigits(SZ.score, 100, 6, 1);
+  szDigits(SZ.best, 6, 10, 0.5);
+  if (SZ.best > 0) { TWX.fillStyle = LCD_INK;
+    szRR(TWX, 12, 4, 3, 3, 1); szRR(TWX, 16, 2.5, 3, 4.5, 1); szRR(TWX, 20, 4, 3, 3, 1); }
+  TWX.restore();
+
+  /* ---- 3 bezel lamps: score · combo · pause (all the juice lives out here — D4) ---- */
+  const lamp = (gx, col, on) => {
+    if (!on) return;
+    TWX.fillStyle = col;
+    TWX.beginPath(); TWX.arc(arX(gx), arY(-4), arS(1.8), 0, Math.PI * 2); TWX.fill();
+  };
+  lamp(55, BZ_RED, SZ.lampScoreT > 0);
+  lamp(75, BZ_MUSTARD, SZ.streak >= 2);
+  lamp(95, BZ_RED, SZ.phase === 'PAUSE' && SZ.blink);
+
+  /* ---- the cream index cards (bezel layer — rotation is legal out here) ---- */
+  if (SZ.phase === 'INTRO' || SZ.phase === 'PAUSE' || SZ.phase === 'OVER') {
+    const cw = arS(132), ch = arS(SZ.phase === 'OVER' ? 120 : 108);
+    const cx = arX(75), cy = arY(SZ.phase === 'OVER' ? 76 : 90);
+    TWX.save();
+    TWX.translate(cx, cy); TWX.rotate(-2 * Math.PI / 180);
+    TWX.fillStyle = BZ_CREAM; TWX.fillRect(-cw / 2, -ch / 2, cw, ch);
+    TWX.restore();
+    /* text un-rotated on top — kid-legible beats art-consistent */
+    const T = (s, gy, size) => szText(TWX, s, 75, gy, size, LCD_INK);
+    if (SZ.phase === 'INTRO') {
+      T('FEED MUNCHO!', 52, 13);
+      TWX.fillStyle = LCD_INK;
+      szDrawFood(TWX, 0, 52, 78, 0); szDrawPan(TWX, 52, 96, 'idle');   // pictogram: be under it
+      szDrawFood(TWX, 2, 97, 80, 0); szDrawSteam(TWX, 97, 80, true);   // pictogram: cook it
+      T('TAP WHERE THE FOOD FALLS', 116, 7);
+      T('3 FLIPS = DONE · DONE = DINNER', 128, 6.5);
+    } else if (SZ.phase === 'PAUSE') {
+      T(SZ.resting ? 'resting — tap ▶' : 'PAUSED', 54, 11);
+      TWX.fillStyle = LCD_INK;
+      szDrawFood(TWX, 0, 40, 76, 0); szDrawPan(TWX, 40, 94, 'idle');
+      szDrawFood(TWX, 2, 108, 78, 0); szDrawSteam(TWX, 108, 78, true);
+      T('CATCH · COOK · FEED', 112, 7);
+      szText(TWX, '▶', 48, 132, 16, LCD_INK);
+      szText(TWX, '🚪', 102, 132, 14, LCD_INK);
+      SZ.zones = [
+        { x: arX(28), y: arY(120), w: arS(40), h: arS(24), go: () => szPause(false) },
+        { x: arX(82), y: arY(120), w: arS(40), h: arS(24), go: () => exitArcade() },
+      ];
+    } else {                                          // OVER — both endings are celebrations
+      T(SZ.overMsg, 32, 9.5);
+      T(`🪙 ${SZ.coins} COINS`, 52, 11);
+      T(`${SZ.feeds} feeds · best streak ${SZ.bestStreak}`, 68, 7);
+      T(SZ.coins >= SZ.best && SZ.coins > 0 ? '✨ YOUR BEST!' : `your best ${SZ.best}`, 80, 7);
+      TWX.fillStyle = LCD_INK;
+      TWX.fillRect(arX(24), arY(94), arS(102), arS(16));
+      szText(TWX, 'PLAY AGAIN', 75, 102, 8, LCD_PAPER);
+      TWX.fillStyle = LCD_INK;
+      TWX.fillRect(arX(24), arY(116), arS(102), arS(16));
+      szText(TWX, 'WALK AWAY', 75, 124, 8, LCD_PAPER);
+      SZ.zones = [
+        { x: arX(24), y: arY(94), w: arS(102), h: arS(16), go: () => szReset(false) },
+        { x: arX(24), y: arY(116), w: arS(102), h: arS(16), go: () => exitArcade() },
+      ];
+    }
+  }
+}
+
+/* ---- inputs — hit order: pause button → card zones → full-canvas lane thirds (D5) ---- */
+TWC.addEventListener('pointerdown', e => {
+  if (state !== 'ARCADE') return;
+  e.preventDefault();
+  const bx = e.clientX / RES, by = e.clientY / RES;
+  SZ.idleT = 0;
+  /* 1 — the pause button always wins; hit target ≥72 css px no matter the paint size */
+  const pr = Math.max(SZ_PBTN.r * ARV.scale, 36);
+  const pdx = bx - arX(SZ_PBTN.gx), pdy = by - arY(SZ_PBTN.gy);
+  if (pdx * pdx + pdy * pdy <= pr * pr) { szPause(SZ.phase !== 'PAUSE'); return; }
+  /* 2 — whatever card is out (pause ▶/🚪, results PLAY AGAIN / WALK AWAY) */
+  for (const z of SZ.zones) if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  if (SZ.phase === 'PAUSE' || SZ.phase === 'OVER') return;     // frozen means frozen
+  /* 3 — the whole canvas is three lane columns: a kid taps where the food is falling */
+  szSelectLane(bx < ARV.W / 3 ? 0 : bx < ARV.W * 2 / 3 ? 1 : 2);
+});
+addEventListener('keydown', e => {
+  if (state !== 'ARCADE') return;
+  if (e.code === 'Escape' || e.code === 'KeyP') {              // pause is free; leaving is via 🚪 only
+    e.preventDefault();
+    if (SZ.phase !== 'OVER') szPause(SZ.phase !== 'PAUSE');
+    return;
+  }
+  const ln = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 0
+           : (e.code === 'ArrowDown' || e.code === 'KeyS') ? 1
+           : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 2 : -1;
+  if (ln >= 0) { e.preventDefault(); szSelectLane(ln); }       // direct-select mirrors touch
+});
+
 /* ---------- main loop ---------- */
 let last = performance.now(), raf = null;
 function loop(now) {
@@ -5669,6 +6662,7 @@ function loop(now) {
   const mt = now / 1000;
   if (state === 'TOWER') { stepTower(dt); drawTower(); return; }   // the 2D world runs alone
   if (state === 'MAZE') { stepMaze(dt); drawMaze(); return; }      // and the maze behind ITS door
+  if (state === 'ARCADE') { stepArcade(dt); drawArcade(); return; }  // and the shack's LCD
   if (state === 'PLAY' || state === 'WON' || state === 'SWOOP') {
     stepWorld(dt, mt);
     stepHero(dt, mt);
@@ -5690,6 +6684,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     cancelAnimationFrame(raf); if (AU.ctx) AU.ctx.suspend();
     touchSpray = false; P.spray = false;                  // phone locked mid-spray: let go of everything
+    if (state === 'ARCADE') szPause(true);                // pocketed mid-round: pause, lose nothing
     stick.active = false; stick.x = stick.y = 0;
     for (const k in keys) keys[k] = false;
     if (syncTimer) flushHeroSync();                       // don't lose a spark to a pocketed phone
