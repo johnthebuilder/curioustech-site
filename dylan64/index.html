@@ -17,9 +17,12 @@
      soft childhood-TV N64 look (D6 Option A). #tower keeps ITS pixelated lines:
      the LCD stays crunchy. Revert = restore the two lines + antialias:false. */
   /* v16: the CRT-corner vignette — pure DOM, composited free (GFX #8).
-     z=3 sits under #crt 40 / #tower 44 / #hud 50 / the sticks 55. */
-  #vig { position: fixed; inset: 0; pointer-events: none; z-index: 3;
-    background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(8,10,30,.28) 100%); }
+     z=3 sits under #crt 40 / #tower 44 / #hud 50 / the sticks 55.
+     v16 polish: gradient alpha is the NIGHT depth (.42); applyDayNight scales
+     element opacity 0.667→1.0 with nightAmt, so day stays the original .28
+     (0.667 × .42 = .280). The .667 here covers the pre-first-frame flash. */
+  #vig { position: fixed; inset: 0; pointer-events: none; z-index: 3; opacity: .667;
+    background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(8,10,30,.42) 100%); }
   /* touch-action does NOT inherit: without this, rapid A-taps trigger the
      browser's double-tap zoom and the game gets stuck zoomed (John, 8/9) */
   button, canvas, #btnA, #btnB, #btnBuild, #btnPing, #btnTree, #stickZone, #stickBase, #nub,
@@ -348,7 +351,45 @@
     font-family: Arial, sans-serif; font-weight: bold; font-size: .95rem; color: #fff;
     text-shadow: 2px 2px 0 #000; pointer-events: none; opacity: 0; }
   #spells .sp.ready { animation: spready .5s ease-out; }
+  /* v17: radial flash on every successful cast — .zap is retriggered by castSpell */
+  #spells .sp::after { content: ''; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; opacity: 0; background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,210,62,.55) 45%, rgba(255,210,62,0) 72%); }
+  #spells .sp.zap::after { animation: spzap .3s ease-out; }
+  @keyframes spzap { 0% { opacity: 1; transform: scale(.35); } 100% { opacity: 0; transform: scale(1.6); } }
   @keyframes spready { 0% { box-shadow: 0 4px 0 #101024, 0 0 0 0 rgba(255,210,62,.9); } 100% { box-shadow: 0 4px 0 #101024, 0 0 0 14px rgba(255,210,62,0); } }
+
+  /* ---------- 👍 v17 THUMB SPELLS (touch only; desktop keeps the bottom-center bar) ----
+     A 2×2 arc cluster hugging the right edge above A: inner lane 1/2, outer lane 3/4,
+     the STRIKE (4) biggest and nearest the thumb. Build hands its old spot to the
+     strike and climbs the outer lane; the wishing-well button crosses to the left,
+     above ping. Keyboard 1-4 and the .key badges are unchanged. */
+  @media (pointer: coarse) {
+    /* the container must lose its transform: a transformed ancestor becomes the
+       containing block for fixed descendants — they'd anchor to IT, not the screen */
+    #spells { left: auto; right: 0; bottom: 0; transform: none; width: 0; height: 0; }
+    #spells .sp { position: fixed; width: 64px; height: 64px; border-radius: 16px;
+      font-size: 1.75rem; z-index: 56; }
+    #spells .sp[data-slot="0"] { right: 104px; bottom: calc(304px + env(safe-area-inset-bottom)); }
+    #spells .sp[data-slot="1"] { right: 102px; bottom: calc(226px + env(safe-area-inset-bottom)); }
+    #spells .sp[data-slot="2"] { right: 26px;  bottom: calc(268px + env(safe-area-inset-bottom)); }
+    #spells .sp[data-slot="3"] { right: 24px;  bottom: calc(190px + env(safe-area-inset-bottom));
+      width: 68px; height: 68px; font-size: 1.9rem; }
+    #spells .sp .key { font-size: .66rem; top: 2px; left: 5px; }
+    #spells .sp .cdn { font-size: 1.3rem; }
+    /* build is a sometimes-toggle, not combat: it climbs to the top of the outer lane */
+    #btnBuild { right: 28px; bottom: calc(342px + env(safe-area-inset-bottom)); }
+    /* the wishing-well button crosses to the left column, above ping */
+    #btnWish { right: auto; left: 26px; bottom: calc(260px + env(safe-area-inset-bottom)); }
+  }
+  /* short screens (a phone held sideways): the tall cluster won't fit — one big row
+     above A instead; spell 4 keeps its cluster spot so no override needed for it */
+  @media (pointer: coarse) and (max-height: 430px) {
+    #spells .sp[data-slot="0"] { right: 244px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    #spells .sp[data-slot="1"] { right: 172px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    #spells .sp[data-slot="2"] { right: 100px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+    #btnBuild { right: 100px; bottom: calc(266px + env(safe-area-inset-bottom)); }
+  }
 
   /* ---------- ☰ the pocket menu (v13: eight floating buttons became one) ---------- */
   #btnMenu { position: fixed; right: 20px; top: calc(max(12px, env(safe-area-inset-top)) + 74px);
@@ -367,6 +408,7 @@
   @media (prefers-reduced-motion: reduce) {
     #title .big span, #start { animation: none; }
     #spells .sp.ready { animation: none; }
+    #spells .sp.zap::after { animation: none; }
   }
 </style>
 </head>
@@ -804,7 +846,7 @@ const AU = {
 };
 let userGestured = false;
 addEventListener('pointerdown', () => userGestured = true, { capture: true });
-const buzz = ms => { try { userGestured && navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const buzz = ms => { try { userGestured && !SZ.attract && navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };   // v16 polish: a self-playing demo never buzzes an idle hand
 
 /* ---------- renderer / scene ---------- */
 const canvas = $('gl');
@@ -1014,6 +1056,7 @@ function applyDayNight() {
   cloudMat.opacity = 0.75 - nightAmt * 0.35;
   skyStars.material.opacity = nightAmt * 0.9;
   fireflies.visible = nightAmt > 0.5 && !inMeadow();   // v16: don't resurrect island fireflies in the meadow
+  $('vig').style.opacity = (0.667 + nightAmt * 0.333).toFixed(3);   // v16 polish: the corners lean in at night (audit #8: a style write per frame is fine)
   paintSky();
 }
 /* clouds */
@@ -1038,15 +1081,21 @@ for (let i = 0; i < 7; i++) {
   m.position.set((Math.random() - 0.5) * 240, 26 + Math.random() * 14, (Math.random() - 0.5) * 240);
   scene.add(m); clouds.push(m);
 }
-/* night sky stars */
-const _sg = new THREE.BufferGeometry(), _sp = new Float32Array(150 * 3);
-for (let i = 0; i < 150; i++) {
-  const a = Math.random() * Math.PI * 2, e = Math.random() * Math.PI * 0.45 + 0.22, r = 170;   // v16: floor raised — stars clear every ridge apex
-  _sp[i * 3] = Math.cos(a) * Math.cos(e) * r; _sp[i * 3 + 1] = Math.sin(e) * r; _sp[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
+/* night sky stars — v16 polish: TWO depth layers (GFX-AUDIT #9). Same 150
+   points split 100 small / 50 slightly larger; stepVisuals counter-pulses
+   their opacities so the sky breathes instead of sitting there. +1 draw call. */
+function mkStars(n, size) {
+  const g = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, e = Math.random() * Math.PI * 0.45 + 0.22, r = 170;   // v16: floor raised — stars clear every ridge apex
+    p[i * 3] = Math.cos(a) * Math.cos(e) * r; p[i * 3 + 1] = Math.sin(e) * r; p[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size, sizeAttenuation: false, transparent: true, opacity: 0 }));
+  pts.frustumCulled = false; pts.userData.shared = true; scene.add(pts);
+  return pts;
 }
-_sg.setAttribute('position', new THREE.BufferAttribute(_sp, 3));
-const skyStars = new THREE.Points(_sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0 }));
-skyStars.frustumCulled = false; skyStars.userData.shared = true; scene.add(skyStars);
+const skyStars = mkStars(100, 1.4), skyStars2 = mkStars(50, 2.0);
 /* fireflies (dusk+) */
 const _fg = new THREE.BufferGeometry(), _fp = new Float32Array(40 * 3), _fs = [];
 for (let i = 0; i < 40; i++) {
@@ -1074,6 +1123,10 @@ function stepVisuals(dt, mt) {
   heroLight.intensity = myCh === 3 ? nightAmt * 1.1 : myCh === 6 ? (ffS.on ? 1.9 : 0.8) : 0;   // WICK · GLIMMER / SPARK · AURA (blazing in FINAL FORM)
   heroLight.color.setHex(myCh === 6 ? 0xffd23e : 0xffe28a);
   skyDome.position.set(camera.position.x, 0, camera.position.z);   // the sky goes where you go
+  /* v16 polish: two-depth twinkle (GFX-AUDIT #9) — overrides applyDayNight's
+     base star opacity every rendered frame; day (nightAmt 0) stays star-free */
+  skyStars.material.opacity  = nightAmt * (0.75 + Math.sin(mt * 1.7) * 0.15);
+  skyStars2.material.opacity = nightAmt * (0.75 + Math.sin(mt * 1.7 + 2.6) * 0.2);
   /* v16: the blob shadow (GFX #5) — and the old tiny hard disc from makeChar
      retires: it defaulted its ground to −8, which would hover mid-air over the
      v16 overlook fall. Hidden every frame because rebuildHero re-creates it. */
@@ -1398,7 +1451,7 @@ function ibStrike() {
 function stepIslandBoss(dt, mt) {
   if (IB.cool > 0) IB.cool -= dt;
   IB.stand.position.y = 2.4 + Math.sin(mt * 2) * 0.14;
-  IB.standLabel.visible = !IB.on && IB.cool <= 0;
+  IB.standLabel.visible = !inMeadow() && !IB.on && IB.cool <= 0;   // QA P2-3: stop fighting setZoneVis from the meadow
   if (state !== 'PLAY' && state !== 'WON') return;
   if (!IB.on) {
     if (IB.cool <= 0 && Math.hypot(P.x - IB_POS[0], P.z - IB_POS[1]) < 3) ibWake();
@@ -1862,7 +1915,7 @@ function stepMeadow(dt, mt) {
   stepGateOne(MGATE, dt, mt, '🏝️ THE ISLAND GATE — walk in. your builds, your friends, the whole world.', () => gateTravel(false));
   stepGateOne(IGATE, dt, mt, '🌄 THE MEADOW GATE — walk in to visit the field where journeys start.', () => gateTravel(true));
   const m = inMeadow();
-  skyStars.position.x = m ? MD.x : 0;                       // the night sky follows you
+  skyStars.position.x = skyStars2.position.x = m ? MD.x : 0;   // the night sky (both depths) follows you
   MD.flame.position.y = 1.05 + Math.sin(mt * 9) * 0.06;
   MD.fireLi.intensity = nightAmt > 0.4 ? 1.3 + Math.sin(mt * 11) * 0.25 : 0.7 + Math.sin(mt * 11) * 0.15;
   /* the GAME SHACK plays itself from afar, and standing at the cabinet is playing it */
@@ -1872,7 +1925,7 @@ function stepMeadow(dt, mt) {
   const ad = Math.hypot(P.x - (AR.x + 0.2), P.z - AR.z);
   if (ad < 5.0 && !AR.toasted) { AR.toasted = true; toast('🕹️ THE GAME SHACK — step up to the little screen.', 4200); }
   if (ad > 8) AR.toasted = false;
-  if (AR.coolT <= 0 && ad < 1.7 && P.y < 3.0) enterArcade();
+  if (AR.coolT <= 0 && ad < 1.7 && P.y < 3.0 && (state === 'PLAY' || state === 'WON')) enterArcade();   // QA P2-2: same guard the gates have
 }
 
 /* ---------- THE CLIMB: four sky areas that BUILD THEMSELVES as you earn them ----------
@@ -2330,8 +2383,17 @@ const CH_DEFS = [
   { key: 'SPARK', emoji: '⚡', zoom: 4, hop: 3, splat: 2, line: 'thinks he\'s in a different game. we let him.' },
 ];
 /* ---------- the HERO: created once, grows forever (VISION Phase 3) ---------- */
-const GAME_VERSION = 'v16';
+const GAME_VERSION = 'v16.1';
 const CHANGELOG = [
+  { v: 'v16.1', title: '🕹️ A SECOND GAME IN THE SHACK', lines: [
+    '🕹️ the little screen asks WHICH game now — SIZZLE or THE HOPPER. tap a card to pick. it remembers your favorite.',
+    '🦶 THE HOPPER: hop stone to stone across the nacho tide. tap the middle to hop AHEAD, the sides to hop over.',
+    '🪨 the stones slide with the tide — ride them, just don\'t ride them off the edge!',
+    '🌊 splashing is fine. the tide floats you back to the beach with a smile, and you keep every coin.',
+    '🏁 five crossings makes you a CHAMPION CROSSER. the far shore keeps count with little flags.',
+    '⚔️ your spells are BIG buttons by your thumb now, and the meadow has crumbs to fight — with glowing eyes at night.',
+    '👥 your friends have soft shadows too, the stars breathe in two layers, and a bored cabinet plays ITSELF until you tap in.',
+  ]},
   { v: 'v16', title: '🕹️ THE GAME SHACK — and a whole bigger sky', lines: [
     '🕹️ there is a GAME SHACK in the meadow now — walk up to the little glowing screen and you are playing it.',
     '🍳 the game inside is SIZZLE: flip food on a pan, cook it in three catches, and feed MUNCHO — he is always hungry and never disappointed.',
@@ -2770,6 +2832,7 @@ function addPuppet(id, look, ch = 1, cust) {
                              swimming: false, spray: false, ff: false, c1, c2, ch, custom, nm: cust && cust.nm },
     makeChar(c1, c2, ch, custom));
   if (pu.nm) pu.group.add(nameSprite(pu.nm));
+  pu.sblob = mkBlob(); pu.sblob.userData.shared = true;   // v16 polish: the soft blob shadow (hero-matched); lives outside makeChar so rebuildPuppet never touches it
   puppets.set(id, pu);
   updateCount();
 }
@@ -2785,7 +2848,13 @@ function rebuildPuppet(id) {
 }
 function removePuppet(id) {
   const pu = puppets.get(id);
-  if (pu) { destroyChar(pu); puppets.delete(id); updateCount(); }
+  if (!pu) return;
+  destroyChar(pu);                                  // hard disc + group (unchanged path)
+  if (pu.sblob) {                                   // v16 polish: the soft blob leaves with its owner
+    scene.remove(pu.sblob);
+    pu.sblob.geometry.dispose(); pu.sblob.material.dispose();   // material is per-blob; blobTex is SHARED — never dispose it
+  }
+  puppets.delete(id); updateCount();
 }
 function updateCount() {
   const n = 1 + puppets.size;
@@ -2902,6 +2971,7 @@ function fireMegaWave() {
       burst(bx, 0.8 + Math.random() * 1.4, bz, 18, 7);
       smashAt(bx, bz, 2.6, 3, true);           // the wave REALLY leaves a mark
       camShakeT = Math.max(camShakeT, 0.9);
+      if (hitMdCrumbsIn(bx, bz, 2.6)) AU.hitCrumb();        // field crumbs die to the wave too (always local)
       crumbs.forEach((c, ci) => {
         if (c.alive && Math.hypot(c.g.position.x - bx, c.g.position.z - bz) < 2.6) {
           c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
@@ -3071,16 +3141,23 @@ function stepRadio(dt) {
 /* ---------- crumbs ---------- */
 const crumbs = [];
 const CRUMB_HOMES = [[18, 8], [-14, -8], [8, -26], [-28, 12], [30, -30], [-8, 30]];
-CRUMB_HOMES.forEach(h => {
+/* one crumb, any zone — the island clan and the meadow clan share this body.
+   eyeM/pupM are parameters because the field clan brings its own eye material
+   (night eyeshine) while the island clan keeps the shared eyeMat/pupilMat. */
+function buildCrumbMesh(eyeM, pupM) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.1, 1.3), new THREE.MeshLambertMaterial({ color: 0x7a5230 }));
   body.position.y = 0.75; g.add(body);
-  const eL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.06), eyeMat); eL.position.set(-0.28, 0.95, 0.66); g.add(eL);
+  const eL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.06), eyeM); eL.position.set(-0.28, 0.95, 0.66); g.add(eL);
   const eR = eL.clone(); eR.position.x = 0.28; g.add(eR);
-  const pL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.05), pupilMat); pL.position.set(-0.28, 0.92, 0.7); g.add(pL);
+  const pL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.05), pupM); pL.position.set(-0.28, 0.92, 0.7); g.add(pL);
   const pR = pL.clone(); pR.position.x = 0.28; g.add(pR);
-  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.09, 0.06), pupilMat); browL.position.set(-0.28, 1.14, 0.67); browL.rotation.z = -0.4; g.add(browL);
+  const browL = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.09, 0.06), pupM); browL.position.set(-0.28, 1.14, 0.67); browL.rotation.z = -0.4; g.add(browL);
   const browR = browL.clone(); browR.position.x = 0.28; browR.rotation.z = 0.4; g.add(browR);
+  return { g, body };
+}
+CRUMB_HOMES.forEach(h => {
+  const { g, body } = buildCrumbMesh(eyeMat, pupilMat);
   g.position.set(h[0], 0, h[1]); scene.add(g);
   crumbs.push({ g, body, hx: h[0], hz: h[1], tx: h[0], tz: h[1], hp: 3, alive: true, retarget: 0, hitT: 0 });
 });
@@ -3132,6 +3209,84 @@ function stepCrumbs(dt, mt) {
     const dxp = P.x - c.g.position.x, dzp = P.z - c.g.position.z;
     if (dxp * dxp + dzp * dzp < 1.69 && P.hurtT <= 0 && P.y < 2) hurtPlayer(dxp, dzp, 'BONKED BY A CRUMB!');
   });
+}
+
+/* ---------- field crumbs: the meadow's own crumb clan (meadow combat) ----------
+   Same species, same original art (buildCrumbMesh), but a SEPARATE array on
+   purpose: the MMO server's crumb messages (crumbhp / crumbdead / crumbback /
+   world sync) index into crumbs[] — the ISLAND array — and know nothing about
+   the meadow. So field crumbs are ALWAYS local AI, even when MMO.on: every
+   player gets their own five pets of chaos out here, and their coin drops use
+   negative local ids (localDcoinSeq) so nothing ever syncs. Kind-to-kids rules
+   are the island's: bonks drop recoverable coins (hurtPlayer), a poof pays 3
+   coins, and a poofed crumb walks home again ~25s later (island crumbs only
+   come back via the server or the classic win reset — out here the field
+   refills itself, so there is always something to fight). Their groups sit at
+   x≈600, so setZoneVis auto-zones them by position — no userData tag needed. */
+const mdCrumbs = [];
+const MD_CRUMB_HOMES = [[578, 34], [626, -2], [566, -12], [624, -30], [592, -44]];   // spread over the plateau, clear of camp (600,26), shack (609.5,32.5), the path (x≈600, z 26→-30) and the gate pad (600,-30)
+const mdEyeMat = eyeMat.clone();          // their own eye material — it glows faintly at night (island eyes stay plain)
+MD_CRUMB_HOMES.forEach(h => {
+  const { g, body } = buildCrumbMesh(mdEyeMat, pupilMat);
+  g.position.set(h[0], 0, h[1]); scene.add(g);
+  mdCrumbs.push({ g, body, hx: h[0], hz: h[1], tx: h[0], tz: h[1], hp: 3, alive: true, retarget: 0, hitT: 0, respawnT: 0 });
+});
+function mdCrumbDie(c) {
+  c.alive = false; c.g.visible = false; c.respawnT = 25;
+  burst(c.g.position.x, 1, c.g.position.z, 20, 5); AU.poof(); buzz(60);
+  for (let k = 0; k < 3; k++) spawnDcoin(localDcoinSeq--, c.g.position.x + (Math.random() - 0.5) * 2.6, c.g.position.z + (Math.random() - 0.5) * 2.6);
+  toast('CRUMB CHEESED! +3 COINS', 1800);
+}
+/* one damage door for every attack verb — NEVER sends hitcrumb (always local,
+   even online). No paintCheese out here: the cheese grid is island ground and
+   no-ops past ±45 anyway. Callers own the hit sound, same as popCrumbsIn. */
+function hitMdCrumbsIn(x, z, r, max) {
+  let n = 0;
+  for (const c of mdCrumbs) {
+    if (n >= (max || 99)) break;
+    if (!c.alive) continue;
+    if (Math.hypot(c.g.position.x - x, c.g.position.z - z) > r) continue;
+    c.hitT = 0.3; n++;
+    if (hero) { hero.life.splats = (hero.life.splats || 0) + 1; saveHero(); }
+    questBump('splat');
+    if (--c.hp <= 0) mdCrumbDie(c);
+  }
+  return n;
+}
+function stepMdCrumbs(dt, mt) {
+  mdCrumbs.forEach(c => {
+    if (!c.alive) {
+      c.g.visible = false;                               // heals any setZoneVis resurrect of a poofed one
+      if (c.respawnT > 0 && (c.respawnT -= dt) <= 0) {
+        c.alive = true; c.hp = 3; c.hitT = 0;
+        c.g.position.set(c.hx, 0, c.hz); c.tx = c.hx; c.tz = c.hz;
+        c.g.visible = inMeadow();                        // stays hidden until the zone swap if you are on the island
+        c.body.material.emissive.setHex(0x000000);
+        if (inMeadow()) burst(c.hx, 1, c.hz, 10, 3);
+      }
+      return;
+    }
+    /* local AI ALWAYS — same chase/bonk rules as the island clan (see stepCrumbs) */
+    const dxp = P.x - c.g.position.x, dzp = P.z - c.g.position.z, dp = Math.hypot(dxp, dzp);
+    let sp = 2.2;
+    if (buffs.calm > 0) { sp = 0.6; }                    // WICK T2b · CALM VOICE — they sit down out here too
+    else if (dp < 9 && P.y < 3) { c.tx = P.x; c.tz = P.z; sp = 4.3; }
+    else if ((c.retarget -= dt) <= 0) {
+      c.retarget = 2 + Math.random() * 2;
+      const a = Math.random() * 7;
+      c.tx = c.hx + Math.cos(a) * 6; c.tz = c.hz + Math.sin(a) * 6;
+    }
+    const dx = c.tx - c.g.position.x, dz = c.tz - c.g.position.z, d = Math.hypot(dx, dz);
+    if (d > 0.3) {
+      c.g.position.x = clamp(c.g.position.x + dx / d * sp * dt, MD.x - 76, MD.x + 76);   // the plateau is the pen
+      c.g.position.z = clamp(c.g.position.z + dz / d * sp * dt, -76, 76);
+      c.g.rotation.y = Math.atan2(dx, dz);
+    }
+    c.g.position.y = Math.abs(Math.sin(mt * 6 + c.hx)) * 0.25;
+    if (c.hitT > 0) { c.hitT -= dt; c.body.material.emissive.setHex(c.hitT > 0 ? 0xcc6600 : 0x000000); }
+    if (dxp * dxp + dzp * dzp < 1.69 && P.hurtT <= 0 && P.y < 2) hurtPlayer(dxp, dzp, 'BONKED BY A CRUMB!');
+  });
+  mdEyeMat.emissive.setRGB(0.20 * nightAmt, 0.42 * nightAmt, 0.24 * nightAmt);   // faint firefly-green eyeshine after dark
 }
 
 /* ---------- cheese sharks ---------- */
@@ -3290,6 +3445,16 @@ function stepCheese(dt) {
           if (MMO.on) MMO.send({ t: 'hitcrumb', i: ci });
           else if (--c.hp <= 0) crumbDie(c, null);
           paintCheese(c.g.position.x, c.g.position.z, 1.5, MMO.on);
+          g.life = 0; break;
+        }
+      }
+      if (g.life > 0) for (const c of mdCrumbs) {           // the meadow clan eats globs too — always local, no hitcrumb send
+        if (!c.alive) continue;
+        const dx = c.g.position.x - g.x, dy2 = (c.g.position.y + 0.8) - g.y, dz = c.g.position.z - g.z;
+        if (dx * dx + dy2 * dy2 + dz * dz < 1.4) {
+          c.hitT = 0.3; AU.hitCrumb(); questBump('splat');
+          if (hero) { hero.life.splats = (hero.life.splats || 0) + 1; saveHero(); }
+          if (--c.hp <= 0) mdCrumbDie(c);
           g.life = 0; break;
         }
       }
@@ -4167,12 +4332,18 @@ function stepPuppets(dt, mt) {
     pu.legL.visible = pu.legR.visible = !pu.swimming;
     if (pu.swimming) { pu.group.position.y -= 0.5; pu.group.rotation.x = 0.18; }
     else pu.group.rotation.x = 0;
-    let gy = -8;
-    for (const c of colliders) {
-      if (pu.x > c.minX && pu.x < c.maxX && pu.z > c.minZ && pu.z < c.maxZ && c.top <= pu.y + 0.01 && c.top > gy) gy = c.top;
+    /* v16 polish: the soft blob (hero-matched) — the old tiny hard disc retires,
+       exactly the way P.blob was retired in stepVisuals (hidden every frame,
+       because rebuildPuppet re-creates it). groundUnder knows the island top,
+       the meadow field, AND the void past the rim — no shadow over nothing. */
+    pu.blob.visible = false;
+    if (pu.sblob) {
+      const gy = groundUnder(pu.x, pu.z, pu.y), hh = clamp(pu.y - gy, 0, 12);
+      pu.sblob.visible = gy > -100;
+      pu.sblob.position.set(pu.x, gy + 0.05, pu.z);
+      const bs = Math.max(0.35, 1 - hh * 0.055); pu.sblob.scale.set(bs, bs, 1);
+      pu.sblob.material.opacity = Math.max(0.15, 1 - hh * 0.07);
     }
-    pu.blob.position.set(pu.x, gy + 0.02, pu.z);
-    pu.blob.material.opacity = clamp(0.34 - (pu.y - gy) * 0.03, 0.08, 0.34);
   });
 }
 function spinCollectibles(dt, mt) {
@@ -4216,7 +4387,7 @@ function stepCam(dt) {
     const d = 8.5;
     tx = P.x + Math.sin(camYaw) * d; ty = P.y + 4.4; tz = P.z + Math.cos(camYaw) * d;
     lx = P.x; ly = P.y + 1.6; lz = P.z;
-    if (state === 'SWOOP') { swoopT += dt; if (swoopT > 1.4) state = 'PLAY'; }
+    if (state === 'SWOOP') { swoopT += dt; if (swoopT > 1.4) { state = 'PLAY'; refreshSpellBar(); } }   // v16.1: the bar was set during SWOOP → 'none' and nothing ever re-showed it — THE invisible-spells bug
   }
   const orbiting = state === 'TITLE' || state === 'BOOT' || state === 'PICK';
   const k = state === 'SWOOP' ? clamp(2.2 * dt, 0, 1) : (orbiting ? 1 : clamp(7 * dt, 0, 1));
@@ -4271,6 +4442,8 @@ function popCrumbsIn(x, z, r, max) {
     else if (--c.hp <= 0) crumbDie(c, null);
     paintCheese(c.g.position.x, c.g.position.z, 1.5, MMO.on);
   }
+  const left = (max || 99) - n;                             // respect the caller's cap across both clans
+  if (left > 0) n += hitMdCrumbsIn(x, z, r, left);          // field crumbs die to everything the island clan does
   if (n) AU.hitCrumb();
   return n;
 }
@@ -4664,6 +4837,14 @@ function doShockwave() {
     c.tz = clamp(c.g.position.z + dz / d * 9, -44, 44);
     c.retarget = 2.5;
   }
+  for (const c of mdCrumbs) {                               // the meadow clan gets shoved too (same rules, plateau clamp)
+    if (!c.alive) continue;
+    const dx = c.g.position.x - P.x, dz = c.g.position.z - P.z, d = Math.hypot(dx, dz);
+    if (d > r || d < 0.01) continue;
+    c.tx = clamp(c.g.position.x + dx / d * 9, MD.x - 76, MD.x + 76);
+    c.tz = clamp(c.g.position.z + dz / d * 9, -76, 76);
+    c.retarget = 2.5;
+  }
   camShakeT = stomp ? 0.9 : 0.5;
   for (let a = 0; a < 14; a++) burst(P.x + Math.sin(a) * r * 0.5, 0.5, P.z + Math.cos(a) * r * 0.5, 5, 5);
   AU.bonk(); buzz([50, 30, 70]);
@@ -4683,7 +4864,7 @@ function castSpell(slot) {
   if (freeStrike && Math.hypot(P.x - IB_POS[0], P.z - IB_POS[1]) < IB_ARENA) ibStrike();
   cdT[slot] = def.cd * cdMul() * (def.k === 'final' && perk('t3') ? 0.5 : 1);
   const el = document.querySelector(`#spells .sp[data-slot="${slot}"]`);
-  if (el) el.classList.remove('ready');
+  if (el) { el.classList.remove('ready', 'zap'); void el.offsetWidth; el.classList.add('zap'); }  // reflow restarts the flash mid-animation
   if (hero) {
     hero.life.casts = (hero.life.casts || 0) + 1;
     if (hero.life.casts === 25) addSpark('cast25', 'twenty-five spells cast — you know your kit');
@@ -4840,7 +5021,7 @@ function exitTower() {
   refreshSpellBar();
   if (TW.prevStation !== undefined && AU.station !== TW.prevStation) AU.setStation(TW.prevStation);
   PORTAL.coolT = 2.5;
-  P.x = PORTAL.x + 3.6; P.z = PORTAL.z; P.y = 0; P.vx = P.vy = P.vz = 0;
+  P.x = PORTAL.x + 3.6; P.z = PORTAL.z; P.y = 0; P.vx = P.vy = P.vz = 0; P.jumpQueued = false;   // QA P2-1 twin: the tower had the same ghost-jump gap
   if (pay > 0) {
     coinCount += pay; $('coinCt').textContent = coinCount;
     AU.coin(); toast(`🌀 BACK FROM THE TOWER — floor ${TW.run.best} · +${pay} 🪙`, 3200);
@@ -5984,7 +6165,7 @@ function arSizeCanvas() {
   ARV.ox = (ARV.W - ARV.GW * ARV.scale) / 2;                            // crystal centered in x
   ARV.oy = (ARV.H - (ARV.GH + ARV.PADT + ARV.PADB) * ARV.scale) / 2 + ARV.PADT * ARV.scale;
   TWX.imageSmoothingEnabled = false;
-  arDrawBezel();                                                        // rebuild the offscreen here only
+  arDrawBezel(); hpDrawBezel();                                         // rebuild BOTH offscreens here only
 }
 const arX = gx => Math.round(ARV.ox + gx * ARV.scale);                  // snap → crisp segments
 const arY = gy => Math.round(ARV.oy + gy * ARV.scale);
@@ -6008,9 +6189,9 @@ const SZ = {
   tickCount: 0, dances: 0, driftCh: SZ_DRIFT_BASE, spawnIx: 0, spawnCd: 0,
   danceT: 0, crumb: null, prevPhase: 'RUN', resting: false, bestStreak: 0,
   word: '', wordT: 0, panPose: 'idle', panPoseT: 0, flashT: 0, fxs: [],
-  zones: [], blink: 0, overMsg: '', lampScoreT: 0,
+  zones: [], blink: 0, overMsg: '', lampScoreT: 0, overT: 0, attract: false,   // v16 polish: OVER-card clock + demo flag
 };
-try { SZ.best = +(localStorage.getItem('d64_sizzle_best') || 0); } catch (e) {}
+try { SZ.best = Math.max(0, +localStorage.getItem('d64_sizzle_best') || 0); } catch (e) {}   // QA P0-1: NaN from a corrupted save must never reach the digits
 
 /* ---- seeded PRNG for the hand-cut bezel edges (seed = 1 = SIZZLE; never per-frame) ---- */
 function szRng(seed) {
@@ -6284,6 +6465,7 @@ function szReset(full) {
   SZ.word = ''; SZ.wordT = 0; SZ.panPose = 'idle'; SZ.panPoseT = 0; SZ.flashT = 0;
   SZ.fxs = []; SZ.zones = []; SZ.resting = false; SZ.prevPhase = 'RUN'; SZ.overMsg = '';
   SZ.lampScoreT = 0;
+  SZ.overT = 0; SZ.attract = false;               // v16 polish: every reset is a real kid until szAttractStart says otherwise
   if (full) SZ.bank = 0;                          // fresh visit; PLAY AGAIN keeps the visit's bank
 }
 function szBegin() {                              // bib is tied — dinner rush opens
@@ -6291,6 +6473,7 @@ function szBegin() {                              // bib is tied — dinner rush
   szSpawnFood();
 }
 function szCoins(n) {                             // one river: round coins + visit bank + the counter
+  if (SZ.attract) { SZ.score += n; SZ.lampScoreT = 0.35; return; }   // v16 polish: the demo scores for show — NO real coins, bank, or best
   SZ.coins += n; SZ.bank += n; SZ.score += n;
   SZ.lampScoreT = 0.35;
 }
@@ -6315,7 +6498,7 @@ function szTick() {
     if (f.flat > 0) f.flat--;
     if (f.path === 'FEED') {                      // three cells up-and-right, then CHOMP
       f.feedIx++;
-      if (f.feedIx >= SZ_FEED_P.length) szFeed(f);
+      if (f.feedIx >= SZ_FEED_P.length) { szFeed(f); if (SZ.phase !== 'RUN') return; }   // QA P1-2: a same-tick drop must not swallow an earned MUNCHO DANCE
       continue;
     }
     if (f.path !== 'ARC') continue;
@@ -6380,7 +6563,7 @@ function szDrop(f) {                               // the kind-miss rule: a tiny
   AU.leave(); buzz(18);                            // a cheerful jingle, not a fail-state
 }
 function szEnd(msg) {                              // both endings are warm — there is no losing screen
-  SZ.overMsg = msg; SZ.phase = 'OVER'; SZ.zones = [];
+  SZ.overMsg = msg; SZ.phase = 'OVER'; SZ.zones = []; SZ.overT = 0;   // v16 polish: the attract clock starts at the card
   if (SZ.coins > SZ.best) {
     SZ.best = SZ.coins;
     try { localStorage.setItem('d64_sizzle_best', String(SZ.best)); } catch (e) {}
@@ -6396,6 +6579,11 @@ function szPause(on) {                             // pausing can NEVER cost any
     SZ.phase = SZ.prevPhase; SZ.resting = false; SZ.idleT = 0;
   }
 }
+function szAttractStart() {                        // 12s of quiet on the results card: the cabinet plays itself
+  szReset(false);                                  // keeps the visit's REAL bank; szCoins is ghost-guarded
+  SZ.attract = true;                               // (szReset cleared the flag first — this order is the contract)
+  szBegin();                                       // straight into the rush: a demo has no bib to tie
+}
 function szPayout() { return SZ.bank; }            // coins accrued live; leaving always pays
 function szSelectLane(ln) {                        // direct-select: a kid taps where the food falls
   SZ.idleT = 0;
@@ -6410,7 +6598,10 @@ function szSelectLane(ln) {                        // direct-select: a kid taps 
 /* ---- enter / exit — mirrors enterTower()/exitTower() with the three deltas (plan §3) ---- */
 function enterArcade() {
   if (state === 'ARCADE') return;
-  szReset(true); arSizeCanvas();
+  szReset(true); hpReset(true); arSizeCanvas();
+  AR.game = null;                                  // the gallery picker greets first
+  AR.pick = 0;                                     // cursor starts on the remembered favorite
+  try { AR.pick = localStorage.getItem('d64_arcade_last') === 'HOP' ? 1 : 0; } catch (e) {}
   state = 'ARCADE';
   TWC.style.display = 'block';
   $('hud').style.display = 'none';
@@ -6430,7 +6621,7 @@ function enterArcade() {
   AU.join(); buzz([30, 40, 60]);
 }
 function exitArcade() {
-  const pay = szPayout();
+  const pay = szPayout() + hpPayout();             // one visit, one wallet — both cartridges pay
   state = 'PLAY'; TWC.style.display = 'none';
   $('hud').style.display = 'block'; $('btnMenu').style.display = 'grid';
   $('btnPing').style.display = 'grid';
@@ -6439,18 +6630,28 @@ function exitArcade() {
   refreshSpellBar();
   if (AR.prevStation !== undefined && AU.station !== AR.prevStation) AU.setStation(AR.prevStation);
   AR.coolT = 2.5;
-  P.x = AR.x - 2.8; P.z = AR.z; P.y = 0.35; P.vx = P.vy = P.vz = 0;   // shack floor, facing out
+  P.x = AR.x - 2.8; P.z = AR.z; P.y = 0.35; P.vx = P.vy = P.vz = 0; P.jumpQueued = false;   // shack floor, facing out (QA P2-1: no ghost jump on the way out)
   if (pay > 0) { coinCount += pay; $('coinCt').textContent = coinCount;
-    AU.coin(); toast(`🕹️ MUNCHO SAYS THANKS — ${SZ.feeds} feeds · +${pay} 🪙`, 3200); }
+    const bits = [];
+    if (SZ.feeds > 0) bits.push(`${SZ.feeds} feeds`);
+    if (HOP.crossings > 0) bits.push(`${HOP.crossings} crossings`);
+    AU.coin(); toast(`🕹️ THE SHACK SAYS THANKS — ${bits.length ? bits.join(' · ') + ' · ' : ''}+${pay} 🪙`, 3200); }
   else toast('🕹️ THE SHACK WILL KEEP YOUR SCREEN WARM', 2600);
 }
 
 /* ---- step: the metronome — the sim ONLY advances on ticks; the crystal only shows ticks ---- */
 function stepArcade(dt) {
+  if (AR.game === 'HOP') return stepHopper(dt);    // the hopper's own metronome
+  if (AR.game === null) return;                    // the picker is draw-only (blink runs off real time)
   SZ.blink = ((performance.now() / 250) | 0) % 2;   // 2 Hz, real time — the pause lamp keeps winking
   if (SZ.wordT > 0) SZ.wordT -= dt;
   if (SZ.lampScoreT > 0) SZ.lampScoreT -= dt;
-  if (SZ.phase === 'PAUSE' || SZ.phase === 'OVER') return;      // fully frozen, fully free
+  if (SZ.phase === 'OVER') {                        // frozen and free — but the cabinet gets bored
+    SZ.overT += dt;
+    if (SZ.overT >= 12) szAttractStart();           // v16 polish: 12s of nobody → the demo takes the pan
+    return;
+  }
+  if (SZ.phase === 'PAUSE') return;                 // fully frozen, fully free
   if (SZ.phase === 'INTRO') {                        // MUNCHO ties his bib (~3s, tap to skip)
     SZ.t += dt;
     if (SZ.t >= 3) szBegin();
@@ -6478,9 +6679,14 @@ function stepArcade(dt) {
   }
   /* RUN */
   SZ.idleT += dt;
-  if (SZ.idleT >= 25) { SZ.resting = true; szPause(true); return; }   // little hands wander off
+  if (!SZ.attract && SZ.idleT >= 25) { SZ.resting = true; szPause(true); return; }   // little hands wander off (the demo never rests)
   SZ.t += dt;
   if (SZ.t >= SZ_ROUND_LEN) { szEnd('DINNER RUSH COMPLETE!'); return; }
+  if (SZ.attract) {                                // v16 polish: the demo chef — slide under whatever lands next
+    let tgt = null;
+    for (const f of SZ.foods) if (f.path === 'ARC' && (!tgt || f.step > tgt.step)) tgt = f;
+    if (tgt && tgt.step >= 4) SZ.pan = tgt.lane;   // step 4+ is post-drift: the demo reads the real landing lane
+  }
   SZ.tickAcc += dt * 1000;
   while (SZ.tickAcc >= SZ.tickMs) {
     SZ.tickAcc -= SZ.tickMs;
@@ -6491,6 +6697,8 @@ function stepArcade(dt) {
 
 /* ---- draw: blit bezel → ink pass → digits → 3 bezel lamps → (card, when one is out) ---- */
 function drawArcade() {
+  if (AR.game === 'HOP') return drawHopper();      // each draws its own bezel + clears itself
+  if (AR.game === null) return arDrawPick();
   TWX.setTransform(1, 0, 0, 1, 0, 0);                // the maze may leave a transform behind
   TWX.clearRect(0, 0, TWC.width, TWC.height);
   TWX.drawImage(arBezel, 0, 0);
@@ -6576,6 +6784,17 @@ function drawArcade() {
   lamp(75, BZ_MUSTARD, SZ.streak >= 2);
   lamp(95, BZ_RED, SZ.phase === 'PAUSE' && SZ.blink);
 
+  /* ---- v16 polish: the attract banner — bezel layer, cream card, ONE ink,
+     blinking on SZ.blink (the established 2 Hz clock — never Math.random) ---- */
+  if (SZ.attract && (SZ.phase === 'RUN' || SZ.phase === 'DANCE' || SZ.phase === 'CRUMB')) {
+    TWX.save();
+    TWX.translate(arX(75), arY(40)); TWX.rotate(2 * Math.PI / 180);
+    TWX.fillStyle = BZ_CREAM; TWX.fillRect(-arS(53), -arS(12), arS(106), arS(24));
+    TWX.restore();
+    szText(TWX, 'DEMO', 75, 34, 9, LCD_INK);
+    if (SZ.blink) szText(TWX, 'TAP TO PLAY!', 75, 46, 8, LCD_INK);
+  }
+
   /* ---- the cream index cards (bezel layer — rotation is legal out here) ---- */
   if (SZ.phase === 'INTRO' || SZ.phase === 'PAUSE' || SZ.phase === 'OVER') {
     const cw = arS(132), ch = arS(SZ.phase === 'OVER' ? 120 : 108);
@@ -6629,6 +6848,8 @@ TWC.addEventListener('pointerdown', e => {
   if (state !== 'ARCADE') return;
   e.preventDefault();
   const bx = e.clientX / RES, by = e.clientY / RES;
+  if (AR.game === null)  { arPickTap(bx, by); return; }
+  if (AR.game === 'HOP') { hpTap(bx, by); return; }
   SZ.idleT = 0;
   /* 1 — the pause button always wins; hit target ≥72 css px no matter the paint size */
   const pr = Math.max(SZ_PBTN.r * ARV.scale, 36);
@@ -6636,22 +6857,663 @@ TWC.addEventListener('pointerdown', e => {
   if (pdx * pdx + pdy * pdy <= pr * pr) { szPause(SZ.phase !== 'PAUSE'); return; }
   /* 2 — whatever card is out (pause ▶/🚪, results PLAY AGAIN / WALK AWAY) */
   for (const z of SZ.zones) if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  /* 2.5 — v16 polish: mid-demo, any tap the pause button/cards didn't claim = a kid wants in */
+  if (SZ.attract) { SZ.attract = false; szReset(false); return; }
   if (SZ.phase === 'PAUSE' || SZ.phase === 'OVER') return;     // frozen means frozen
   /* 3 — the whole canvas is three lane columns: a kid taps where the food is falling */
   szSelectLane(bx < ARV.W / 3 ? 0 : bx < ARV.W * 2 / 3 ? 1 : 2);
 });
 addEventListener('keydown', e => {
   if (state !== 'ARCADE') return;
+  if (AR.game === null)  { arPickKey(e); return; }
+  if (AR.game === 'HOP') { hpKey(e); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') {              // pause is free; leaving is via 🚪 only
     e.preventDefault();
     if (SZ.phase !== 'OVER') szPause(SZ.phase !== 'PAUSE');
     return;
   }
+  if (SZ.attract) { e.preventDefault(); SZ.attract = false; szReset(false); return; }   // v16 polish: any key takes the pan back
   const ln = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 0
            : (e.code === 'ArrowDown' || e.code === 'KeyS') ? 1
            : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 2 : -1;
   if (ln >= 0) { e.preventDefault(); szSelectLane(ln); }       // direct-select mirrors touch
 });
+
+/* ================== 🐸→🦶 THE HOPPER — the shack's second cartridge ==================
+   An original G&W-feeling crossing game in the same Butterscotch LCD language as SIZZLE
+   (ARCADE-ART-SPEC §2 — the hopper sprite seed lives in §2.3). The little hopper crosses
+   four lanes of sliding stepping stones over a nacho tide, one discrete LCD cell at a
+   time. Reaching the far bank plants a flag and gently speeds the tide; a miss is a
+   SPLASH — the tide floats the hopper back to the start beach with a smile, nothing
+   lost, brief breather. Round ends warmly after 5 crossings or 3 splashes.
+
+   Plugs into the ARCADE venue via the GALLERY PICKER (build/hopper-wires.md):
+   AR.game === 'HOP' routes stepArcade/drawArcade/inputs here. Shares the live engine:
+   ARV + arX/arY/arS metrics, szRng (seeded bezel jitter), szRR / szText / lcdDigit /
+   szDigits draw kit, SZ_PBTN pause-button geometry, the Butterscotch palette tokens,
+   AU + buzz. Bezel is its OWN offscreen (hpBezel, seed 2) because arBezel bakes
+   SIZZLE's card scenery — the geometry math is shared, the silkscreen is not.
+
+   NAMING NOTE: the state object is HOP, not HP — `HP` is the live file's hearts/health
+   object (line ~4566). Grep-verified zero collisions on every name defined below. */
+
+/* ---- tunables ---- */
+const HP_TICK_START   = 460;    // ms per LCD step at round start (a hair calmer than SIZZLE)
+const HP_TICK_MIN     = 280;    // floor — never faster than this
+const HP_TICK_STEP    = 22;     // ms shaved off per completed crossing
+const HP_CROSS_END    = 5;      // crossings for the champion ending
+const HP_SPLASH_END   = 3;      // splashes for the gentle "ALL DRIED OFF!" ending
+const HP_COIN_HOP     = 1;      // coins per safe forward hop onto a stone
+const HP_COIN_CROSS   = 8;      // base coins per crossing (+2 per streak step, capped +6)
+const HP_SPLASH_PAUSE = 900;    // ms breather on the beach after the tide brings you home
+const HP_CHEER_LEN    = 1.4;    // seconds of far-bank waving before the next crossing
+
+/* ---- the crystal's cell grid: 5 columns × 6 rows on the shared 150×200 crystal ---- */
+const HP_COL_X = [27, 51, 75, 99, 123];            // 5 column x-centers, 24 wide each
+const HP_ROW_Y = [172, 148, 124, 100, 76, 52];     // row 0 = start beach … row 5 = far bank
+/* rows 1–4 are the tide lanes (lane li = row − 1) */
+const HP_LANE_DIR   = [1, -1, 1, -1];              // stones slide right/left/right/left
+const HP_LANE_EVERY = [3, 2, 3, 2];                // lane advances every N master ticks
+const HP_LANE_PAT   = ['11011010', '10110100', '01101101', '10101100'];  // 8-cell stone loops
+const HP_FLAG_X  = [18, 30, 42, 54, 66];           // crossing flags along the far shore
+const HP_DROP_X  = [106, 118, 130];                // splash-counter droplets under the score
+
+/* ---- game state (HOP, the venue contract shape — mirrors SZ) ---- */
+const HOP = {
+  phase: 'INTRO',      // 'INTRO' | 'RUN' | 'PAUSE' | 'SPLASH' | 'CHEER' | 'OVER'
+  t: 0, tickMs: HP_TICK_START, tickAcc: 0, tickCount: 0,
+  row: 0, col: 2, pose: 'stand', poseT: 0,         // the hopper, one cell at a time
+  off: [0, 0, 0, 0],                               // per-lane pattern offsets (the tide)
+  crossings: 0, splashes: 0, streak: 0, bestStreak: 0,
+  coins: 0, bank: 0, best: 0, idleT: 0,
+  splash: null,                                    // { col, row, holdMs } while the tide carries you
+  cheerT: 0, prevPhase: 'RUN', resting: false,
+  word: '', wordT: 0, lampScoreT: 0, blink: 0, zones: [], overMsg: '',
+  lastAct: -9, lastActT: 0,                        // which deck slab to glow (teaches the mapping)
+};
+try { HOP.best = +(localStorage.getItem('d64_hopper_best') || 0); } catch (e) {}
+
+/* ---- tide lookup: is there a stone at visible column c of lane li right now? ---- */
+function hpStoneAt(li, c) {
+  const pat = HP_LANE_PAT[li];
+  const ix = ((c - HOP.off[li] * HP_LANE_DIR[li]) % 8 + 8) % 8;
+  return pat[ix] === '1';
+}
+
+/* ---- segment sprites — fixed pose cells, no tween/rotate/scale, ever (ART §2.3) ----
+   The hopper is drawn in a 16×16 game-unit cell box centered on (gx, gy). Its eye is a
+   HOLE punched through the body (evenodd, the MUNCHO trick) — ink-on-ink is invisible. */
+function hpDrawHopper(ctx, gx, gy, cell) {
+  const B = (dx, dy, w, h, ex, ey) => {            // body + evenodd eye hole
+    ctx.beginPath();
+    const x = arX(gx - 8 + dx), y = arY(gy - 8 + dy);
+    if (ctx.roundRect) ctx.roundRect(x, y, arS(w), arS(h), arS(2)); else ctx.rect(x, y, arS(w), arS(h));
+    ctx.rect(arX(gx - 8 + ex), arY(gy - 8 + ey), arS(1.6), arS(1.6));
+    ctx.fill('evenodd');
+  };
+  const R = (dx, dy, w, h, r) => szRR(ctx, gx - 8 + dx, gy - 8 + dy, w, h, r);
+  if (cell === 'leap') {                           // mid-hop: legs tucked, one arm up
+    B(3, 1, 8, 7, 8, 3);
+    R(6, 8, 4, 2, 1);
+    R(11, 0, 2, 4, 1);
+  } else if (cell === 'land') {                    // touch-down: legs splayed, dust tick
+    B(4, 5, 8, 6, 9, 7);
+    R(3, 11, 3, 3, 1); R(10, 11, 3, 3, 1);
+    R(1, 13, 2, 1, 0.5);
+  } else if (cell === 'wave') {                    // the far-bank / beach-smile pose
+    B(4, 3, 8, 7, 9, 5);
+    R(5, 10, 2, 4, 1); R(9, 10, 2, 4, 1);
+    R(12, 0, 2, 4, 1);
+  } else {                                         // stand
+    B(4, 3, 8, 7, 9, 5);
+    R(5, 10, 2, 4, 1); R(9, 10, 2, 4, 1);
+  }
+}
+function hpDrawStone(ctx, gx, gy) {                // one sliding stepping stone
+  szRR(ctx, gx - 10, gy - 3.5, 20, 7, 3);
+  szRR(ctx, gx - 6, gy - 5.5, 8, 3, 1.5);          // the dry top lip
+}
+function hpDrawWave(ctx, gx, gy, ph) {             // nacho-tide chop in an open cell
+  if (ph) { szRR(ctx, gx - 7, gy - 1.5, 5, 2, 1); szRR(ctx, gx + 2, gy + 0.5, 5, 2, 1); }
+  else    { szRR(ctx, gx - 2, gy - 1.5, 5, 2, 1); szRR(ctx, gx - 8, gy + 0.5, 4, 2, 1); }
+}
+function hpDrawSwim(ctx, gx, gy) {                 // hopper afloat in the tide ring
+  const x = arX(gx), y = arY(gy);
+  ctx.beginPath();
+  ctx.arc(x, y, arS(7), 0, Math.PI * 2);
+  ctx.arc(x, y, arS(4.5), 0, Math.PI * 2);
+  ctx.fill('evenodd');
+  szRR(ctx, gx - 2.5, gy - 12, 5, 5, 2);           // head bobbing above the ring
+  szRR(ctx, gx + 0.5, gy - 15, 1.5, 3, 0.7);       // antenna
+}
+function hpDrawSplashFx(ctx, gx, gy) {             // the 1-scene splash crown
+  szRR(ctx, gx - 9, gy - 4, 3, 4, 1.5);
+  szRR(ctx, gx + 6, gy - 6, 3, 5, 1.5);
+  szRR(ctx, gx - 2, gy - 9, 3, 4, 1.5);
+  szRR(ctx, gx - 7, gy, 14, 3, 1.5);
+}
+function hpDrawFlag(ctx, gx, gy) {                 // a crossing planted on the far shore
+  szRR(ctx, gx, gy - 8, 1.5, 9, 0.7);
+  ctx.beginPath();
+  ctx.moveTo(arX(gx + 1.5), arY(gy - 8));
+  ctx.lineTo(arX(gx + 8), arY(gy - 5.5));
+  ctx.lineTo(arX(gx + 1.5), arY(gy - 3));
+  ctx.closePath(); ctx.fill();
+}
+function hpDrawDrop(ctx, gx, gy) {                 // splash-counter droplet pip
+  szRR(ctx, gx - 1.2, gy - 4.5, 2.4, 3.5, 1.2);
+  szRR(ctx, gx - 2, gy - 1.8, 4, 3.2, 2);
+}
+
+/* ---- the HOPPER bezel — own offscreen (seed 2), same geometry math as arDrawBezel:
+   ARV metrics, arX/arY/arS snapping, szRng jitter, SZ_PBTN button, lamp ring positions.
+   Different silkscreen (THE HOPPER), different card scenery, different ghost pass, plus
+   ◄ ▲ ► deck arrows that teach the three-thirds mapping without a word. ---- */
+const hpBezel = document.createElement('canvas');
+function hpDrawBezel() {
+  hpBezel.width = ARV.W; hpBezel.height = ARV.H;
+  const bz = hpBezel.getContext('2d');
+  bz.imageSmoothingEnabled = false;
+  const rnd = szRng(2);                            // seed 2 = THE HOPPER, stable forever
+  const jit = () => (rnd() * 3 - 1.5) * ARV.scale;
+  const poly = pts => {
+    bz.beginPath();
+    pts.forEach((p, i) => { const x = arX(p[0]) + jit(), y = arY(p[1]) + jit();
+      i ? bz.lineTo(x, y) : bz.moveTo(x, y); });
+    bz.closePath(); bz.fill();
+  };
+  /* cardboard everywhere */
+  bz.fillStyle = BZ_CARD; bz.fillRect(0, 0, ARV.W, ARV.H);
+  /* racing stripes down the left — same kid, still tired */
+  bz.fillStyle = BZ_RED;     poly([[-11, -30], [-7, -30], [-5.8, 250], [-9.8, 250]]);
+  bz.fillStyle = BZ_MUSTARD; poly([[-5.5, -30], [-3, -30], [-3.8, 250], [-6.3, 250]]);
+  /* mustard marquee, silkscreened THE HOPPER */
+  bz.fillStyle = BZ_MUSTARD;
+  poly([[-ARV.PADX + 1, -26], [ARV.GW + ARV.PADX - 1, -26], [ARV.GW + ARV.PADX - 1, -8], [-ARV.PADX + 1, -8]]);
+  bz.font = `900 ${Math.max(8, Math.round(13 * ARV.scale))}px "Arial Black", Arial, sans-serif`;
+  bz.textAlign = 'center'; bz.textBaseline = 'middle';
+  bz.fillStyle = BZ_CREAM;  bz.fillText('THE HOPPER', arX(75) + 1, arY(-17) + 1);
+  bz.fillStyle = BZ_SHADOW; bz.fillText('THE HOPPER', arX(75), arY(-17));
+  /* three painted lamp rings: score · streak · pause (same positions as SIZZLE — house law) */
+  for (const lx of [55, 75, 95]) {
+    bz.strokeStyle = BZ_CREAM; bz.lineWidth = Math.max(1, 1.2 * ARV.scale);
+    bz.beginPath(); bz.arc(arX(lx), arY(-4), arS(2.5), 0, Math.PI * 2); bz.stroke();
+  }
+  /* the screen well + crystal */
+  bz.fillStyle = BZ_SHADOW;
+  poly([[-3, -3], [ARV.GW + 3, -3], [ARV.GW + 3, ARV.GH + 3], [-3, ARV.GH + 3]]);
+  bz.fillStyle = LCD_PAPER;
+  bz.fillRect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH));
+  /* crystal dressing: vignette + scan bands, then the printed card */
+  bz.save();
+  bz.beginPath(); bz.rect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH)); bz.clip();
+  bz.globalAlpha = 0.5; bz.fillStyle = LCD_SHADE;
+  bz.fillRect(arX(0), arY(0), arS(ARV.GW), arS(3)); bz.fillRect(arX(0), arY(ARV.GH - 3), arS(ARV.GW), arS(3));
+  bz.fillRect(arX(0), arY(0), arS(3), arS(ARV.GH)); bz.fillRect(arX(ARV.GW - 3), arY(0), arS(3), arS(ARV.GH));
+  bz.globalAlpha = 0.25;
+  for (let y = arY(0); y < arY(ARV.GH); y += 4) bz.fillRect(arX(0), y, arS(ARV.GW), 2);
+  bz.globalAlpha = 1;
+  /* the card: ink-jet scenery printed UNDER the glass — it never animates */
+  bz.fillStyle = CARD_TERRA;
+  bz.fillRect(arX(0), arY(60), arS(ARV.GW), arS(2.5));      // far-bank shore line
+  bz.fillRect(arX(0), arY(163), arS(ARV.GW), arS(2.5));     // start-beach shore line
+  bz.fillStyle = CARD_FADE;
+  for (const ry of [88, 112, 136])                          // printed ripple guides between lanes
+    bz.fillRect(arX(4), arY(ry), arS(142), arS(1.2));
+  /* THE GHOST PASS — every cell the game owns, faintly there (one shape per cell) */
+  bz.fillStyle = LCD_GHOST;
+  for (let li = 0; li < 4; li++)
+    for (let c = 0; c < 5; c++) {
+      hpDrawStone(bz, HP_COL_X[c], HP_ROW_Y[li + 1]);       // a stone in every lane cell
+      hpDrawWave(bz, HP_COL_X[c], HP_ROW_Y[li + 1] + 7, 0); // and the tide beneath it
+    }
+  for (let rw = 0; rw < 6; rw++)
+    for (let c = 0; c < 5; c++)
+      hpDrawHopper(bz, HP_COL_X[c], HP_ROW_Y[rw], 'stand'); // the hopper everywhere it can be
+  for (const fx of HP_FLAG_X) hpDrawFlag(bz, fx, 36);       // the 5 crossing flags
+  for (const dx of HP_DROP_X) hpDrawDrop(bz, dx, 24);       // the 3 splash droplets
+  for (let i = 0; i < 4; i++) lcdDigit(100 + i * 12, 6, 8, false, 1, bz);   // score ghost-eights
+  for (let i = 0; i < 4; i++) lcdDigit(6 + i * 6, 10, 8, false, 0.5, bz);   // best ghost-eights
+  szRR(bz, 12, 4, 3, 3, 1); szRR(bz, 16, 2.5, 3, 4.5, 1); szRR(bz, 20, 4, 3, 3, 1);   // tiny crown
+  bz.restore();
+  /* tape over the well's top corners */
+  bz.globalAlpha = 0.35; bz.fillStyle = BZ_CREAM;
+  poly([[-8, -6], [4, -6], [1, 3], [-11, 3]]);
+  poly([[ARV.GW - 4, -6], [ARV.GW + 8, -6], [ARV.GW + 11, 3], [ARV.GW - 1, 3]]);
+  bz.globalAlpha = 1;
+  /* the button deck — 3 slabs silkscreened ◄ ▲ ► (left hop · ahead · right hop) */
+  bz.fillStyle = BZ_PANEL;
+  poly([[-ARV.PADX + 2, ARV.GH + 4], [ARV.GW + ARV.PADX - 2, ARV.GH + 4],
+        [ARV.GW + ARV.PADX - 2, ARV.GH + 46], [-ARV.PADX + 2, ARV.GH + 46]]);
+  bz.fillStyle = BZ_CARD;
+  for (let ln = 0; ln < 3; ln++) {
+    const x = arX(2 + ln * 50), y = arY(ARV.GH + 7);
+    bz.beginPath();
+    if (bz.roundRect) bz.roundRect(x, y, arS(46), arS(14), arS(3)); else bz.rect(x, y, arS(46), arS(14));
+    bz.fill();
+  }
+  bz.fillStyle = BZ_CREAM;
+  const arrow = (cx, cy, dir) => {                 // dir: -1 ◄ · 0 ▲ · 1 ►
+    bz.beginPath();
+    if (dir === 0) {
+      bz.moveTo(arX(cx - 3.5), arY(cy + 2.5)); bz.lineTo(arX(cx + 3.5), arY(cy + 2.5));
+      bz.lineTo(arX(cx), arY(cy - 3));
+    } else {
+      bz.moveTo(arX(cx - dir * 2.5), arY(cy - 3.5)); bz.lineTo(arX(cx - dir * 2.5), arY(cy + 3.5));
+      bz.lineTo(arX(cx + dir * 3), arY(cy));
+    }
+    bz.closePath(); bz.fill();
+  };
+  arrow(25, ARV.GH + 14, -1); arrow(75, ARV.GH + 14, 0); arrow(125, ARV.GH + 14, 1);
+  /* the one chrome control: fat red pause button (shared SZ_PBTN geometry) */
+  bz.fillStyle = BZ_RED;
+  bz.beginPath(); bz.arc(arX(SZ_PBTN.gx), arY(SZ_PBTN.gy), arS(SZ_PBTN.r), 0, Math.PI * 2); bz.fill();
+  bz.strokeStyle = BZ_CREAM; bz.lineWidth = Math.max(1, 1.5 * ARV.scale);
+  bz.beginPath(); bz.arc(arX(SZ_PBTN.gx), arY(SZ_PBTN.gy), arS(SZ_PBTN.r), 0, Math.PI * 2); bz.stroke();
+  bz.fillStyle = BZ_CREAM;
+  bz.fillRect(arX(SZ_PBTN.gx - 3.5), arY(SZ_PBTN.gy - 4), arS(2.5), arS(8));
+  bz.fillRect(arX(SZ_PBTN.gx + 1), arY(SZ_PBTN.gy - 4), arS(2.5), arS(8));
+  /* four screws, seeded slot angles */
+  const scr = [[-ARV.PADX + 4, -ARV.PADT + 5], [ARV.GW + ARV.PADX - 4, -ARV.PADT + 5],
+               [-ARV.PADX + 4, ARV.GH + ARV.PADB - 5], [ARV.GW + ARV.PADX - 4, ARV.GH + ARV.PADB - 5]];
+  for (const [sx, sy] of scr) {
+    bz.fillStyle = BZ_CREAM;
+    bz.beginPath(); bz.arc(arX(sx), arY(sy), arS(1.6), 0, Math.PI * 2); bz.fill();
+    const a = rnd() * Math.PI;
+    bz.strokeStyle = BZ_SHADOW; bz.lineWidth = 1;
+    bz.beginPath();
+    bz.moveTo(arX(sx) - Math.cos(a) * arS(1.2), arY(sy) - Math.sin(a) * arS(1.2));
+    bz.lineTo(arX(sx) + Math.cos(a) * arS(1.2), arY(sy) + Math.sin(a) * arS(1.2));
+    bz.stroke();
+  }
+}
+
+/* ---- the game itself ---- */
+function hpReset(full) {
+  HOP.phase = 'INTRO'; HOP.t = 0; HOP.tickMs = HP_TICK_START; HOP.tickAcc = 0; HOP.tickCount = 0;
+  HOP.row = 0; HOP.col = 2; HOP.pose = 'stand'; HOP.poseT = 0;
+  HOP.off = [0, 3, 5, 1];                          // staggered start — no two lanes in lockstep
+  HOP.crossings = 0; HOP.splashes = 0; HOP.streak = 0; HOP.bestStreak = 0;
+  HOP.coins = 0; HOP.idleT = 0; HOP.splash = null; HOP.cheerT = 0;
+  HOP.prevPhase = 'RUN'; HOP.resting = false;
+  HOP.word = ''; HOP.wordT = 0; HOP.lampScoreT = 0; HOP.zones = []; HOP.overMsg = '';
+  HOP.lastAct = -9; HOP.lastActT = 0;
+  if (full) HOP.bank = 0;                          // fresh visit; PLAY AGAIN keeps the visit's bank
+}
+function hpBegin() {                               // toes in the sand — the tide is rolling
+  HOP.phase = 'RUN'; HOP.t = 0; HOP.idleT = 0;
+  AU.ping('light');
+}
+function hpCoins(n) {                              // one river: round coins + visit bank + counter
+  HOP.coins += n; HOP.bank += n;
+  HOP.lampScoreT = 0.35;
+}
+function hpTick() {                                // one LCD step of the whole tide
+  HOP.tickCount++;
+  if (HOP.poseT > 0 && --HOP.poseT <= 0) HOP.pose = 'stand';
+  if (HOP.lastActT > 0) HOP.lastActT--;
+  for (let li = 0; li < 4; li++) {
+    if (HOP.tickCount % HP_LANE_EVERY[li] !== 0) continue;
+    HOP.off[li]++;                                 // the lane's stones slide one cell
+    if (HOP.phase === 'RUN' && HOP.row === li + 1) {
+      HOP.col += HP_LANE_DIR[li];                  // riding the stone
+      if (HOP.col < 0 || HOP.col > 4) {            // carried to the edge — into the tide, gently
+        hpSplash(Math.max(0, Math.min(4, HOP.col)), HOP.row);
+        return;                                    // phase swapped — stop mid-tick
+      }
+    }
+  }
+  if (HOP.phase === 'SPLASH' && HOP.splash) {      // the tide carries the hopper home, row by row
+    if (HOP.splash.row > 0) HOP.splash.row--;
+  }
+}
+function hpHop(d) {                                // d: -1 hop left · 0 hop ahead · +1 hop right
+  HOP.idleT = 0;
+  if (HOP.phase === 'INTRO') { hpBegin(); return; }
+  if (HOP.phase !== 'RUN') return;
+  HOP.lastAct = d; HOP.lastActT = 2;
+  if (d === 0) {                                   // FORWARD — the whole game is this hop
+    const nr = HOP.row + 1;
+    HOP.pose = 'leap'; HOP.poseT = 1;
+    if (nr >= 5) { HOP.row = 5; hpCross(); return; }
+    if (hpStoneAt(nr - 1, HOP.col)) {
+      HOP.row = nr; HOP.pose = 'land'; HOP.poseT = 1;
+      hpCoins(HP_COIN_HOP);
+      AU.beep('triangle', 180, 120, 0.05, 0.12); buzz(12);   // dull stone *tup*
+    } else hpSplash(HOP.col, nr);
+  } else {                                         // SIDEWAYS — line up with the next stone
+    const nc = HOP.col + d;
+    if (nc < 0 || nc > 4) {                        // the world has edges; a wobble, never a fall
+      AU.beep('triangle', 110, 80, 0.05, 0.08); buzz(8);
+      return;
+    }
+    HOP.pose = 'leap'; HOP.poseT = 1;
+    if (HOP.row === 0 || hpStoneAt(HOP.row - 1, nc)) {       // beach is solid; lanes need a stone
+      HOP.col = nc; HOP.pose = 'land'; HOP.poseT = 1;
+      AU.beep('square', 180, null, 0.03, 0.1); buzz(10);     // chunky clack
+    } else hpSplash(nc, HOP.row);
+  }
+}
+function hpCross() {                               // far bank! plant a flag, take a bow
+  HOP.crossings++; HOP.streak++;
+  HOP.bestStreak = Math.max(HOP.bestStreak, HOP.streak);
+  const c = HP_COIN_CROSS + Math.min(Math.max(HOP.streak - 1, 0), 3) * 2;
+  hpCoins(c);
+  HOP.tickMs = Math.max(HP_TICK_MIN, HOP.tickMs - HP_TICK_STEP);   // the tide picks up, gently
+  HOP.word = `MADE IT! +${c}`; HOP.wordT = 1.5;
+  if (HOP.streak === 2)      { HOP.word = `NICE HOPS! +${c}`; }
+  else if (HOP.streak === 3) { HOP.word = `TIDE RUNNER! +${c}`; }
+  else if (HOP.streak >= 4)  { HOP.word = `CHAMPION! +${c}`; }
+  HOP.phase = 'CHEER'; HOP.cheerT = HP_CHEER_LEN;
+  AU.harvest(); AU.coin(); buzz(40);
+}
+function hpSplash(col, row) {                      // the kind-miss rule: a splash, never a buzzer
+  HOP.splashes++; HOP.streak = 0;                  // coins-so-far stay banked, always
+  HOP.splash = { col, row, row0: row, holdMs: 0 };
+  HOP.phase = 'SPLASH';
+  HOP.word = 'SPLASH! WHEE!'; HOP.wordT = 1.6;
+  AU.squish(); AU.leave(); buzz(18);               // a plop and a cheerful jingle
+}
+function hpEnd(msg) {                              // both endings are warm — no losing screen
+  HOP.overMsg = msg; HOP.phase = 'OVER'; HOP.zones = [];
+  if (HOP.coins > HOP.best) {
+    HOP.best = HOP.coins;
+    try { localStorage.setItem('d64_hopper_best', String(HOP.best)); } catch (e) {}
+  }
+  AU.fanfare();
+}
+function hpPause(on) {                             // pausing can NEVER cost anything (VISION rail)
+  if (on) {
+    if (HOP.phase === 'PAUSE' || HOP.phase === 'OVER') return;
+    HOP.prevPhase = HOP.phase; HOP.phase = 'PAUSE'; HOP.idleT = 0;
+  } else {
+    if (HOP.phase !== 'PAUSE') return;
+    HOP.phase = HOP.prevPhase; HOP.resting = false; HOP.idleT = 0;
+  }
+}
+function hpPayout() { return HOP.bank; }           // coins accrue live; leaving always pays
+
+/* ---- step: the metronome — the sim ONLY advances on ticks (same law as stepArcade) ---- */
+function stepHopper(dt) {
+  HOP.blink = ((performance.now() / 250) | 0) % 2; // 2 Hz real time — the pause lamp keeps winking
+  if (HOP.wordT > 0) HOP.wordT -= dt;
+  if (HOP.lampScoreT > 0) HOP.lampScoreT -= dt;
+  if (HOP.phase === 'PAUSE' || HOP.phase === 'OVER') return;   // fully frozen, fully free
+  if (HOP.phase === 'INTRO') {                     // the tide rolls in (~3s, tap to skip)
+    HOP.t += dt;
+    if (HOP.t >= 3) hpBegin();
+    return;
+  }
+  if (HOP.phase === 'CHEER') {                     // waving on the far bank; the tide keeps sliding
+    HOP.cheerT -= dt;
+    HOP.tickAcc += dt * 1000;
+    while (HOP.tickAcc >= HOP.tickMs) { HOP.tickAcc -= HOP.tickMs; hpTick(); }
+    if (HOP.cheerT <= 0) {
+      if (HOP.crossings >= HP_CROSS_END) { hpEnd('CHAMPION CROSSER!'); return; }
+      HOP.row = 0; HOP.col = 2; HOP.pose = 'stand'; HOP.phase = 'RUN';   // next crossing
+    }
+    return;
+  }
+  if (HOP.phase === 'SPLASH') {                    // the tide floats you home — a tiny scene
+    const s = HOP.splash;
+    HOP.tickAcc += dt * 1000;
+    while (HOP.tickAcc >= HOP.tickMs) { HOP.tickAcc -= HOP.tickMs; hpTick(); }
+    if (s && s.row <= 0) {
+      s.holdMs += dt * 1000;                       // beached: a smile and a breather
+      if (s.holdMs >= HP_SPLASH_PAUSE) {
+        HOP.row = 0; HOP.col = s.col; HOP.pose = 'stand';
+        HOP.splash = null; HOP.tickAcc = 0;        // NOTHING else was lost
+        AU.ping('light');
+        if (HOP.splashes >= HP_SPLASH_END) hpEnd('ALL DRIED OFF — WHAT A SWIM!');
+        else HOP.phase = 'RUN';
+      }
+    }
+    return;
+  }
+  /* RUN */
+  HOP.idleT += dt;
+  if (HOP.idleT >= 25) { HOP.resting = true; hpPause(true); return; }   // little hands wander off
+  HOP.t += dt;
+  HOP.tickAcc += dt * 1000;
+  while (HOP.tickAcc >= HOP.tickMs) {
+    HOP.tickAcc -= HOP.tickMs;
+    hpTick();
+    if (HOP.phase !== 'RUN') break;                // a splash swapped phases mid-batch
+  }
+}
+
+/* ---- draw: blit hpBezel → ink pass → digits → 3 bezel lamps → (card, when one is out) ---- */
+function drawHopper() {
+  TWX.setTransform(1, 0, 0, 1, 0, 0);
+  TWX.clearRect(0, 0, TWC.width, TWC.height);
+  TWX.drawImage(hpBezel, 0, 0);
+  HOP.zones = [];
+  const tp = HOP.tickCount % 2;                    // tick parity — the LCD's whole idea of motion
+
+  /* deck glow: the slab of the last hop teaches ◄ ▲ ► without a word */
+  if (HOP.lastActT > 0) {
+    TWX.globalAlpha = 0.22; TWX.fillStyle = BZ_CREAM;
+    TWX.fillRect(arX(2 + (HOP.lastAct + 1) * 50), arY(ARV.GH + 7), arS(46), arS(14));
+    TWX.globalAlpha = 1;
+  }
+
+  /* ---- INK PASS — only the segments that are ON, at full LCD_INK ---- */
+  TWX.save();
+  TWX.beginPath(); TWX.rect(arX(0), arY(0), arS(ARV.GW), arS(ARV.GH)); TWX.clip();
+  TWX.fillStyle = LCD_INK;
+
+  /* the tide: stones where the pattern says stone, chop where it says water */
+  for (let li = 0; li < 4; li++)
+    for (let c = 0; c < 5; c++) {
+      if (hpStoneAt(li, c)) hpDrawStone(TWX, HP_COL_X[c], HP_ROW_Y[li + 1]);
+      else hpDrawWave(TWX, HP_COL_X[c], HP_ROW_Y[li + 1] + 7, (tp + li) % 2);
+    }
+
+  /* the hopper — blinks at LCD_BLINK when the NEXT lane-tick would carry it off the edge */
+  if (HOP.phase !== 'SPLASH' && HOP.phase !== 'OVER') {
+    let urgent = false;
+    if (HOP.phase === 'RUN' && HOP.row >= 1 && HOP.row <= 4) {
+      const nc = HOP.col + HP_LANE_DIR[HOP.row - 1];
+      urgent = nc < 0 || nc > 4;
+    }
+    TWX.fillStyle = urgent && HOP.blink ? LCD_BLINK : LCD_INK;
+    const pose = HOP.phase === 'CHEER' ? (HOP.blink ? 'wave' : 'stand') : HOP.pose;
+    hpDrawHopper(TWX, HP_COL_X[HOP.col], HP_ROW_Y[HOP.row] - 4, pose);
+    TWX.fillStyle = LCD_INK;
+  }
+
+  /* the splash scene: crown burst, then the swim ring drifting home, then the beach smile */
+  if (HOP.phase === 'SPLASH' && HOP.splash) {
+    const s = HOP.splash;
+    if (s.row === s.row0) hpDrawSplashFx(TWX, HP_COL_X[s.col], HP_ROW_Y[s.row]);   // one full tick of crown
+    else if (s.row > 0) hpDrawSwim(TWX, HP_COL_X[s.col], HP_ROW_Y[s.row]);
+    else hpDrawHopper(TWX, HP_COL_X[s.col], HP_ROW_Y[0] - 4, HOP.blink ? 'wave' : 'stand');
+  }
+
+  /* flags for crossings made · droplets for splashes so far */
+  for (let i = 0; i < Math.min(HOP.crossings, 5); i++) hpDrawFlag(TWX, HP_FLAG_X[i], 36);
+  for (let i = 0; i < Math.min(HOP.splashes, 3); i++) hpDrawDrop(TWX, HP_DROP_X[i], 24);
+
+  /* the endings' scenes: champion waves on the far shore · the swimmer dries off on the beach */
+  if (HOP.phase === 'OVER') {
+    if (HOP.crossings >= HP_CROSS_END)
+      hpDrawHopper(TWX, HP_COL_X[2], HP_ROW_Y[5] - 4, HOP.blink ? 'wave' : 'stand');
+    else hpDrawHopper(TWX, HP_COL_X[2], HP_ROW_Y[0] - 4, HOP.blink ? 'wave' : 'stand');
+  }
+
+  /* combo words — the only words the crystal ever says */
+  if (HOP.wordT > 0) szText(TWX, HOP.word, 64, 44, 11, LCD_INK);
+
+  /* digits over their baked ghost-eights; the crown marks a best that exists */
+  szDigits(HOP.coins, 100, 6, 1);
+  szDigits(HOP.best, 6, 10, 0.5);
+  if (HOP.best > 0) { TWX.fillStyle = LCD_INK;
+    szRR(TWX, 12, 4, 3, 3, 1); szRR(TWX, 16, 2.5, 3, 4.5, 1); szRR(TWX, 20, 4, 3, 3, 1); }
+  TWX.restore();
+
+  /* ---- 3 bezel lamps: score · streak · pause (all the juice lives out here) ---- */
+  const lamp = (gx, col, on) => {
+    if (!on) return;
+    TWX.fillStyle = col;
+    TWX.beginPath(); TWX.arc(arX(gx), arY(-4), arS(1.8), 0, Math.PI * 2); TWX.fill();
+  };
+  lamp(55, BZ_RED, HOP.lampScoreT > 0);
+  lamp(75, BZ_MUSTARD, HOP.streak >= 2);
+  lamp(95, BZ_RED, HOP.phase === 'PAUSE' && HOP.blink);
+
+  /* ---- the cream index cards (bezel layer — rotation is legal out here) ---- */
+  if (HOP.phase === 'INTRO' || HOP.phase === 'PAUSE' || HOP.phase === 'OVER') {
+    const cw = arS(132), ch = arS(HOP.phase === 'OVER' ? 120 : 108);
+    const cx = arX(75), cy = arY(HOP.phase === 'OVER' ? 76 : 90);
+    TWX.save();
+    TWX.translate(cx, cy); TWX.rotate(-2 * Math.PI / 180);
+    TWX.fillStyle = BZ_CREAM; TWX.fillRect(-cw / 2, -ch / 2, cw, ch);
+    TWX.restore();
+    const T = (s, gy, size) => szText(TWX, s, 75, gy, size, LCD_INK);
+    if (HOP.phase === 'INTRO') {
+      T('HOP THE TIDE!', 52, 13);
+      TWX.fillStyle = LCD_INK;
+      hpDrawStone(TWX, 46, 82); hpDrawHopper(TWX, 46, 72, 'leap');     // pictogram: hop the stones
+      hpDrawFlag(TWX, 100, 84); hpDrawHopper(TWX, 108, 80, 'wave');    // pictogram: reach the flag
+      T('MIDDLE = HOP AHEAD · SIDES = HOP OVER', 108, 6);
+      T('RIDE THE STONES · 5 CROSSINGS WINS', 122, 6.5);
+    } else if (HOP.phase === 'PAUSE') {
+      T(HOP.resting ? 'resting — tap ▶' : 'PAUSED', 54, 11);
+      TWX.fillStyle = LCD_INK;
+      hpDrawStone(TWX, 40, 84); hpDrawHopper(TWX, 40, 74, 'leap');
+      hpDrawFlag(TWX, 104, 84); hpDrawHopper(TWX, 112, 80, 'wave');
+      T('HOP · RIDE · CROSS', 112, 7);
+      szText(TWX, '▶', 48, 132, 16, LCD_INK);
+      szText(TWX, '🚪', 102, 132, 14, LCD_INK);
+      HOP.zones = [
+        { x: arX(28), y: arY(120), w: arS(40), h: arS(24), go: () => hpPause(false) },
+        { x: arX(82), y: arY(120), w: arS(40), h: arS(24), go: () => exitArcade() },
+      ];
+    } else {                                       // OVER — both endings are celebrations
+      T(HOP.overMsg, 32, 9.5);
+      T(`🪙 ${HOP.coins} COINS`, 52, 11);
+      T(`${HOP.crossings} crossings · best streak ${HOP.bestStreak}`, 68, 7);
+      T(HOP.coins >= HOP.best && HOP.coins > 0 ? '✨ YOUR BEST!' : `your best ${HOP.best}`, 80, 7);
+      TWX.fillStyle = LCD_INK;
+      TWX.fillRect(arX(24), arY(94), arS(102), arS(16));
+      szText(TWX, 'PLAY AGAIN', 75, 102, 8, LCD_PAPER);
+      TWX.fillStyle = LCD_INK;
+      TWX.fillRect(arX(24), arY(116), arS(102), arS(16));
+      szText(TWX, 'WALK AWAY', 75, 124, 8, LCD_PAPER);
+      HOP.zones = [
+        { x: arX(24), y: arY(94), w: arS(102), h: arS(16), go: () => hpReset(false) },
+        { x: arX(24), y: arY(116), w: arS(102), h: arS(16), go: () => exitArcade() },
+      ];
+    }
+  }
+}
+
+/* ---- inputs — called by the shared ARCADE listeners when AR.game === 'HOP'
+   (hit order mirrors SIZZLE: pause button → card zones → full-canvas thirds) ---- */
+function hpTap(bx, by) {
+  HOP.idleT = 0;
+  /* 1 — the pause button always wins; hit target ≥72 css px no matter the paint size */
+  const pr = Math.max(SZ_PBTN.r * ARV.scale, 36);
+  const pdx = bx - arX(SZ_PBTN.gx), pdy = by - arY(SZ_PBTN.gy);
+  if (pdx * pdx + pdy * pdy <= pr * pr) { hpPause(HOP.phase !== 'PAUSE'); return; }
+  /* 2 — whatever card is out (pause ▶/🚪, results PLAY AGAIN / WALK AWAY) */
+  for (const z of HOP.zones) if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  if (HOP.phase === 'PAUSE' || HOP.phase === 'OVER') return;   // frozen means frozen
+  /* 3 — the whole canvas is three thirds: sides hop over, the big middle hops AHEAD */
+  hpHop(bx < ARV.W / 3 ? -1 : bx < ARV.W * 2 / 3 ? 0 : 1);
+}
+function hpKey(e) {
+  if (e.code === 'Escape' || e.code === 'KeyP') {              // pause is free; leaving via 🚪 only
+    e.preventDefault();
+    if (HOP.phase !== 'OVER') hpPause(HOP.phase !== 'PAUSE');
+    return;
+  }
+  const d = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? -1
+          : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 1
+          : (e.code === 'ArrowUp' || e.code === 'KeyS' || e.code === 'Space') ? 0 : null;
+  if (d !== null) { e.preventDefault(); hpHop(d); }            // direct-select mirrors touch
+}
+
+/* ================== 🗂️ THE GALLERY PICKER — which cartridge tonight? ==================
+   AR.game: null = this picker · 'SZ' = SIZZLE · 'HOP' = THE HOPPER. The shack remembers
+   your favorite ('d64_arcade_last' → AR.pick cursor, set in enterArcade). The bezel
+   behind the card is the CURSOR's game's bezel, so flipping the cursor flips the whole
+   cabinet — the marquee itself tells you what you're choosing. Tile art is drawn with
+   each game's own segment sprites: no emoji mascots, no borrowed glyphs. */
+function arLaunch(g) {
+  AR.game = g;
+  try { localStorage.setItem('d64_arcade_last', g); } catch (e) {}
+  if (g === 'HOP') hpReset(false); else szReset(false);        // keep the visit's banks
+  AU.coin(); buzz([20, 30, 40]);                               // enterArcade already played the join jingle
+}
+function arDrawPick() {
+  TWX.setTransform(1, 0, 0, 1, 0, 0);
+  TWX.clearRect(0, 0, TWC.width, TWC.height);
+  TWX.drawImage(AR.pick === 1 ? hpBezel : arBezel, 0, 0);      // the cabinet IS the preview
+  const blink = ((performance.now() / 250) | 0) % 2;
+  AR.pickZones = [];
+  /* one big cream index card, tucked under the glass at the house −2° */
+  const cw = arS(136), ch = arS(136), cx = arX(75), cy = arY(96);
+  TWX.save();
+  TWX.translate(cx, cy); TWX.rotate(-2 * Math.PI / 180);
+  TWX.fillStyle = BZ_CREAM; TWX.fillRect(-cw / 2, -ch / 2, cw, ch);
+  TWX.restore();
+  szText(TWX, 'THE ARCADE', 75, 42, 12, LCD_INK);
+  szText(TWX, 'two games · one little screen', 75, 54, 6, LCD_INK);
+  /* two tiles: 🍳 SIZZLE · THE HOPPER (each drawn with its own segment sprites) */
+  for (let i = 0; i < 2; i++) {
+    const tx = 14 + i * 66, tcx = tx + 28;                     // tile left edge / center
+    if (AR.pick === i) {                                       // cursor frame: 4 thin ink bars
+      TWX.fillStyle = LCD_INK;
+      TWX.fillRect(arX(tx), arY(62), arS(56), arS(1.8));
+      TWX.fillRect(arX(tx), arY(124), arS(56), arS(1.8));
+      TWX.fillRect(arX(tx), arY(62), arS(1.8), arS(64));
+      TWX.fillRect(arX(tx + 54.2), arY(62), arS(1.8), arS(64));
+      if (blink) {                                             // the winking ▼ says "this one?"
+        TWX.beginPath();
+        TWX.moveTo(arX(tcx - 3), arY(58)); TWX.lineTo(arX(tcx + 3), arY(58));
+        TWX.lineTo(arX(tcx), arY(61.5)); TWX.closePath(); TWX.fill();
+      }
+    }
+    TWX.fillStyle = LCD_INK;
+    if (i === 0) {                                             // SIZZLE: pan + food, its own cells
+      szDrawFood(TWX, 0, tcx, 82, 0);
+      szDrawPan(TWX, tcx, 98, 'idle');
+      szText(TWX, 'SIZZLE', tcx, 112, 7, LCD_INK);
+    } else {                                                   // THE HOPPER: hopper on a stone
+      hpDrawStone(TWX, tcx, 98);
+      hpDrawHopper(TWX, tcx, 87, 'leap');
+      szText(TWX, 'THE HOPPER', tcx, 112, 5.5, LCD_INK);
+    }
+    szText(TWX, `best ${i === 0 ? SZ.best : HOP.best}`, tcx, 120.5, 5, LCD_INK);
+    AR.pickZones.push({ x: arX(tx), y: arY(62), w: arS(56), h: arS(62),
+                        go: () => arLaunch(i === 0 ? 'SZ' : 'HOP') });
+  }
+  szText(TWX, '🚪', 75, 140, 12, LCD_INK);
+  szText(TWX, 'tap a game · 🚪 = back outside', 75, 152, 5.5, LCD_INK);
+  AR.pickZones.push({ x: arX(60), y: arY(130), w: arS(30), h: arS(20), go: () => exitArcade() });
+}
+function arPickTap(bx, by) {
+  for (const z of AR.pickZones || [])
+    if (bx > z.x && bx < z.x + z.w && by > z.y && by < z.y + z.h) { z.go(); return; }
+  /* lane-thirds fallback: left = SIZZLE, right = THE HOPPER, middle = the remembered one */
+  if (bx < ARV.W / 3) arLaunch('SZ');
+  else if (bx > ARV.W * 2 / 3) arLaunch('HOP');
+  else arLaunch(AR.pick === 1 ? 'HOP' : 'SZ');
+}
+function arPickKey(e) {
+  if (e.code === 'Escape') { e.preventDefault(); exitArcade(); return; }
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+    e.preventDefault(); AR.pick = 0;
+    AU.beep('square', 180, null, 0.03, 0.12); buzz(10); return;
+  }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+    e.preventDefault(); AR.pick = 1;
+    AU.beep('square', 180, null, 0.03, 0.12); buzz(10); return;
+  }
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyS' || e.code === 'ArrowDown')
+    { e.preventDefault(); arLaunch(AR.pick === 1 ? 'HOP' : 'SZ'); }
+}
 
 /* ---------- main loop ---------- */
 let last = performance.now(), raf = null;
@@ -6668,7 +7530,7 @@ function loop(now) {
     stepHero(dt, mt);
     stepPuppets(dt, mt);
     spinCollectibles(dt, mt);
-    if (state !== 'SWOOP') { stepCrumbs(dt, mt); stepSharks(dt, mt); }
+    if (state !== 'SWOOP') { stepCrumbs(dt, mt); stepMdCrumbs(dt, mt); stepSharks(dt, mt); }
     MMO.tick(mt);
   }
   stepCheese(dt);
@@ -6684,7 +7546,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     cancelAnimationFrame(raf); if (AU.ctx) AU.ctx.suspend();
     touchSpray = false; P.spray = false;                  // phone locked mid-spray: let go of everything
-    if (state === 'ARCADE') szPause(true);                // pocketed mid-round: pause, lose nothing
+    if (state === 'ARCADE') {                             // pocketed mid-round: pause, lose nothing
+      if (AR.game === 'HOP') hpPause(true);
+      else if (AR.game === 'SZ') szPause(true);           // picker (null) has nothing to lose
+    }
     stick.active = false; stick.x = stick.y = 0;
     for (const k in keys) keys[k] = false;
     if (syncTimer) flushHeroSync();                       // don't lose a spark to a pocketed phone
@@ -6845,7 +7710,7 @@ addEventListener('keydown', e => {
 setTimeout(() => $('boot').classList.add('out'), 2300);
 setTimeout(() => {
   $('boot').style.display = 'none'; state = 'TITLE';
-  if (localStorage.getItem('d64_seenver') !== GAME_VERSION) setTimeout(showChlog, 600);
+  if (localStorage.getItem('d64_seenver') !== GAME_VERSION) setTimeout(() => { if (state === 'TITLE') showChlog(); }, 600);   // QA P1-1: never open over live play — it swallows every tap
 }, 2850);
 $('title').addEventListener('pointerdown', startGame);
 </script>
